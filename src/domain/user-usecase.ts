@@ -30,7 +30,7 @@ export class UserUsecase {
     async updateUser(id: number, userToUpdate: UserToUpdate): Promise<User | string> {
         const userRepo = this.db.getRepository(User);
         const userFound = await userRepo.findOne({
-          where: { id },
+          where: { id, isDeleted: false },
           relations: ['status']
         });
         
@@ -68,7 +68,7 @@ export class UserUsecase {
     async updateAdmin(id: number, userToUpdate: UserToUpdate): Promise<User | string> {
         const userRepo = this.db.getRepository(User);
         const userFound = await userRepo.findOne({
-          where: { id },
+          where: { id, isDeleted: false },
           relations: ['status']
         });
         
@@ -107,6 +107,7 @@ export class UserUsecase {
         console.log(listUserFilter);
         const query = AppDataSource.getRepository(User)
             .createQueryBuilder('user')
+            .where('user.isDeleted = :isDeleted', { isDeleted: false })
             .leftJoinAndSelect('user.status', 'status');
     
         if (listUserFilter.type) {
@@ -116,7 +117,7 @@ export class UserUsecase {
                 .getOne();
     
             if (status) {
-                query.where('user.status.id = :statusId', { statusId: status.id });
+                query.andWhere('user.status.id = :statusId', { statusId: status.id });
             } else {
                 const adminStatus = await AppDataSource.getRepository(Status)
                     .createQueryBuilder('status')

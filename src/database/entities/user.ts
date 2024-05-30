@@ -24,6 +24,9 @@ export class User {
     @ManyToOne(() => Status, status => status.users)
     status!:Status;
 
+    @Column({ default: false })
+    isDeleted!: boolean;
+
     @OneToMany(() => Token, token => token.user)
     tokens!: any[]
 }

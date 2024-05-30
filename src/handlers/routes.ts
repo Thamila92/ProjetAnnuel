@@ -12,8 +12,10 @@ import { createAdminValidation } from "./validators/user-validator";
 import { UserUsecase } from "../domain/user-usecase";
 import { normalMiddleware } from "./middleware/normal-middleware";
 import { adminMiddleware } from "./middleware/admin-middleware";
+import { authMiddleware } from "./middleware/combMiddleware";
 
 export const initRoutes = (app: express.Express) => {
+    //la route utilisee pour creer les statuts est bloquee volontairement
 
     // app.post('/status',async(req:Request,res: Response)=>{
     //     try {
@@ -78,9 +80,8 @@ export const initRoutes = (app: express.Express) => {
             res.status(500).json({ error: "Internal error" })
         }
     })
-    /*
-    Listing des infos du profile d'un utilisateur quelconque
-    */
+
+    //Listing des infos du profil d'un utilisateur quelconque
     app.get("/users/:id",  async (req: Request, res: Response) => {
         try {
             const validationResult = userIdValidation.validate(req.params)
@@ -92,7 +93,7 @@ export const initRoutes = (app: express.Express) => {
             const userId = validationResult.value
 
             const userRepository = AppDataSource.getRepository(User)
-            const user = await userRepository.findOneBy({ id: userId.id })
+            const user = await userRepository.findOneBy({ id: userId.id , isDeleted: false})
             if (user === null) {
                 res.status(404).json({ "error": `user ${userId.id} not found` })
                 return
@@ -103,11 +104,6 @@ export const initRoutes = (app: express.Express) => {
             res.status(500).json({ error: "Internal error" })
         }
     })
-
-
-
-
-
 
 
 
@@ -159,8 +155,11 @@ export const initRoutes = (app: express.Express) => {
             const loginOtherRequest = validationResult.value
 
             // valid other exist
-            const other = await AppDataSource.getRepository(User).findOneBy({ email: loginOtherRequest.email });
-
+            const other = await AppDataSource.getRepository(User).findOneBy({
+                email: loginOtherRequest.email,
+                isDeleted: false
+            });
+            
             if (!other) {
                 res.status(400).json({ error: "email or password not valid" })
                 return
@@ -210,12 +209,46 @@ export const initRoutes = (app: express.Express) => {
         }
     })
 
+    app.delete("/users/:id", async (req: Request, res: Response) => {
+        try {
+            const validationResult = updateUserValidation.validate({ ...req.params, ...req.body });
+    
+            if (validationResult.error) {
+                res.status(400).json(generateValidationErrorMessage(validationResult.error.details));
+                return;
+            }
+    
+            const userProto = validationResult.value;
+            const userRepository = AppDataSource.getRepository(User);
+            
+
+            const user = await userRepository.findOneBy({ id: userProto.id,isDeleted:false });
+            if (!user) {
+                res.status(404).json({ error: `User ${userProto.id} not found` });
+                return;
+            }
+    
+            const isValid = await compare(userProto.actual_password, user.password);
+    
+            if (!isValid) {
+                res.status(400).json({ error: "Actual password incorrect" });
+                return;
+            }
+
+            user.isDeleted = true;
+            const userDeleted = await userRepository.save(user);
+            res.status(200).json(userDeleted);
+        } catch (error) {
+            console.log(error);
+            res.status(500).json({ error: "Internal error" });
+        }
+    });
+    
 
 
 
 
-
-
+    //Pour creer un admin , une cle sera demandee , la retrouver dans le readme
     app.post('/admin/signup', async (req: Request, res: Response) => {
         try {
             const validationResult = createAdminValidation.validate(req.body)
@@ -278,8 +311,11 @@ export const initRoutes = (app: express.Express) => {
             const loginAdminRequest = validationResult.value
 
             // valid other exist
-            const admin = await AppDataSource.getRepository(User).findOneBy({ email: loginAdminRequest.email });
-
+            const admin = await AppDataSource.getRepository(User).findOneBy({
+                email: loginAdminRequest.email,
+                isDeleted: false
+            });
+            
             if (!admin) {
                 res.status(400).json({ error: "email or password not valid" })
                 return
@@ -323,6 +359,34 @@ export const initRoutes = (app: express.Express) => {
                 return
             }
             res.status(200).json(updatedUser)
+        } catch (error) {
+            console.log(error)
+            res.status(500).json({ error: "Internal error" })
+        }
+    })
+
+    app.delete("/admins/:id",adminMiddleware,async (req: Request, res: Response) => {
+        try {
+            const validationResult = updateUserValidation.validate({...req.params,...req.body})
+
+            if (validationResult.error) {
+                res.status(400).json(generateValidationErrorMessage(validationResult.error.details))
+                return
+            }
+            const userProto = validationResult.value
+
+            const userRepository = AppDataSource.getRepository(User)
+            const user = await userRepository.findOneBy({ id: userProto.id,isDeleted: false })
+            if (user === null) {
+                res.status(404).json({ "error": `user ${userProto.id} not found` })
+                return
+            }
+            const isValid =await compare(userProto.actual_password,user.password)
+            if (!isValid) {
+            return "Actual password incorrect !!!";
+            }
+            const userDeleted = await userRepository.remove(user)
+            res.status(200).json(userDeleted)
         } catch (error) {
             console.log(error)
             res.status(500).json({ error: "Internal error" })
