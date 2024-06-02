@@ -3,7 +3,8 @@ import { User } from "./user";
 
 enum statustype{
     admin="ADMIN",
-    other="NORMAL"
+    other="NORMAL",
+    benefactor="BENEFACTOR"
 }
 
 @Entity()

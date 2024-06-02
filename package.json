@@ -17,6 +17,7 @@
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.9.8",
     "reflect-metadata": "^0.2.2",
+    "stripe": "^15.8.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
     "typeorm": "^0.3.20"

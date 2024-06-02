@@ -17,7 +17,8 @@ export interface UpdateMovieParams {
 
 export interface UserToUpdate {
     email?: string
-    iban?: string
+    // iban?: string'
+    name?:string
     password?:string
     actual_password:string
 }
@@ -53,9 +54,12 @@ export class UserUsecase {
           userFound.email = userToUpdate.email;
         }
       
-        if (userToUpdate.iban) {
-          userFound.iban = userToUpdate.iban;
+        if (userToUpdate.name) {
+          userFound.name = userToUpdate.name;
         }
+        // if (userToUpdate.iban) {
+        //   userFound.iban = userToUpdate.iban;
+        // }
       
         if (userToUpdate.password) {
           userFound.password = await hash(userToUpdate.password, 10);
@@ -91,9 +95,13 @@ export class UserUsecase {
           userFound.email = userToUpdate.email;
         }
       
-        if (userToUpdate.iban) {
-          userFound.iban = userToUpdate.iban;
+        if (userToUpdate.name) {
+          userFound.name = userToUpdate.name;
         }
+
+        // if (userToUpdate.iban) {
+        //   userFound.iban = userToUpdate.iban;
+        // }
       
         if (userToUpdate.password) {
           userFound.password = await hash(userToUpdate.password, 10);
@@ -123,7 +131,7 @@ export class UserUsecase {
                     .createQueryBuilder('status')
                     .where('status.description = :description', { description: 'ADMIN' })
                     .getOne();
-                return `Nothing Found !!! from type: ${listUserFilter.type} ${adminStatus?.description}`;
+                return `Nothing Found !!! from type: ${listUserFilter.type}`;
             }
         }
     

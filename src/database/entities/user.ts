@@ -1,6 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany, ManyToOne } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany, ManyToOne, JoinTable, ManyToMany } from "typeorm";
 import { Status } from "./status";
 import { Token } from "./token";
+import { Expenditures } from "./expenditure";
+import { Donation } from "./donation";
 
 @Entity()
 export class User {
@@ -14,9 +16,12 @@ export class User {
 
     @Column()
     password!: string
+
+    @Column()
+    name!: string
     
-    @Column({ default: "FR7630006000011234567890189" })
-    iban?: string
+    // @Column({ default: "FR7630006000011234567890189" })
+    // iban?: string
 
     @CreateDateColumn({type: "datetime"})
     createdAt!: Date
@@ -29,4 +34,10 @@ export class User {
 
     @OneToMany(() => Token, token => token.user)
     tokens!: any[]
+
+    @OneToMany(() => Donation, donation => donation.benefactor)
+    donations!: any[]
+    
+    @OneToMany(() => Expenditures, expenditures => expenditures.user)
+    expenditures!: Expenditures[];
 }

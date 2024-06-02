@@ -33,7 +33,7 @@ export const adminMiddleware = async (req: Request, res: Response, next: NextFun
     return res.status(403).json({ "error": "Access Forbidden" });
   }
 
-  const secret = process.env.JWT_SECRET ?? "NoNotThis";
+  const secret = process.env.JWT_SECRET ?? "NoNotThiss";
 
   try {
     const decoded = await new Promise<JwtPayload | undefined>((resolve, reject) => {

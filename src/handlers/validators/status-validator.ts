@@ -2,7 +2,8 @@ import Joi from 'joi';
 
 enum statustype {
   admin = "ADMIN",
-  other = "NORMAL"
+  other = "NORMAL",
+  benefactor="BENEFACTOR"
 }
 
 export const createStatusValidation = Joi.object<CreateStatusValidationRequest>({

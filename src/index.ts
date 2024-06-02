@@ -4,14 +4,15 @@ import { AppDataSource } from "./database/database";
 import 'dotenv/config';
 import { swaggerDocs } from "./swagger/swagger";
 import "reflect-metadata"
-
+const paypal =require("./handlers/paypal")
+           
 
 const main = async () => {
     const app = express()
     const port = 3000
 
     try {
-
+ 
         await AppDataSource.initialize()
         console.error("well connected to database")
     } catch (error) {
