@@ -1,7 +1,7 @@
 import { compare, hash } from "bcrypt";
 import express, { Request, Response } from "express";
 import { AppDataSource } from "../database/database";
-import { createOtherValidation, listUsersValidation, loginOtherValidation, updateUserValidation, userIdValidation } from "./validators/user-validator";
+import { createOtherValidation,listUsersValidation, loginOtherValidation, updateUserValidation, userIdValidation } from "./validators/user-validator";
 import { generateValidationErrorMessage } from "./validators/generate-validation-message";
 import { User } from "../database/entities/user";
 import { Status } from "../database/entities/status";
@@ -17,6 +17,8 @@ import { Donation } from "../database/entities/donation";
 import { benefactorMiddleware } from "./middleware/benefactor-middleware";
 import { createDonationValidation } from "./validators/donation-validator";
 import { Expenditures } from "../database/entities/expenditure";
+import { ExpenditureUsecase } from "../domain/expenditure-usecase";
+import { listExpendituresValidation } from "./validators/expenditure-validator";
 const paypal =require("./paypal")
 // const open = require('open');
 
@@ -70,7 +72,7 @@ export const initRoutes = (app: express.Express) => {
     /*
     Listing de tous les utilisateurs, on peut passer le type d'utilisateur qu'on veut avoir en Query Param
     */
-    app.get('/users',async(req: Request, res: Response)=>{
+    app.get('/users',authMiddleware,async(req: Request, res: Response)=>{
         const validation = listUsersValidation.validate(req.query)
 
         if (validation.error) {
@@ -102,7 +104,7 @@ export const initRoutes = (app: express.Express) => {
     })
 
     //Listing des infos du profil d'un utilisateur quelconque
-    app.get("/users/:id",  async (req: Request, res: Response) => {
+    app.get("/users/:id",authMiddleware,async (req: Request, res: Response) => {
         try {
             const validationResult = userIdValidation.validate(req.params)
 
@@ -124,6 +126,252 @@ export const initRoutes = (app: express.Express) => {
             res.status(500).json({ error: "Internal error" })
         }
     })
+
+
+
+
+    app.post('/expenditure',adminMiddleware,async (req: Request, res: Response) => {
+        try{
+            const validationResult = createDonationValidation.validate(req.body)
+            if (validationResult.error) {
+                res.status(400).json(generateValidationErrorMessage(validationResult.error.details))
+                return
+            }
+            const createDonationRequest = validationResult.value
+
+            const authHeader = req.headers['authorization'];
+            if (!authHeader) return res.status(401).json({ "error": "Unauthorized" });
+
+            const token = authHeader.split(' ')[1];
+            if (token === null) return res.status(401).json({ "error": "Unauthorized" });
+
+            const tokenRepo = AppDataSource.getRepository(Token);
+            const tokenFound = await tokenRepo.findOne({ where: { token }, relations: ['user'] });
+
+            if (!tokenFound) {
+                return res.status(403).json({ "error": "Access Forbidden" });
+            }
+
+            if (!tokenFound.user) {
+                return res.status(500).json({ "error": "Internal server error u"});
+            }
+
+            const userRepo = AppDataSource.getRepository(User);
+            const userFound = await userRepo.findOne({ where: { id:tokenFound.user.id }});
+
+            if (!userFound) {
+                return res.status(500).json({ "error": "Internal server error stat "});
+            }
+
+            const expenditureRepository = AppDataSource.getRepository(Expenditures);
+            const newExpenditure = expenditureRepository.create({
+                amount:createDonationRequest.amount,
+                user:userFound,
+                description:createDonationRequest.description
+            });
+
+            await expenditureRepository.save(newExpenditure);
+
+            // const url=await paypal.createPayout(createDonationRequest.amount,'EUR')
+            // console.log(url)
+            // res.redirect(url)
+            // res.status(200).json({ ...url });
+            if(await paypal.createPayout(createDonationRequest.amount,'EUR')){
+                res.status(200).json({
+                    message: "Expenditure successfully registered and the amount of "+createDonationRequest.amount+"€ has been transfered",
+                    CheckThemAllHere: "http:localhost:3000/expenditures"
+                })
+            }
+            // await open(url);
+        }catch(error){
+            console.log(error)
+            res.status(500).json({ error: "Internal error" })
+        }
+    })
+
+    app.get('/expenditures',adminMiddleware,async(req: Request, res: Response)=>{
+        const validation = listExpendituresValidation.validate(req.query)
+
+        if (validation.error) {
+            res.status(400).json(generateValidationErrorMessage(validation.error.details))
+            return
+        }
+
+        const listExpenditureRequest = validation.value
+        let limit = 10
+        if (listExpenditureRequest.limit) {
+            limit = listExpenditureRequest.limit
+        }
+
+        let id=0
+        if (listExpenditureRequest.id) {
+            id = listExpenditureRequest.id
+        }
+
+        const page = listExpenditureRequest.page ?? 1
+
+        try {
+            const expenditureUsecase = new ExpenditureUsecase(AppDataSource);
+            const listusers = await expenditureUsecase.listExpenditure({ ...listExpenditureRequest, page, limit , id })
+            res.status(200).json(listusers)
+        } catch (error) {
+            console.log(error)
+            res.status(500).json({ error: "Internal error" })
+        }
+    })
+
+    app.get("/expenditures/:id",adminMiddleware,async (req: Request, res: Response) => {
+        try {
+            const validationResult = userIdValidation.validate(req.params)
+
+            if (validationResult.error) {
+                res.status(400).json(generateValidationErrorMessage(validationResult.error.details))
+                return
+            }
+            const expenditureId = validationResult.value
+
+            const userRepository = AppDataSource.getRepository(Expenditures)
+            const user = await userRepository.findOneBy({ id: expenditureId.id})
+            if (user === null) {
+                res.status(404).json({ "error": `Expenditure ${expenditureId.id} not found` })
+                return
+            }
+            res.status(200).json(user)
+        } catch (error) {
+            console.log(error)
+            res.status(500).json({ error: "Internal error" })
+        }
+    })
+
+
+
+
+    app.post('/Donation',benefactorMiddleware,async (req: Request, res: Response) => {
+        try{
+            const validationResult = createDonationValidation.validate(req.body)
+            if (validationResult.error) {
+                res.status(400).json(generateValidationErrorMessage(validationResult.error.details))
+                return
+            }
+            const createDonationRequest = validationResult.value
+
+            const authHeader = req.headers['authorization'];
+            if (!authHeader) return res.status(401).json({ "error": "Unauthorized" });
+
+            const token = authHeader.split(' ')[1];
+            if (token === null) return res.status(401).json({ "error": "Unauthorized" });
+
+            const tokenRepo = AppDataSource.getRepository(Token);
+            const tokenFound = await tokenRepo.findOne({ where: { token }, relations: ['user'] });
+
+            if (!tokenFound) {
+                return res.status(403).json({ "error": "Access Forbidden" });
+            }
+
+            if (!tokenFound.user) {
+                return res.status(500).json({ "error": "Internal server error u"});
+            }
+
+            const userRepo = AppDataSource.getRepository(User);
+            const userFound = await userRepo.findOne({ where: { id:tokenFound.user.id }});
+
+            if (!userFound) {
+                return res.status(500).json({ "error": "Internal server error stat "});
+            }
+
+            const donationRepository = AppDataSource.getRepository(Donation);
+            const newDonation = donationRepository.create({
+                amount:createDonationRequest.amount,
+                description:createDonationRequest.description,
+                remaining:createDonationRequest.amount,
+                benefactor:userFound
+            });
+
+            await donationRepository.save(newDonation);
+
+            const url=await paypal.createOrder(createDonationRequest.description, createDonationRequest.amount)
+            // console.log(url)
+            // res.redirect(url)
+            res.status(200).json({ message: "open this on your current navigator: "+url });
+            // await open(url);
+        }catch(error){
+            console.log(error)
+            res.status(500).json({ error: "Internal error" })
+        }
+    });
+
+    app.get('/validateDonation',async(req: Request, res: Response) => {
+        try{
+            await paypal.capturePayment(req.query.token)
+
+            res.status(200).json({ 
+                message:"Donation perfectly done",
+                CheckThemAllHeres: "http:localhost:3000/donations"
+            })
+        }catch(error){
+            res.send("Error: "+error)
+        }
+    })
+
+    app.get('/cancelDonation',async(req: Request, res: Response) => {
+        try{
+            const donationRepository = AppDataSource.getRepository(Donation);
+
+            const latestDonation = await donationRepository.findOne({
+                where: {
+                    isCanceled: false
+                },
+                order: {
+                    createdAt: 'DESC'
+                }
+            })
+            if(latestDonation){
+                latestDonation.isCanceled=true
+                await donationRepository.save(latestDonation)
+            }
+            res.status(200).json({
+                message: "Donation successfully canceled",
+                CheckThemAllHeres: "http:localhost:3000/donations"
+            })
+        }catch(error){
+            res.send("Error: "+error)
+        }
+    })
+
+    app.get('/donations',async(req: Request, res: Response)=>{
+        const query = AppDataSource.getRepository(Donation)
+            .createQueryBuilder('donation')
+            .where('donation.isCanceled= false')
+        const [donation, totalCount] = await query.getManyAndCount();
+        res.status(200).json({
+            donation,
+            totalCount
+        })
+    })
+
+    app.get("/donations/:id",async (req: Request, res: Response) => {
+        try {
+            const validationResult = userIdValidation.validate(req.params)
+
+            if (validationResult.error) {
+                res.status(400).json(generateValidationErrorMessage(validationResult.error.details))
+                return
+            }
+            const expenditureId = validationResult.value
+
+            const userRepository = AppDataSource.getRepository(Donation)
+            const user = await userRepository.findOneBy({ id: expenditureId.id, isCanceled: false})
+            if (user === null) {
+                res.status(404).json({ "error": `Donation ${expenditureId.id} not found` })
+                return
+            }
+            res.status(200).json(user)
+        } catch (error) {
+            console.log(error)
+            res.status(500).json({ error: "Internal error" })
+        }
+    })
+
 
 
 
@@ -429,62 +677,11 @@ export const initRoutes = (app: express.Express) => {
             if (!isValid) {
             return "Actual password incorrect !!!";
             }
-            const userDeleted = await userRepository.remove(user)
+            // const userDeleted = await userRepository.remove(user)
+            user.isDeleted = true
+            const userDeleted = await userRepository.save(user);
             res.status(200).json(userDeleted)
         } catch (error) {
-            console.log(error)
-            res.status(500).json({ error: "Internal error" })
-        }
-    })
-
-    app.post('/expenditure',adminMiddleware,async (req: Request, res: Response) => {
-        try{
-            const validationResult = createDonationValidation.validate(req.body)
-            if (validationResult.error) {
-                res.status(400).json(generateValidationErrorMessage(validationResult.error.details))
-                return
-            }
-            const createDonationRequest = validationResult.value
-
-            const authHeader = req.headers['authorization'];
-            if (!authHeader) return res.status(401).json({ "error": "Unauthorized" });
-
-            const token = authHeader.split(' ')[1];
-            if (token === null) return res.status(401).json({ "error": "Unauthorized" });
-
-            const tokenRepo = AppDataSource.getRepository(Token);
-            const tokenFound = await tokenRepo.findOne({ where: { token }, relations: ['user'] });
-
-            if (!tokenFound) {
-                return res.status(403).json({ "error": "Access Forbidden" });
-            }
-
-            if (!tokenFound.user) {
-                return res.status(500).json({ "error": "Internal server error u"});
-            }
-
-            const userRepo = AppDataSource.getRepository(User);
-            const userFound = await userRepo.findOne({ where: { id:tokenFound.user.id }});
-
-            if (!userFound) {
-                return res.status(500).json({ "error": "Internal server error stat "});
-            }
-
-            const expenditureRepository = AppDataSource.getRepository(Expenditures);
-            const newExpenditure = expenditureRepository.create({
-                amount:createDonationRequest.amount,
-                user:userFound,
-                description:createDonationRequest.description
-            });
-
-            await expenditureRepository.save(newExpenditure);
-
-            const url=await paypal.createPayout(createDonationRequest.amount,'EUR')
-            // console.log(url)
-            // res.redirect(url)
-            res.status(200).json({ ...url });
-            // await open(url);
-        }catch(error){
             console.log(error)
             res.status(500).json({ error: "Internal error" })
         }
@@ -586,128 +783,57 @@ export const initRoutes = (app: express.Express) => {
         }
     })
 
-    app.post('/Donation',benefactorMiddleware,async (req, res) => {
-        try{
-            const validationResult = createDonationValidation.validate(req.body)
+    app.patch("/benefactors/:id",benefactorMiddleware,async (req: Request, res: Response) => {
+        const validation = updateUserValidation.validate({...req.body,...req.params})
+
+        if (validation.error) {
+            res.status(400).json(generateValidationErrorMessage(validation.error.details))
+            return
+        }
+        const updateUserRequest = validation.value
+
+        try {
+            const userUsecase = new UserUsecase(AppDataSource);
+            const updatedUser = await userUsecase.updateBenefactor(updateUserRequest.id,{...updateUserRequest})
+            if (updatedUser === null) {
+                res.status(404).json({ "error": `user ${updateUserRequest.id} not found` })
+                return
+            }
+            res.status(200).json(updatedUser)
+        } catch (error) {
+            console.log(error)
+            res.status(500).json({ error: "Internal error" })
+        }
+    })
+
+    app.delete("/benefactors/:id",benefactorMiddleware,async (req: Request, res: Response) => {
+        try {
+            const validationResult = updateUserValidation.validate({...req.params,...req.body})
+
             if (validationResult.error) {
                 res.status(400).json(generateValidationErrorMessage(validationResult.error.details))
                 return
             }
-            const createDonationRequest = validationResult.value
+            const userProto = validationResult.value
 
-            const authHeader = req.headers['authorization'];
-            if (!authHeader) return res.status(401).json({ "error": "Unauthorized" });
-
-            const token = authHeader.split(' ')[1];
-            if (token === null) return res.status(401).json({ "error": "Unauthorized" });
-
-            const tokenRepo = AppDataSource.getRepository(Token);
-            const tokenFound = await tokenRepo.findOne({ where: { token }, relations: ['user'] });
-
-            if (!tokenFound) {
-                return res.status(403).json({ "error": "Access Forbidden" });
+            const userRepository = AppDataSource.getRepository(User)
+            const user = await userRepository.findOneBy({ id: userProto.id,isDeleted: false })
+            if (user === null) {
+                res.status(404).json({ "error": `user ${userProto.id} not found` })
+                return
             }
-
-            if (!tokenFound.user) {
-                return res.status(500).json({ "error": "Internal server error u"});
+            const isValid =await compare(userProto.actual_password,user.password)
+            if (!isValid) {
+            return "Actual password incorrect !!!";
             }
-
-            const userRepo = AppDataSource.getRepository(User);
-            const userFound = await userRepo.findOne({ where: { id:tokenFound.user.id }});
-
-            if (!userFound) {
-                return res.status(500).json({ "error": "Internal server error stat "});
-            }
-
-            const donationRepository = AppDataSource.getRepository(Donation);
-            const newDonation = donationRepository.create({
-                amount:createDonationRequest.amount,
-                description:createDonationRequest.description,
-                remaining:createDonationRequest.amount,
-                benefactor:userFound
-            });
-
-            await donationRepository.save(newDonation);
-
-            const url=await paypal.createOrder(createDonationRequest.description, createDonationRequest.amount)
-            // console.log(url)
-            // res.redirect(url)
-            res.status(200).json({ message: "open this on your current navigator: "+url });
-            // await open(url);
-        }catch(error){
+            user.isDeleted = true
+            const userDeleted = await userRepository.save(user);
+            res.status(200).json(userDeleted)
+        } catch (error) {
             console.log(error)
             res.status(500).json({ error: "Internal error" })
         }
-    });
-
-    app.get('/validateDonation',async(req, res) => {
-        try{
-            await paypal.capturePayment(req.query.token)
-
-            res.status(200).json({ message:"Donation perfectly done"})
-        }catch(error){
-            res.send("Error: "+error)
-        }
     })
-
-    app.get('/cancelDonation',async(req, res) => {
-        try{
-            const donationRepository = AppDataSource.getRepository(Donation);
-
-            const latestDonation = await donationRepository.findOne({
-                where: {
-                    isCanceled: false
-                },
-                order: {
-                    createdAt: 'DESC'
-                }
-            })
-            if(latestDonation){
-                latestDonation.isCanceled=true
-                await donationRepository.save(latestDonation)
-            }
-            res.status(200).json({
-                message: "Donation successfully canceled",
-                redirectUrl: "http:localhost:3000/donations"
-            })
-        }catch(error){
-            res.send("Error: "+error)
-        }
-    })
-
-    app.get('/donations',async(req,res)=>{
-        const query = AppDataSource.getRepository(Donation)
-            .createQueryBuilder('donation')
-        const [donation, totalCount] = await query.getManyAndCount();
-        res.status(200).json({
-            donation,
-            totalCount
-        })
-    })
-
-    // app.patch("/benefactor/:id",normalMiddleware,async (req: Request, res: Response) => {
-    //     const validation = updateUserValidation.validate({...req.body,...req.params})
-
-    //     if (validation.error) {
-    //         res.status(400).json(generateValidationErrorMessage(validation.error.details))
-    //         return
-    //     }
-    //     const updateUserRequest = validation.value
-
-    //     try {
-    //         const userUsecase = new UserUsecase(AppDataSource);
-    //         const updatedUser = await userUsecase.updateUser(updateUserRequest.id,{...updateUserRequest})
-    //         if (updatedUser === null) {
-    //             res.status(404).json({ "error": `user ${updateUserRequest.id} not found` })
-    //             return
-    //         }
-    //         res.status(200).json(updatedUser)
-    //     } catch (error) {
-    //         console.log(error)
-    //         res.status(500).json({ error: "Internal error" })
-    //     }
-    // })
-
     
 
 

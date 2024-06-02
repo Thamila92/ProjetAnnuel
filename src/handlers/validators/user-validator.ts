@@ -65,8 +65,6 @@ export interface ListUsersRequest {
 }
 
 
-
-
 export const userIdValidation = Joi.object<UserIdRequest>({
     id: Joi.number().required(),
 })

@@ -40,7 +40,7 @@ export class UserUsecase {
           return "User not Found !!!";
         }
         if(userFound.status && userFound.status.description!="NORMAL"){
-          return "This is not an admin !!!"
+          return "This is not a commonn user !!!"
         }
       
         // Vérifier si le mot de passe actuel est correct
@@ -111,6 +111,48 @@ export class UserUsecase {
         return uUpdated;
     }
 
+    async updateBenefactor(id: number, userToUpdate: UserToUpdate): Promise<User | string> {
+      const userRepo = this.db.getRepository(User);
+      const userFound = await userRepo.findOne({
+        where: { id, isDeleted: false },
+        relations: ['status']
+      });
+      
+    
+      if (!userFound) {
+        return "User not Found !!!";
+      }
+      if(userFound.status && userFound.status.description!="BENEFACTOR"){
+        return "This is not a benefactor !!!"
+      }
+    
+      // Vérifier si le mot de passe actuel est correct
+      const isValid =await compare(userToUpdate.actual_password,userFound.password)
+      if (!isValid) {
+        return "Actual password incorrect !!!";
+      }
+    
+      // Si le mot de passe actuel est correct, effectuer les modifications
+      if (userToUpdate.email) {
+        userFound.email = userToUpdate.email;
+      }
+    
+      if (userToUpdate.name) {
+        userFound.name = userToUpdate.name;
+      }
+
+      // if (userToUpdate.iban) {
+      //   userFound.iban = userToUpdate.iban;
+      // }
+    
+      if (userToUpdate.password) {
+        userFound.password = await hash(userToUpdate.password, 10);
+      }
+    
+      const uUpdated = await userRepo.save(userFound);
+      return uUpdated;
+  }
+
     async listUser(listUserFilter: ListUserFilter): Promise<{ users: User[]; totalCount: number; } | string> {
         console.log(listUserFilter);
         const query = AppDataSource.getRepository(User)
@@ -127,10 +169,6 @@ export class UserUsecase {
             if (status) {
                 query.andWhere('user.status.id = :statusId', { statusId: status.id });
             } else {
-                const adminStatus = await AppDataSource.getRepository(Status)
-                    .createQueryBuilder('status')
-                    .where('status.description = :description', { description: 'ADMIN' })
-                    .getOne();
                 return `Nothing Found !!! from type: ${listUserFilter.type}`;
             }
         }
