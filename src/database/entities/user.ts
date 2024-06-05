@@ -3,6 +3,8 @@ import { Status } from "./status";
 import { Token } from "./token";
 import { Expenditures } from "./expenditure";
 import { Donation } from "./donation";
+import { Review } from "./review";
+import { Evenement } from "./evenement";
 
 @Entity()
 export class User {
@@ -34,6 +36,12 @@ export class User {
 
     @OneToMany(() => Token, token => token.user)
     tokens!: any[]
+
+    @OneToMany(() => Evenement, ev => ev.user)
+    evenements!: any[]
+
+    @OneToMany(() => Review, review => review.user)
+    reviews!: any[]
 
     @OneToMany(() => Donation, donation => donation.benefactor)
     donations!: any[]
