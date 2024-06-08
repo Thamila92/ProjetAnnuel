@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.example.companion.Controller.SignUpController"
+      alignment="CENTER"
+      spacing="10">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+    <Label text="Sign Up" style="-fx-font-size: 24px;"/>
+    <TextField fx:id="nameField" promptText="Name"/>
+    <TextField fx:id="emailField" promptText="Email"/>
+    <PasswordField fx:id="passwordField" promptText="Password"/>
+    <TextField fx:id="keyField" promptText="Key"/>
+    <Button text="Sign Up" onAction="#handleSignUp"/>
+    <Button text="Go to Login" onAction="#goToLogin"/>
+</VBox>

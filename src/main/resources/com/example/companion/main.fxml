@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.example.companion.Controller.MainController"
+            fx:id="rootPane"
+            prefHeight="600.0" prefWidth="800.0">
+
+     <top>
+        <HBox spacing="10" alignment="CENTER" BorderPane.alignment="CENTER">
+            <TextField fx:id="searchField" promptText="Search..." HBox.hgrow="ALWAYS"/>
+            <Button text="LogIn/SignIn" onAction="#handleLogin"/>
+            <Button text="Notifications"/>
+        </HBox>
+    </top>
+
+     <left>
+        <VBox spacing="10" style="-fx-background-color: #FFA500;">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20"/>
+            </padding>
+            <Button text="Home" onAction="#handleHome"/>
+            <Button text="Projects" onAction="#handleProjects"/>
+            <Button text="Tasks" onAction="#handleTasks"/>
+            <Button text="Settings" onAction="#handleSettings"/>
+            <Button text="Logout"/>
+        </VBox>
+    </left>
+
+     <center>
+        <fx:include source="home.fxml"/>
+    </center>
+</BorderPane>

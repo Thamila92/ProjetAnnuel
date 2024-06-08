@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.example.companion.Controller.ProjetController"
+      spacing="10" alignment="CENTER">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <TableView fx:id="projectTable" prefHeight="400" prefWidth="800">
+        <columns>
+            <TableColumn fx:id="descriptionColumn" text="Description"/>
+            <TableColumn fx:id="startingColumn" text="Starting Date"/>
+            <TableColumn fx:id="endingColumn" text="Ending Date"/>
+            <TableColumn fx:id="stepsColumn" text="Steps"/>
+        </columns>
+    </TableView>
+
+    <Button text="Add Project" onAction="#handleAddProject"/>
+</VBox>
