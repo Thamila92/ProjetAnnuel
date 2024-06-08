@@ -1,35 +1,28 @@
-package org.example.Model;
+package com.example.companion.Model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Admin {
-    private int id;
-    private String nom;
     private String email;
     private String password;
+    private String name;
+    private String key;
 
-    public Admin(int id, String nom, String email, String password) {
-        this.id = id;
-        this.nom = nom;
+    public Admin(@JsonProperty("email") String email, @JsonProperty("password") String password, @JsonProperty("name") String name, @JsonProperty("key") String key) {
+        this.email = email;
+        this.password = password;
+        this.name = name;
+        this.key = key;
+    }
+
+    public Admin(String email, String password) {
         this.email = email;
         this.password = password;
     }
 
     // Getters et setters
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getNom() {
-        return nom;
-    }
-
-    public void setNom(String nom) {
-        this.nom = nom;
-    }
-
     public String getEmail() {
         return email;
     }
@@ -45,5 +38,20 @@ public class Admin {
     public void setPassword(String password) {
         this.password = password;
     }
-}
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+}

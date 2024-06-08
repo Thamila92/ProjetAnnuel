@@ -1,52 +1,59 @@
-package org.example.ApiClient;
+package com.example.companion.ApiClient;
+
+import com.example.companion.Model.Step;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import org.example.Model.Step;
-
-import java.lang.reflect.Type;
 import java.util.List;
 
 public class StepClient {
     private static final String BASE_URL = Urlapi.BASE_URL.getUrl();
     private final HttpClient httpClient;
-    private final Gson gson;
+    private final ObjectMapper objectMapper;
 
     public StepClient() {
         this.httpClient = HttpClient.newHttpClient();
-        this.gson = new Gson();
+        this.objectMapper = new ObjectMapper();
+    }
+
+    private HttpResponseWrapper sendGetRequest(String endpoint) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + endpoint))
+                .header("Content-Type", "application/json")
+                .GET()
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        int statusCode = response.statusCode();
+        JsonNode jsonNode = parseJson(response.body());
+
+        return new HttpResponseWrapper(jsonNode, statusCode);
     }
 
     public List<Step> getSteps() throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/steps"))
-                .GET()
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        Type stepListType = new TypeToken<List<Step>>() {}.getType();
-        return gson.fromJson(response.body(), stepListType);
+        HttpResponseWrapper responseWrapper = sendGetRequest("/steps");
+        if (responseWrapper.getStatusCode() == 200) {
+            return objectMapper.readValue(responseWrapper.getBody().toString(), new TypeReference<List<Step>>() {});
+        }
+        return null;
     }
 
     public Step getStep(int id) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/steps/" + id))
-                .GET()
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        return gson.fromJson(response.body(), Step.class);
+        HttpResponseWrapper responseWrapper = sendGetRequest("/steps/" + id);
+        if (responseWrapper.getStatusCode() == 200) {
+            return objectMapper.readValue(responseWrapper.getBody().toString(), Step.class);
+        }
+        return null;
     }
 
     public Step createStep(Step step) throws IOException, InterruptedException {
-        String json = gson.toJson(step);
-
+        String json = objectMapper.writeValueAsString(step);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + "/steps"))
                 .header("Content-Type", "application/json")
@@ -54,12 +61,11 @@ public class StepClient {
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        return gson.fromJson(response.body(), Step.class);
+        return objectMapper.readValue(response.body(), Step.class);
     }
 
     public Step updateStep(int id, Step step) throws IOException, InterruptedException {
-        String json = gson.toJson(step);
-
+        String json = objectMapper.writeValueAsString(step);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + "/steps/" + id))
                 .header("Content-Type", "application/json")
@@ -67,7 +73,7 @@ public class StepClient {
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        return gson.fromJson(response.body(), Step.class);
+        return objectMapper.readValue(response.body(), Step.class);
     }
 
     public void deleteStep(int id) throws IOException, InterruptedException {
@@ -77,5 +83,14 @@ public class StepClient {
                 .build();
 
         httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private JsonNode parseJson(String responseBody) {
+        try {
+            return objectMapper.readTree(responseBody);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

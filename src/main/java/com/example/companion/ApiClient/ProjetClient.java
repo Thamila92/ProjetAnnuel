@@ -1,11 +1,11 @@
-package org.example.ApiClient;
+package com.example.companion.ApiClient;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import org.example.Model.Projet;
+import com.example.companion.Model.Projet;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -13,45 +13,47 @@ import java.net.http.HttpResponse;
 import java.util.List;
 
 public class ProjetClient {
-
-
-    private static final String BASE_URL = Urlapi.BASE_URL.getUrl();
+    private static final String BASE_URL ="http://localhost:3000";
     private final HttpClient httpClient;
-    private final Gson gson;
+    private final ObjectMapper objectMapper;
 
-
-
-    public ProjetClient(Gson gson) {
+    public ProjetClient() {
         this.httpClient = HttpClient.newHttpClient();
+        this.objectMapper = new ObjectMapper();
+    }
 
-        this.gson = gson;
+    private HttpResponseWrapper sendGetRequest(String endpoint) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + endpoint))
+                .header("Content-Type", "application/json")
+                .GET()
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        int statusCode = response.statusCode();
+        JsonNode jsonNode = parseJson(response.body());
+
+        return new HttpResponseWrapper(jsonNode, statusCode);
     }
 
     public List<Projet> getProjects() throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/projets"))
-                .GET()
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        Type evenementListType = new TypeToken<List<Projet>>() {}.getType();
-        return gson.fromJson(response.body(), evenementListType);
+        HttpResponseWrapper responseWrapper = sendGetRequest("/projets");
+        if (responseWrapper.getStatusCode() == 200) {
+            return objectMapper.readValue(responseWrapper.getBody().toString(), new TypeReference<List<Projet>>() {});
+        }
+        return null;
     }
 
     public Projet getProject(int id) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/projets/" + id))
-                .GET()
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        return gson.fromJson(response.body(), Projet.class);
+        HttpResponseWrapper responseWrapper = sendGetRequest("/projets/" + id);
+        if (responseWrapper.getStatusCode() == 200) {
+            return objectMapper.readValue(responseWrapper.getBody().toString(), Projet.class);
+        }
+        return null;
     }
 
     public Projet createProject(Projet projet) throws IOException, InterruptedException {
-        String json = gson.toJson(projet);
-
+        String json = objectMapper.writeValueAsString(projet);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + "/projets"))
                 .header("Content-Type", "application/json")
@@ -59,12 +61,11 @@ public class ProjetClient {
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        return gson.fromJson(response.body(), Projet.class);
+        return objectMapper.readValue(response.body(), Projet.class);
     }
 
     public Projet updateProject(int id, Projet projet) throws IOException, InterruptedException {
-        String json = gson.toJson(projet);
-
+        String json = objectMapper.writeValueAsString(projet);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + "/projets/" + id))
                 .header("Content-Type", "application/json")
@@ -72,7 +73,7 @@ public class ProjetClient {
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        return gson.fromJson(response.body(), Projet.class);
+        return objectMapper.readValue(response.body(), Projet.class);
     }
 
     public void deleteProject(int id) throws IOException, InterruptedException {
@@ -84,4 +85,12 @@ public class ProjetClient {
         httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
+    private JsonNode parseJson(String responseBody) {
+        try {
+            return objectMapper.readTree(responseBody);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }

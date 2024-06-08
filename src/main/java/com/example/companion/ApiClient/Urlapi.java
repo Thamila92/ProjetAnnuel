@@ -1,4 +1,4 @@
-package org.example.ApiClient;
+package com.example.companion.ApiClient;
 
 public enum Urlapi {
     BASE_URL("http://localhost:3000/");

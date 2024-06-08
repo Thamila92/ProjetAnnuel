@@ -1,4 +1,4 @@
-package org.example.ApiClient;
+package com.example.companion.ApiClient;
 
 public class ComplianceClient {
 }

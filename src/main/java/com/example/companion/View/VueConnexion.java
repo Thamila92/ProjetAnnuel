@@ -1,45 +1,51 @@
-package org.example.View;
+package com.example.companion.View;
 
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
-import javafx.util.Callback;
 import javafx.util.Pair;
-
 
 public class VueConnexion extends Dialog<Pair<String, String>> {
 
-    public String auth = "Authentification";
-    public String saisie = "Saisir vos données de connexion";
-    public String co = "Se connecter";
-    public String an = "Annuler";
+    private TextField loginField;
+    private PasswordField passwordField;
 
     public VueConnexion() {
-        this.setTitle(auth);
-        this.setHeaderText(saisie);
+        this.setTitle("Authentification");
+        this.setHeaderText("Saisir vos données de connexion");
 
-        TextField matricule = new TextField();
-        TextField mdp = new TextField();
+        loginField = new TextField();
+        passwordField = new PasswordField();
 
         VBox vbSaisies = new VBox();
-        vbSaisies.getChildren().add(new Label("Matricule :"));
-        vbSaisies.getChildren().add(matricule);
+        vbSaisies.getChildren().add(new Label("Login :"));
+        vbSaisies.getChildren().add(loginField);
 
-        vbSaisies.getChildren().add(new Label("Mot de passe:"));
-        vbSaisies.getChildren().add(mdp);
-
-        // Appliquer la classe CSS à la boîte de dialogue
-        this.getDialogPane().getStylesheets().add(getClass().getResource("/com/ecaf/ecafclientjava/css/theme-clair/vueConnexion.css").toExternalForm());
-        this.getDialogPane().getStyleClass().add("dialog-pane");
+        vbSaisies.getChildren().add(new Label("Mot de passe :"));
+        vbSaisies.getChildren().add(passwordField);
 
         this.getDialogPane().setContent(vbSaisies);
 
-        ButtonType OK = new ButtonType(co, ButtonBar.ButtonData.OK_DONE);
-        ButtonType CANCEL = new ButtonType(an, ButtonBar.ButtonData.CANCEL_CLOSE);
-        this.getDialogPane().getButtonTypes().addAll(OK, CANCEL);
+        ButtonType connectButtonType = new ButtonType("Se connecter", ButtonBar.ButtonData.OK_DONE);
+        ButtonType cancelButtonType = new ButtonType("Annuler", ButtonBar.ButtonData.CANCEL_CLOSE);
+        this.getDialogPane().getButtonTypes().addAll(connectButtonType, cancelButtonType);
 
+        this.setResultConverter(dialogButton -> {
+            if (dialogButton == connectButtonType) {
+                return new Pair<>(loginField.getText(), passwordField.getText());
+            }
+            return null;
+        });
 
+        // Gérer le clic sur le bouton "Se connecter"
+        Button connectButton = (Button) this.getDialogPane().lookupButton(connectButtonType);
+        connectButton.setOnAction(e -> handleLogin());
     }
 
+    private void handleLogin() {
+        String login = loginField.getText();
+        String password = passwordField.getText();
 
-
+        // Code pour envoyer une requête au serveur pour authentifier l'utilisateur
+        System.out.println("Login: " + login + ", Password: " + password);
+    }
 }

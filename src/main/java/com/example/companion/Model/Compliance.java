@@ -1,4 +1,4 @@
-package org.example.Model;
+package com.example.companion.Model;
 
 public class Compliance {
 
