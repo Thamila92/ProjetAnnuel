@@ -3,6 +3,7 @@ import { Evenement } from "./evenement";
 import { Step } from "./step";
 import { Review } from "./review";
 import { Compliance } from "./compliance";
+import { User } from "./user";
 
 @Entity({ name: "mission" })
 export class Mission {
@@ -21,10 +22,15 @@ export class Mission {
     @ManyToOne(() => Evenement, (evenement) => evenement.mission)
     evenement!: Evenement;
 
+    @ManyToOne(() => User, (user) => user.missions)
+    user!: User;
+
     @OneToMany(() => Step, (step) => step.mission)
     steps: Step[];
+
     @OneToMany(() => Review, (review) => review.mission)
     reviews: Review[];
+
     @OneToMany(() => Compliance, (compliance) => compliance.mission)
     compliances: Compliance[];
 

@@ -1,28 +1,25 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Step } from "./step";
+import { User } from "./user";
+import { Status } from "./status";
 
 @Entity({ name: "projet" })
 export class Projet {
     @PrimaryGeneratedColumn()
-    id: number;
+    id!: number;
 
     @Column()
-    description: string;
+    description!: string;
 
     @Column({ type: "datetime" })
-    starting: Date;
+    starting!: Date;
 
     @Column({ type: "datetime" })
-    ending: Date;
+    ending!: Date;
 
     @OneToMany(() => Step, (step) => step.projet)
-    steps: Step[];
+    steps!: Step[];
 
-    constructor(id: number, description: string, starting: Date, ending: Date, steps:Step[]) {
-        this.id = id;
-        this.description = description;
-        this.starting = starting;
-        this.ending = ending;
-        this.steps=steps
-    }
+    @ManyToOne(() => User, user => user.projets)
+    user!:User;
 }

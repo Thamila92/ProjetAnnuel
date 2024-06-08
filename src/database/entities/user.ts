@@ -5,6 +5,9 @@ import { Expenditures } from "./expenditure";
 import { Donation } from "./donation";
 import { Review } from "./review";
 import { Evenement } from "./evenement";
+import { Mission } from "./mission";
+import { Step } from "./step";
+import { Projet } from "./projet";
 
 @Entity()
 export class User {
@@ -38,13 +41,19 @@ export class User {
     tokens!: any[]
 
     @OneToMany(() => Evenement, ev => ev.user)
-    evenements!: any[]
+    evenements!: Evenement[]
+
+    @OneToMany(() => Projet, projet => projet.user)
+    projets!: []
+
+    @OneToMany(() => Mission, mission=>mission.user)
+    missions!:Mission[];
 
     @OneToMany(() => Review, review => review.user)
-    reviews!: any[]
+    reviews!: Review[]
 
     @OneToMany(() => Donation, donation => donation.benefactor)
-    donations!: any[]
+    donations!: Donation[]
     
     @OneToMany(() => Expenditures, expenditures => expenditures.user)
     expenditures!: Expenditures[];
