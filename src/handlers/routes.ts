@@ -1286,158 +1286,158 @@ export const initRoutes = (app: express.Express) => {
 
 
 
-    // app.post("/comments", async (req: Request, res: Response) => {
-    //     const validation = reviewValidation.validate(req.body);
-    //     if (validation.error) {
-    //         res.status(400).send(generateValidationErrorMessage(validation.error.details));
-    //         return;
-    //     }
+    app.post("/comments", async (req: Request, res: Response) => {
+        const validation = reviewValidation.validate(req.body);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
 
-    //     const { content, createdAt, missionId, userId }: ReviewRequest = validation.value;
-    //     try {
-    //         const reviewCreated = await reviewUsecase.createReview(content, createdAt, missionId, userId);
-    //         res.status(201).send(reviewCreated);
-    //     } catch (error) {
-    //         console.log(error);
-    //         res.status(500).send({ error: "Internal error" });
-    //     }
-    // });
-    // app.get("/comments/:id", async (req: Request, res: Response) => {
-    //     const id = parseInt(req.params.id);
-    //     try {
-    //         const review = await reviewUsecase.getReview(id);
-    //         if (!review) {
-    //             res.status(404).send({ error: "Review not found" });
-    //             return;
-    //         }
-    //         res.status(200).send(review);
-    //     } catch (error) {
-    //         console.log(error);
-    //         res.status(500).send({ error: "Internal error" });
-    //     }
-    // });
-    // app.patch("/comments/:id", async (req: Request, res: Response) => {
-    //     const id = parseInt(req.params.id);
-    //     const validation = reviewValidation.validate(req.body);
-    //     if (validation.error) {
-    //         res.status(400).send(generateValidationErrorMessage(validation.error.details));
-    //         return;
-    //     }
+        const { content, createdAt, missionId, userId }: ReviewRequest = validation.value;
+        try {
+            const reviewCreated = await reviewUsecase.createReview(content, createdAt, missionId, userId);
+            res.status(201).send(reviewCreated);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+    app.get("/comments/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        try {
+            const review = await reviewUsecase.getReview(id);
+            if (!review) {
+                res.status(404).send({ error: "Review not found" });
+                return;
+            }
+            res.status(200).send(review);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+    app.patch("/comments/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        const validation = reviewValidation.validate(req.body);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
 
-    //     const { content }: ReviewRequest = validation.value;
-    //     try {
-    //         const review = await reviewUsecase.updateReview(id, { content });
-    //         if (!review) {
-    //             res.status(404).send({ error: "Review not found" });
-    //             return;
-    //         }
-    //         res.status(200).send(review);
-    //     } catch (error) {
-    //         console.log(error);
-    //         res.status(500).send({ error: "Internal error" });
-    //     }
-    // });
-    // app.delete("/comments/:id", async (req: Request, res: Response) => {
-    //     const id = parseInt(req.params.id);
-    //     try {
-    //         const success = await reviewUsecase.deleteReview(id);
-    //         if (!success) {
-    //             res.status(404).send({ error: "Review not found" });
-    //             return;
-    //         }
-    //         res.status(204).send();
-    //     } catch (error) {
-    //         console.log(error);
-    //         res.status(500).send({ error: "Internal error" });
-    //     }
-    // });
-
-
+        const { content }: ReviewRequest = validation.value;
+        try {
+            const review = await reviewUsecase.updateReview(id, { content });
+            if (!review) {
+                res.status(404).send({ error: "Review not found" });
+                return;
+            }
+            res.status(200).send(review);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+    app.delete("/comments/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        try {
+            const success = await reviewUsecase.deleteReview(id);
+            if (!success) {
+                res.status(404).send({ error: "Review not found" });
+                return;
+            }
+            res.status(204).send();
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
 
 
 
 
 
-    // app.post("/compliances", async (req: Request, res: Response) => {
-    //     const validation = complianceValidation.validate(req.body);
-    //     if (validation.error) {
-    //         res.status(400).send(generateValidationErrorMessage(validation.error.details));
-    //         return;
-    //     }
 
-    //     const { description, status, userId, missionId }: ComplianceRequest = validation.value;
-    //     try {
-    //         const complianceCreated = await complianceUsecase.createCompliance(description, status, userId, missionId);
-    //         res.status(201).send(complianceCreated);
-    //     } catch (error) {
-    //         console.log(error);
-    //         res.status(500).send({ error: "Internal error" });
-    //     }
-    // });
-    // app.get("/compliances/:id", async (req: Request, res: Response) => {
-    //     const id = parseInt(req.params.id);
-    //     try {
-    //         const compliance = await complianceUsecase.getCompliance(id);
-    //         if (!compliance) {
-    //             res.status(404).send({ error: "Compliance not found" });
-    //             return;
-    //         }
-    //         res.status(200).send(compliance);
-    //     } catch (error) {
-    //         console.log(error);
-    //         res.status(500).send({ error: "Internal error" });
-    //     }
-    // });
-    // app.patch("/compliances/:id", async (req: Request, res: Response) => {
-    //     const id = parseInt(req.params.id);
-    //     const validation = complianceValidation.validate(req.body);
-    //     if (validation.error) {
-    //         res.status(400).send(generateValidationErrorMessage(validation.error.details));
-    //         return;
-    //     }
 
-    //     const { description, status }: ComplianceRequest = validation.value;
-    //     try {
-    //         const compliance = await complianceUsecase.updateCompliance(id, { description, status });
-    //         if (!compliance) {
-    //             res.status(404).send({ error: "Compliance not found" });
-    //             return;
-    //         }
-    //         res.status(200).send(compliance);
-    //     } catch (error) {
-    //         console.log(error);
-    //         res.status(500).send({ error: "Internal error" });
-    //     }
-    // });
-    // app.delete("/compliances/:id", async (req: Request, res: Response) => {
-    //     const id = parseInt(req.params.id);
-    //     try {
-    //         const success = await complianceUsecase.deleteCompliance(id);
-    //         if (!success) {
-    //             res.status(404).send({ error: "Compliance not found" });
-    //             return;
-    //         }
-    //         res.status(204).send();
-    //     } catch (error) {
-    //         console.log(error);
-    //         res.status(500).send({ error: "Internal error" });
-    //     }
-    // });
-    // app.get("/compliances", async (req: Request, res: Response) => {
-    //     const validation = listComplianceValidation.validate(req.query);
-    //     if (validation.error) {
-    //         res.status(400).send(generateValidationErrorMessage(validation.error.details));
-    //         return;
-    //     }
+    app.post("/compliances", async (req: Request, res: Response) => {
+        const validation = complianceValidation.validate(req.body);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
 
-    //     const { page = 1, limit = 10 }: ListComplianceRequest = validation.value;
-    //     try {
-    //         const result = await complianceUsecase.listCompliances({ page, limit });
-    //         res.status(200).send(result);
-    //     } catch (error) {
-    //         console.log(error);
-    //         res.status(500).send({ error: "Internal error" });
-    //     }
-    // });
+        const { description, status, userId, missionId }: ComplianceRequest = validation.value;
+        try {
+            const complianceCreated = await complianceUsecase.createCompliance(description, status, userId, missionId);
+            res.status(201).send(complianceCreated);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+    app.get("/compliances/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        try {
+            const compliance = await complianceUsecase.getCompliance(id);
+            if (!compliance) {
+                res.status(404).send({ error: "Compliance not found" });
+                return;
+            }
+            res.status(200).send(compliance);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+    app.patch("/compliances/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        const validation = complianceValidation.validate(req.body);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
+
+        const { description, status }: ComplianceRequest = validation.value;
+        try {
+            const compliance = await complianceUsecase.updateCompliance(id, { description, status });
+            if (!compliance) {
+                res.status(404).send({ error: "Compliance not found" });
+                return;
+            }
+            res.status(200).send(compliance);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+    app.delete("/compliances/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        try {
+            const success = await complianceUsecase.deleteCompliance(id);
+            if (!success) {
+                res.status(404).send({ error: "Compliance not found" });
+                return;
+            }
+            res.status(204).send();
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+    app.get("/compliances", async (req: Request, res: Response) => {
+        const validation = listComplianceValidation.validate(req.query);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
+
+        const { page = 1, limit = 10 }: ListComplianceRequest = validation.value;
+        try {
+            const result = await complianceUsecase.listCompliances({ page, limit });
+            res.status(200).send(result);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
 
 } 

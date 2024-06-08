@@ -11,6 +11,8 @@ import { Projet } from "./projet";
 
 @Entity()
 export class User {
+    compliances: any;
+
     @PrimaryGeneratedColumn()
     id!: number
 
@@ -57,4 +59,5 @@ export class User {
     
     @OneToMany(() => Expenditures, expenditures => expenditures.user)
     expenditures!: Expenditures[];
+
 }

@@ -1,6 +1,7 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 //import { User } from "./user";
 import { Mission } from "./mission";
+import { User } from "./user";
 
 @Entity({ name: "compliance" })
 export class Compliance {
@@ -13,8 +14,8 @@ export class Compliance {
     @Column()
     status: string;
 
-  //  @ManyToOne(() => User, (user) => user.compliances)
-    //user: User;
+   @ManyToOne(() => User, (user) => user.compliances)
+    user!: User;
 
     @ManyToOne(() => Mission, (mission) => mission.compliances)
     mission: Mission;

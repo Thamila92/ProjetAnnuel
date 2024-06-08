@@ -28,24 +28,24 @@ export class ComplianceUsecase {
         };
     }
 
-    // async createCompliance(description: string, status: string, userId: number, missionId: number): Promise<Compliance> {
-    //     const missionRepo = this.db.getRepository(Mission);
-    //     const mission = await missionRepo.findOne({ where: { id: missionId } });
-    //     if (!mission) {
-    //         throw new Error('Mission not found');
-    //     }
+    async createCompliance(description: string, status: string, userId: number, missionId: number): Promise<Compliance> {
+        const missionRepo = this.db.getRepository(Mission);
+        const mission = await missionRepo.findOne({ where: { id: missionId } });
+        if (!mission) {
+            throw new Error('Mission not found');
+        }
 
-    //     const userRepo = this.db.getRepository(User);
-    //     const user = await userRepo.findOne({ where: { id: userId } });
-    //     if (!user) {
-    //         throw new Error('User not found');
-    //     }
+        const userRepo = this.db.getRepository(User);
+        const user = await userRepo.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new Error('User not found');
+        }
 
-    //     const complianceRepo = this.db.getRepository(Compliance);
-    //     const newCompliance = complianceRepo.create({ description, status, mission, user });
-    //     await complianceRepo.save(newCompliance);
-    //     return newCompliance;
-    // }
+        const complianceRepo = this.db.getRepository(Compliance);
+        const newCompliance = complianceRepo.create({ description, status, mission, user });
+        await complianceRepo.save(newCompliance);
+        return newCompliance;
+    }
 
     async getCompliance(id: number): Promise<Compliance | null> {
         const repo = this.db.getRepository(Compliance);
