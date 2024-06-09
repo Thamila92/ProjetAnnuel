@@ -8,6 +8,10 @@ import { Evenement } from "./evenement";
 import { Mission } from "./mission";
 import { Step } from "./step";
 import { Projet } from "./projet";
+import { Document } from "./document";
+import { Response } from "./response";
+
+
 
 @Entity()
 export class User {
@@ -59,5 +63,10 @@ export class User {
     
     @OneToMany(() => Expenditures, expenditures => expenditures.user)
     expenditures!: Expenditures[];
+    @OneToMany(() => Response, response => response.user)
+    responses!: Response[];
+
+    @OneToMany(() => Document, document => document.user)
+    documents!: Document[];
 
 }

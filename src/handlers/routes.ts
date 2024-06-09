@@ -32,6 +32,14 @@ import { ReviewRequest, reviewValidation } from "./validators/review-validator";
 import { ComplianceUsecase } from "../domain/compliance-usecase";
 import { ComplianceRequest, ListComplianceRequest, complianceValidation, listComplianceValidation } from "./validators/compliance-validator";
 import { Evenement } from "../database/entities/evenement";
+import { SubjectUsecase } from "../domain/subject-usecase";
+import { createSubjectValidation, updateSubjectValidation } from "./validators/subjectValidator";
+import { VoteUsecase } from "../domain/vote-usecase";
+import { ResponseUsecase } from "../domain/response-usecase";
+import { DocumentUsecase } from "../domain/document-usecase";
+import { createVoteValidation, updateVoteValidation } from "./validators/voteValidator";
+import { createDocumentValidation, updateDocumentValidation } from "./validators/documentValidator";
+import { createResponseValidation, updateResponseValidation } from "./validators/responseValidator";
 
 
 
@@ -50,9 +58,10 @@ export const initRoutes = (app: express.Express) => {
     const stepUsecase = new StepUsecase(AppDataSource);
     const reviewUsecase = new ReviewUsecase(AppDataSource);
     const complianceUsecase = new ComplianceUsecase(AppDataSource);
-
-
-
+    const subjectUsecase = new SubjectUsecase(AppDataSource);
+    const voteUsecase = new VoteUsecase(AppDataSource)
+    const responseUsecase = new ResponseUsecase(AppDataSource);
+    const documentUsecase = new DocumentUsecase(AppDataSource);
 
     //la route utilisee pour creer les statuts est bloquee volontairement
 
@@ -1289,6 +1298,7 @@ export const initRoutes = (app: express.Express) => {
 
 
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
     app.post("/comments", async (req: Request, res: Response) => {
@@ -1360,6 +1370,7 @@ export const initRoutes = (app: express.Express) => {
 
 
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
@@ -1445,4 +1456,354 @@ export const initRoutes = (app: express.Express) => {
         }
     });
 
-} 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+   
+    // Routes for Subject
+    app.post("/subjects", async (req: Request, res: Response) => {
+        const validation = createSubjectValidation.validate(req.body);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
+
+        try {
+            const subjectCreated = await subjectUsecase.createSubject(validation.value);
+            res.status(201).send(subjectCreated);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.get("/subjects", async (req: Request, res: Response) => {
+        const { page = 1, limit = 10 } = req.query;
+        try {
+            const result = await subjectUsecase.listSubjects({ page: Number(page), limit: Number(limit) });
+            res.status(200).send(result);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.get("/subjects/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        try {
+            const subject = await subjectUsecase.getSubject(id);
+            if (!subject) {
+                res.status(404).send({ error: "Subject not found" });
+                return;
+            }
+            res.status(200).send(subject);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.patch("/subjects/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        const validation = updateSubjectValidation.validate(req.body);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
+
+        try {
+            const subject = await subjectUsecase.updateSubject(id, validation.value);
+            if (!subject) {
+                res.status(404).send({ error: "Subject not found" });
+                return;
+            }
+            res.status(200).send(subject);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.delete("/subjects/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        try {
+            const success = await subjectUsecase.deleteSubject(id);
+            if (!success) {
+                res.status(404).send({ error: "Subject not found" });
+                return;
+            }
+            res.status(200).send(success);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    // Routes for Vote
+    app.post("/votes", async (req: Request, res: Response) => {
+        const validation = createVoteValidation.validate(req.body);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
+
+        try {
+            const voteCreated = await voteUsecase.createVote(validation.value);
+            res.status(201).send(voteCreated);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.get("/votes", async (req: Request, res: Response) => {
+        const { page = 1, limit = 10 } = req.query;
+        try {
+            const result = await voteUsecase.listVotes({ page: Number(page), limit: Number(limit) });
+            res.status(200).send(result);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.get("/votes/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        try {
+            const vote = await voteUsecase.getVote(id);
+            if (!vote) {
+                res.status(404).send({ error: "Vote not found" });
+                return;
+            }
+            res.status(200).send(vote);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.patch("/votes/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        const validation = updateVoteValidation.validate(req.body);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
+
+        try {
+            const vote = await voteUsecase.updateVote(id, validation.value);
+            if (!vote) {
+                res.status(404).send({ error: "Vote not found" });
+                return;
+            }
+            res.status(200).send(vote);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.delete("/votes/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        try {
+            const success = await voteUsecase.deleteVote(id);
+            if (!success) {
+                res.status(404).send({ error: "Vote not found" });
+                return;
+            }
+            res.status(200).send(success);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.get("/votes/subject/:subjectId", async (req: Request, res: Response) => {
+        const subjectId = parseInt(req.params.subjectId);
+        try {
+            const votes = await voteUsecase.getVotesBySubject(subjectId);
+            res.status(200).send(votes);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    // Routes for Response
+    app.post("/responses", async (req: Request, res: Response) => {
+        const validation = createResponseValidation.validate(req.body);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
+
+        try {
+            const responseCreated = await responseUsecase.createResponse(validation.value);
+            res.status(201).send(responseCreated);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.get("/responses", async (req: Request, res: Response) => {
+        const { page = 1, limit = 10 } = req.query;
+        try {
+            const result = await responseUsecase.listResponses({ page: Number(page), limit: Number(limit) });
+            res.status(200).send(result);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.get("/responses/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        try {
+            const response = await responseUsecase.getResponse(id);
+            if (!response) {
+                res.status(404).send({ error: "Response not found" });
+                return;
+            }
+            res.status(200).send(response);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.patch("/responses/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        const validation = updateResponseValidation.validate(req.body);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
+
+        try {
+            const response = await responseUsecase.updateResponse(id, validation.value);
+            if (!response) {
+                res.status(404).send({ error: "Response not found" });
+                return;
+            }
+            res.status(200).send(response);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.delete("/responses/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        try {
+            const success = await responseUsecase.deleteResponse(id);
+            if (!success) {
+                res.status(404).send({ error: "Response not found" });
+                return;
+            }
+            res.status(200).send(success);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.get("/responses/user/:userId", async (req: Request, res: Response) => {
+        const userId = parseInt(req.params.userId);
+        try {
+            const responses = await responseUsecase.getResponsesByUser(userId);
+            res.status(200).send(responses);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    // Routes for Document
+    app.post("/documents", async (req: Request, res: Response) => {
+        const validation = createDocumentValidation.validate(req.body);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
+
+        try {
+            const documentCreated = await documentUsecase.createDocument(validation.value);
+            res.status(201).send(documentCreated);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.get("/documents", async (req: Request, res: Response) => {
+        const { page = 1, limit = 10 } = req.query;
+        try {
+            const result = await documentUsecase.listDocuments({ page: Number(page), limit: Number(limit) });
+            res.status(200).send(result);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.get("/documents/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        try {
+            const document = await documentUsecase.getDocument(id);
+            if (!document) {
+                res.status(404).send({ error: "Document not found" });
+                return;
+            }
+            res.status(200).send(document);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.patch("/documents/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        const validation = updateDocumentValidation.validate(req.body);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
+
+        try {
+            const document = await documentUsecase.updateDocument(id, validation.value);
+            if (!document) {
+                res.status(404).send({ error: "Document not found" });
+                return;
+            }
+            res.status(200).send(document);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.delete("/documents/:id", async (req: Request, res: Response) => {
+        const id = parseInt(req.params.id);
+        try {
+            const success = await documentUsecase.deleteDocument(id);
+            if (!success) {
+                res.status(404).send({ error: "Document not found" });
+                return;
+            }
+            res.status(200).send(success);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    app.get("/documents/user/:userId", async (req: Request, res: Response) => {
+        const userId = parseInt(req.params.userId);
+        try {
+            const documents = await documentUsecase.getDocumentsByUser(userId);
+            res.status(200).send(documents);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+};
