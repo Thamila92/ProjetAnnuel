@@ -1,6 +1,7 @@
 import Joi from "joi";
 
 enum statustype {
+    unstarted="UNSTARTED",
     started= "STARTED",
     running = "RUNNING",
     ended="ENDED"
