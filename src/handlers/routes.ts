@@ -56,40 +56,40 @@ export const initRoutes = (app: express.Express) => {
 
     //la route utilisee pour creer les statuts est bloquee volontairement
 
-    // app.post('/status',async(req:Request,res: Response)=>{
-    //     try {
-    //         const validationResult = createStatusValidation.validate(req.body)
-    //         if (validationResult.error) {
-    //             res.status(400).json(generateValidationErrorMessage(validationResult.error.details))
-    //             return
-    //         }
-    //         const createStatusRequest = validationResult.value
-    //         const statusRepository = AppDataSource.getRepository(Status)
-    //         if(createStatusRequest.key){
-    //             const key = await hash(createStatusRequest.key, 10);
+   app.post('/status',async(req:Request,res: Response)=>{
+      try {
+           const validationResult = createStatusValidation.validate(req.body)
+           if (validationResult.error) {
+                res.status(400).json(generateValidationErrorMessage(validationResult.error.details))
+               return
+             }
+           const createStatusRequest = validationResult.value
+              const statusRepository = AppDataSource.getRepository(Status)
+          if(createStatusRequest.key){
+                const key = await hash(createStatusRequest.key, 10);
 
-    //             const status = await statusRepository.save({
-    //                 description:createStatusRequest.description,
-    //                 key:key
-    //             });
-    //             res.status(201).json(status)  
-    //         }else{
-    //             const keyy="No key"
-    //             const key = await hash(keyy, 10);
+                const status = await statusRepository.save({
+                     description:createStatusRequest.description,
+                   key:key
+              });
+                  res.status(201).json(status)  
+        }else{
+                const keyy="No key"
+               const key = await hash(keyy, 10);
 
-    //             const status = await statusRepository.save({
-    //                 description:createStatusRequest.description,
-    //                 key:key
-    //             }); 
-    //             res.status(201).json(status) 
-    //         }
-    //         return
-    //     } catch (error) { 
-    //         console.log(error) 
-    //         res.status(500).json({ "error": "internal error retry later" }) 
-    //         return
-    //     }  
-    // })
+                const status = await statusRepository.save({
+                    description:createStatusRequest.description,
+                     key:key
+               }); 
+                res.status(201).json(status) 
+            }
+            return
+         } catch (error) { 
+             console.log(error) 
+           res.status(500).json({ "error": "internal error retry later" }) 
+            return
+       }  
+      })
 
 
 
@@ -1110,18 +1110,23 @@ export const initRoutes = (app: express.Express) => {
 
 
 
-    app.post("/projets",adminMiddleware,async (req: Request, res: Response) => {
+    app.post("/projets", adminMiddleware, async (req: Request, res: Response) => {
+        console.log("Request body:", req.body);
         const validation = projetValidation.validate(req.body);
         if (validation.error) {
             res.status(400).send(generateValidationErrorMessage(validation.error.details));
             return;
         }
         const project = validation.value;
+        project.userId = (req as any).userId;   
+    
+        console.log("Project data with user ID:", project);
+    
         try {
             const projetCreated = await projetUsecase.createProjet(project);
             res.status(201).send(projetCreated);
         } catch (error) {
-            console.log(error);
+            console.log("Error creating project:", error);
             res.status(500).send({ error: "Internal error" });
         }
     });

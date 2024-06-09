@@ -34,7 +34,6 @@ export class ProjetUsecase {
             totalCount
         };
     }
-
     async createProjet(project: CreateProjetParams): Promise<Projet | string> {
         const userRepo = this.db.getRepository(User);
         const projetRepo = this.db.getRepository(Projet);

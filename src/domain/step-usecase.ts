@@ -40,7 +40,7 @@ export class StepUsecase {
         }
     
         // Vérification que les dates de l'étape sont encadrées par celles du projet
-        if (starting < projet.starting || ending > projet.ending) {
+        if (new Date(starting) < new Date(projet.starting) || new Date(ending) > new Date(projet.ending)) {
             throw new Error('Step dates must be within the project dates');
         }
     
@@ -60,6 +60,7 @@ export class StepUsecase {
         await stepRepo.save(newStep);
         return newStep;
     }
+    
     
 
     async getStep(id: number): Promise<Step | null> {
