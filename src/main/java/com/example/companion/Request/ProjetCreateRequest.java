@@ -1,32 +1,30 @@
-package com.example.companion.Model;
+package com.example.companion.Request;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.util.Date;
 
-public class Projet {
-    private int id;
+public class ProjetCreateRequest {
     private String description;
-    private Date starting;
-    private Date ending;
-    private Admin user;
 
-    // Constructeurs, getters et setters
-    public Projet() {
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    private Date starting;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    private Date ending;
+
+    // Constructeur par défaut
+    public ProjetCreateRequest() {
     }
 
-    public Projet(String description, Date starting, Date ending) {
+    // Constructeur avec paramètres
+    public ProjetCreateRequest(String description, Date starting, Date ending) {
         this.description = description;
         this.starting = starting;
         this.ending = ending;
     }
 
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
+    // Getters et setters
     public String getDescription() {
         return description;
     }
@@ -49,13 +47,5 @@ public class Projet {
 
     public void setEnding(Date ending) {
         this.ending = ending;
-    }
-
-    public Admin getUser() {
-        return user;
-    }
-
-    public void setUser(Admin user) {
-        this.user = user;
     }
 }

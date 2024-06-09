@@ -1,6 +1,7 @@
 package com.example.companion.ApiClient;
 
 import com.example.companion.Model.Admin;
+import com.example.companion.Request.LoginRequest;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,6 +17,7 @@ public class AdminClient {
     private static final String BASE_URL ="http://localhost:3000";
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
+    private Admin authenticatedAdmin;
 
     public AdminClient() {
         this.httpClient = HttpClient.newHttpClient();
@@ -51,15 +53,25 @@ public class AdminClient {
     }
 
     public boolean authenticate(String email, String password) throws IOException, InterruptedException {
-        Admin admin = new Admin(email, password);
-        String json = objectMapper.writeValueAsString(admin);
+        LoginRequest loginRequest = new LoginRequest(email, password);
+        String json = objectMapper.writeValueAsString(loginRequest);
         HttpResponseWrapper responseWrapper = sendPostRequest("/admin/login", json);
         if (responseWrapper.getStatusCode() == 200) {
+            JsonNode responseBody = responseWrapper.getBody();
+            String token = responseBody.get("token").asText();
+            Admin admin = new Admin(email, password);
+            admin.setToken(token);
+            this.authenticatedAdmin = admin;
             return true;
         } else {
             System.err.println("Error during authentication: " + responseWrapper.getBody().toString());
             return false;
         }
+    }
+
+
+    public String getAuthToken() {
+        return authenticatedAdmin != null ? authenticatedAdmin.getToken() : null;
     }
 
     public boolean createAdmin(String email, String password, String name, String key) throws IOException, InterruptedException {

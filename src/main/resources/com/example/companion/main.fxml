@@ -24,6 +24,8 @@
                 <Insets top="20" right="20" bottom="20" left="20"/>
             </padding>
             <Button text="Home" onAction="#handleHome"/>
+            <Button text="Event" onAction="#handleEvents"/>
+
             <Button text="Projects" onAction="#handleProjects"/>
             <Button text="Tasks" onAction="#handleTasks"/>
             <Button text="Settings" onAction="#handleSettings"/>

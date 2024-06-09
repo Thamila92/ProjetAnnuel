@@ -1,11 +1,10 @@
 package com.example.companion.ApiClient;
 
-
 import com.fasterxml.jackson.databind.JsonNode;
 
 public class HttpResponseWrapper {
-    private JsonNode body;
-    private int statusCode;
+    private final JsonNode body;
+    private final int statusCode;
 
     public HttpResponseWrapper(JsonNode body, int statusCode) {
         this.body = body;
@@ -20,4 +19,3 @@ public class HttpResponseWrapper {
         return statusCode;
     }
 }
-

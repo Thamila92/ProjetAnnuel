@@ -6,19 +6,21 @@
 
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
-      fx:controller="com.example.companion.Controller.ProjetController"
+      fx:controller="com.example.companion.Controller.EvenementController"
       spacing="10" alignment="CENTER">
     <padding>
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
 
-    <TableView fx:id="projectTable" prefHeight="400" prefWidth="800">
+    <TableView fx:id="evenementTable" prefHeight="400" prefWidth="800">
         <columns>
+            <TableColumn fx:id="typeColumn" text="Type"/>
+            <TableColumn fx:id="locationColumn" text="Location"/>
             <TableColumn fx:id="descriptionColumn" text="Description"/>
             <TableColumn fx:id="startingColumn" text="Starting Date"/>
             <TableColumn fx:id="endingColumn" text="Ending Date"/>
-         </columns>
+        </columns>
     </TableView>
 
-    <Button text="Add Project" onAction="#handleAddProjet"/>
+    <Button text="Add Event" onAction="#handleAddEvenement"/>
 </VBox>

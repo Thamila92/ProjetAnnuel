@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.example.companion.Controller.AddProjetController"
+      spacing="10">
+    <padding>
+        <Insets top="10" right="10" bottom="10" left="10"/>
+    </padding>
+    <Label text="Add New Project" style="-fx-font-size: 18px;"/>
+    <Label text="Description:"/>
+    <TextField fx:id="descriptionField"/>
+    <Label text="Starting Date:"/>
+    <TextField fx:id="startingField" promptText="yyyy-MM-dd HH:mm:ss"/>
+    <Label text="Ending Date:"/>
+    <TextField fx:id="endingField" promptText="yyyy-MM-dd HH:mm:ss"/>
+    <Button text="Add Project" onAction="#handleAddProjet"/>
+</VBox>
