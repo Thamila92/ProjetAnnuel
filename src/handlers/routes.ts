@@ -1737,12 +1737,16 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).send({ error: "Internal error" });
         }
     });
-    app.post('/upload', upload.single('file'), async (req, res) => {
+    app.post('/upload', upload.single('file'),  adminMiddleware, async (req, res) => {
         try {
             const file = req.file;
+            const { title, description, type } = req.body;
+
             if (!file) {
                 return res.status(400).json({ error: 'No file uploaded' });
             }
+
+            const userId = (req as any).user.id;
 
             const buffer = Buffer.from(file.buffer);
             const readableStream = new Readable();
@@ -1751,7 +1755,20 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             readableStream.push(null);
 
             const fileId = await documentUsecase.uploadFileToGoogleDrive(file.originalname, file.mimetype, readableStream);
-            res.json({ fileId });
+            const defaultTitle = `file_${fileId}`;
+            const defaultDescription = `Description for file_${fileId}`;
+            const defaultType = file.mimetype;
+
+            const newDocumentParams = {
+                title: defaultTitle,
+                description: defaultDescription,
+                type: defaultType,
+                path: fileId,
+                userId: userId
+            };
+
+            const newDocument = await documentUsecase.createDocumentWithGoogleDrive(newDocumentParams, fileId);
+            res.json({ fileId, document: newDocument });
         } catch (error: unknown) {
             if (error instanceof Error) {
                 res.status(500).json({ error: error.message });
@@ -1762,8 +1779,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
     });
 
 
-
-    app.get('/download/:fileId', async (req, res) => {
+    app.get('/download/:fileId',adminMiddleware, async (req, res) => {
         try {
             const { fileId } = req.params;
             const fileStream = await documentUsecase.getGoogleDriveFile(fileId);

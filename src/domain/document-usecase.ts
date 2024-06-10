@@ -117,4 +117,24 @@ export class DocumentUsecase {
         const file = await this.googleDriveService.uploadFile(name, mimeType, body);
         return file.id || '';
     }
+    async createDocumentWithGoogleDrive(params: CreateDocumentParams, fileId: string): Promise<Document | string> {
+        const userRepo = this.db.getRepository(User);
+        const documentRepo = this.db.getRepository(Document);
+
+        const userFound = await userRepo.findOne({ where: { id: params.userId } });
+        if (!userFound) {
+            return "User not found";
+        }
+
+        const newDocument = documentRepo.create({
+            title: params.title,
+            description: params.description,
+            type: params.type,
+            path: fileId,  
+            user: userFound
+        });
+
+        await documentRepo.save(newDocument);
+        return newDocument;
+    }
 }
