@@ -1,7 +1,9 @@
 import { DataSource } from "typeorm";
 import { Document } from "../database/entities/document";
 import { User } from "../database/entities/user";
-
+import GoogleDriveService from "../services/googleDriveService";
+import { OAuth2Client } from 'google-auth-library';
+import { Readable } from 'stream';
 export interface ListDocumentFilter {
     limit: number;
     page: number;
@@ -22,9 +24,14 @@ export interface CreateDocumentParams {
     path: string;
     userId: number;
 }
-
 export class DocumentUsecase {
-    constructor(private readonly db: DataSource) { }
+    private readonly db: DataSource;
+    private readonly googleDriveService: GoogleDriveService;
+
+    constructor(db: DataSource, oAuth2Client: OAuth2Client) {
+        this.db = db;
+        this.googleDriveService = new GoogleDriveService(oAuth2Client);
+    }
 
     async listDocuments(filter: ListDocumentFilter): Promise<{ documents: Document[]; totalCount: number; }> {
         const query = this.db.createQueryBuilder(Document, 'document')
@@ -92,9 +99,22 @@ export class DocumentUsecase {
         await repo.remove(documentFound);
         return documentFound;
     }
+
     async getDocumentsByUser(userId: number): Promise<Document[]> {
         const repo = this.db.getRepository(Document);
         return await repo.find({ where: { user: { id: userId } } });
     }
-    
+
+    async listGoogleDriveFiles() {
+        return await this.googleDriveService.listFiles();
+    }
+
+    async getGoogleDriveFile(fileId: string) {
+        return await this.googleDriveService.getFile(fileId);
+    }
+
+    async uploadFileToGoogleDrive(name: string, mimeType: string, body: Readable): Promise<string> {
+        const file = await this.googleDriveService.uploadFile(name, mimeType, body);
+        return file.id || '';
+    }
 }

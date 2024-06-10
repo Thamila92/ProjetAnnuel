@@ -40,7 +40,9 @@ import { DocumentUsecase } from "../domain/document-usecase";
 import { createVoteValidation, updateVoteValidation } from "./validators/voteValidator";
 import { createDocumentValidation, updateDocumentValidation } from "./validators/documentValidator";
 import { createResponseValidation, updateResponseValidation } from "./validators/responseValidator";
-
+import multer from 'multer';
+import { Readable } from 'stream';
+const upload = multer();
 
 
 const paypal =require("./paypal")
@@ -51,7 +53,7 @@ const paypal =require("./paypal")
 
 
 
-export const initRoutes = (app: express.Express) => { 
+export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecase) => { 
     const missionUsecase = new MissionUsecase(AppDataSource);
     const evenementUsecase = new EvenementUsecase(AppDataSource);
     const projetUsecase = new ProjetUsecase(AppDataSource);
@@ -61,7 +63,6 @@ export const initRoutes = (app: express.Express) => {
     const subjectUsecase = new SubjectUsecase(AppDataSource);
     const voteUsecase = new VoteUsecase(AppDataSource)
     const responseUsecase = new ResponseUsecase(AppDataSource);
-    const documentUsecase = new DocumentUsecase(AppDataSource);
 
     //la route utilisee pour creer les statuts est bloquee volontairement
 
@@ -694,7 +695,27 @@ export const initRoutes = (app: express.Express) => {
             res.status(500).json({ error: "Internal error" })
         }
     })
-
+    app.get('/auth/me', adminMiddleware, async (req: Request, res: Response) => {
+        try {
+            const userId = (req as any).userId;  
+    
+            const userRepo = AppDataSource.getRepository(User);
+            const user = await userRepo.findOne({
+                where: { id: userId, isDeleted: false },
+                select: ['id', 'name', 'email', 'status'],  
+                relations: ['status']
+            });
+    
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
+    
+            return res.status(200).json(user);
+        } catch (error) {
+            console.error("Failed to fetch user details:", error);
+            return res.status(500).json({ error: "Internal server error" });
+        }
+    });
     app.delete("/admins/:id",adminMiddleware,async (req: Request, res: Response) => {
         try {
             const validationResult = updateUserValidation.validate({...req.params,...req.body})
@@ -1716,94 +1737,43 @@ export const initRoutes = (app: express.Express) => {
             res.status(500).send({ error: "Internal error" });
         }
     });
-
-    // Routes for Document
-    app.post("/documents", async (req: Request, res: Response) => {
-        const validation = createDocumentValidation.validate(req.body);
-        if (validation.error) {
-            res.status(400).send(generateValidationErrorMessage(validation.error.details));
-            return;
-        }
-
+    app.post('/upload', upload.single('file'), async (req, res) => {
         try {
-            const documentCreated = await documentUsecase.createDocument(validation.value);
-            res.status(201).send(documentCreated);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
-
-    app.get("/documents", async (req: Request, res: Response) => {
-        const { page = 1, limit = 10 } = req.query;
-        try {
-            const result = await documentUsecase.listDocuments({ page: Number(page), limit: Number(limit) });
-            res.status(200).send(result);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
-
-    app.get("/documents/:id", async (req: Request, res: Response) => {
-        const id = parseInt(req.params.id);
-        try {
-            const document = await documentUsecase.getDocument(id);
-            if (!document) {
-                res.status(404).send({ error: "Document not found" });
-                return;
+            const file = req.file;
+            if (!file) {
+                return res.status(400).json({ error: 'No file uploaded' });
             }
-            res.status(200).send(document);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
 
-    app.patch("/documents/:id", async (req: Request, res: Response) => {
-        const id = parseInt(req.params.id);
-        const validation = updateDocumentValidation.validate(req.body);
-        if (validation.error) {
-            res.status(400).send(generateValidationErrorMessage(validation.error.details));
-            return;
-        }
+            const buffer = Buffer.from(file.buffer);
+            const readableStream = new Readable();
+            readableStream._read = () => {}; // No-op
+            readableStream.push(buffer);
+            readableStream.push(null);
 
-        try {
-            const document = await documentUsecase.updateDocument(id, validation.value);
-            if (!document) {
-                res.status(404).send({ error: "Document not found" });
-                return;
+            const fileId = await documentUsecase.uploadFileToGoogleDrive(file.originalname, file.mimetype, readableStream);
+            res.json({ fileId });
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                res.status(500).json({ error: error.message });
+            } else {
+                res.status(500).json({ error: 'An unknown error occurred' });
             }
-            res.status(200).send(document);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
         }
     });
 
-    app.delete("/documents/:id", async (req: Request, res: Response) => {
-        const id = parseInt(req.params.id);
+
+
+    app.get('/download/:fileId', async (req, res) => {
         try {
-            const success = await documentUsecase.deleteDocument(id);
-            if (!success) {
-                res.status(404).send({ error: "Document not found" });
-                return;
+            const { fileId } = req.params;
+            const fileStream = await documentUsecase.getGoogleDriveFile(fileId);
+            fileStream.pipe(res);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                res.status(500).json({ error: error.message });
+            } else {
+                res.status(500).json({ error: 'An unknown error occurred' });
             }
-            res.status(200).send(success);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
-
-    app.get("/documents/user/:userId", async (req: Request, res: Response) => {
-        const userId = parseInt(req.params.userId);
-        try {
-            const documents = await documentUsecase.getDocumentsByUser(userId);
-            res.status(200).send(documents);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
         }
     });
 };
