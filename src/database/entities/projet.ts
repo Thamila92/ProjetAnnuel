@@ -8,6 +8,9 @@ export class Projet {
     @PrimaryGeneratedColumn()
     id!: number;
 
+    @Column({ default: false })
+    isDeleted!: boolean;
+    
     @Column()
     description!: string;
 

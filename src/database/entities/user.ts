@@ -8,6 +8,9 @@ import { Evenement } from "./evenement";
 import { Mission } from "./mission";
 import { Step } from "./step";
 import { Projet } from "./projet";
+import { UserDocument } from "./document";
+import { Vote } from "./vote";
+
 
 @Entity()
 export class User {
@@ -59,5 +62,11 @@ export class User {
     
     @OneToMany(() => Expenditures, expenditures => expenditures.user)
     expenditures!: Expenditures[];
+
+    @OneToMany(() => UserDocument, document => document.user)
+    documents!: UserDocument[];
+
+    @OneToMany(() =>Vote, vote => vote.user)
+    votes!: Vote[];
 
 }

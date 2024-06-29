@@ -1,4 +1,4 @@
-import { DataSource } from "typeorm";
+import { DataSource, SelectQueryBuilder } from "typeorm";
 import { Projet } from "../database/entities/projet";
 import { User } from "../database/entities/user";
 
@@ -24,10 +24,11 @@ export class ProjetUsecase {
     constructor(private readonly db: DataSource) { }
 
     async listProjets(filter: ListProjetFilter): Promise<{ projets: Projet[]; totalCount: number; }> {
-        const query = this.db.createQueryBuilder(Projet, 'projet')
+        const query: SelectQueryBuilder<Projet> = this.db.createQueryBuilder(Projet, 'projet')
+            .where('projet.isDeleted = :isDeleted', { isDeleted: false })
             .skip((filter.page - 1) * filter.limit)
             .take(filter.limit);
-
+    
         const [projets, totalCount] = await query.getManyAndCount();
         return {
             projets,
@@ -40,7 +41,7 @@ export class ProjetUsecase {
         const projetRepo = this.db.getRepository(Projet);
     
         // Chercher l'utilisateur par ID
-        const userFound = await userRepo.findOne({ where: { id: project.userId } });
+        const userFound = await userRepo.findOne({ where: { id: project.userId,isDeleted: false } });
         if (!userFound) {
             return "User not found";
         }
@@ -62,13 +63,13 @@ export class ProjetUsecase {
 
     async getProjet(id: number): Promise<Projet | null> {
         const repo = this.db.getRepository(Projet);
-        const projetFound = await repo.findOne({ where: { id } });
+        const projetFound = await repo.findOne({ where: { id, isDeleted: false } });
         return projetFound || null;
     }
 
     async updateProjet(id: number, params: UpdateProjetParams): Promise<Projet | string | null> {
         const repo = this.db.getRepository(Projet);
-        const projetFound = await repo.findOne({ where: { id } });
+        const projetFound = await repo.findOne({ where: { id, isDeleted: false } });
         if (!projetFound) return null;
     
         let newStarting = params.starting || projetFound.starting;
@@ -77,6 +78,7 @@ export class ProjetUsecase {
         // Rechercher les projets chevauchants
         const overlappingProjects = await repo.createQueryBuilder("projet")
             .where("projet.id != :id", { id })
+            .andWhere("projet.isDeleted = :isDeleted", { isDeleted: false })
             .andWhere("projet.starting < :newEnding", { newEnding })
             .andWhere("projet.ending > :newStarting", { newStarting })
             .getMany();
@@ -93,13 +95,16 @@ export class ProjetUsecase {
         return updatedProjet;
     }
     
+    
 
-    async deleteProjet(id: number): Promise<boolean|Projet> {
+    async deleteProjet(id: number): Promise<boolean | Projet> {
         const repo = this.db.getRepository(Projet);
-        const projetFound = await repo.findOne({ where: { id } });
+        const projetFound = await repo.findOne({ where: { id, isDeleted: false } });
         if (!projetFound) return false;
-
-        await repo.remove(projetFound);
+    
+        projetFound.isDeleted = true;
+        await repo.save(projetFound);
         return projetFound;
     }
+    
 }

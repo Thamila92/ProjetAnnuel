@@ -32,49 +32,58 @@ export class EvenementUsecase {
 
     async listEvenements(filter: ListEvenementFilter): Promise<{ evenements: Evenement[]; totalCount: number; }> {
         const query = this.db.createQueryBuilder(Evenement, 'evenement')
+            .where('evenement.isDeleted = :isDeleted', { isDeleted: false })
             .skip((filter.page - 1) * filter.limit)
             .take(filter.limit);
-
+    
         const [evenements, totalCount] = await query.getManyAndCount();
         return {
             evenements,
             totalCount
         };
     }
+    
+    
 
-    // async createEvenement(ev:EventToCreate): Promise<Evenement | string | undefined> {
-    //     if(ev.type=="AG" && !ev.quorum){
-    //        return " Veuillez preciser le Quorum !!!" 
-    //     }
-    //     const eventRepository = AppDataSource.getRepository(Event);
-    //     const newEvent = eventRepository.create({
-    //        type=ev.type,
-
-    //     });
-
-    //     await eventRepository.save(newEvent);
-
-    //     // const eventRepo = this.db.getRepository(Event);
-    //     // const event = await missionRepo.findOne({ where: { id: missionId } });
-    //     // if (!mission) {
-    //     //     throw new Error('Mission not found');
-    //     // }
-
-    //     // const evenementRepo = this.db.getRepository(Evenement);
-    //     // const newEvenement = evenementRepo.create({ type, location, description, quorum, starting, ending, mission });
-    //     // await evenementRepo.save(newEvenement);
-    //     // return newEvenement;
-    // }
+    async createEvenement(ev: EventToCreate): Promise<Evenement | string | undefined> {
+        if (ev.type == "AG" && !ev.quorum) {
+            return "Veuillez preciser le Quorum !!!";
+        }
+    
+        const evenementRepo = this.db.getRepository(Evenement);
+    
+        // Vérification de l'existence d'un événement avec les mêmes dates de début et de fin
+        const existingEvenement = await evenementRepo.findOne({
+            where: { starting: ev.starting, ending: ev.ending }
+        });
+    
+        if (existingEvenement) {
+            return "Un événement avec les mêmes dates de début et de fin existe déjà.";
+        }
+    
+        const newEvenement = evenementRepo.create({
+            type: ev.type,
+            location: ev.location,
+            description: ev.description,
+            quorum: ev.quorum,
+            starting: ev.starting,
+            ending: ev.ending
+        });
+    
+        await evenementRepo.save(newEvenement);
+        return newEvenement;
+    }
+    
 
     async getEvenement(id: number): Promise<Evenement | null> {
         const repo = this.db.getRepository(Evenement);
-        const evenementFound = await repo.findOne({ where: { id } });
+        const evenementFound = await repo.findOne({ where: { id, isDeleted: false } });
         return evenementFound || null;
     }
 
     async updateEvenement(id: number, params: UpdateEvenementParams): Promise<Evenement | null | string> {
         const repo = this.db.getRepository(Evenement);
-        const evenementFound = await repo.findOne({ where: { id } });
+        const evenementFound = await repo.findOne({ where: { id, isDeleted: false } });
     
         if (!evenementFound) return null;
     
@@ -96,6 +105,7 @@ export class EvenementUsecase {
             const conflictingEvents = await repo.createQueryBuilder('event')
                 .where(':starting < event.ending AND :ending > event.starting', { starting: checkStarting, ending: checkEnding })
                 .andWhere('event.id != :id', { id })
+                .andWhere('event.isDeleted = false')
                 .getMany();
     
             if (conflictingEvents.length > 0) {
@@ -110,13 +120,16 @@ export class EvenementUsecase {
         return updatedEvenement;
     }
     
+    
     async deleteEvenement(id: number): Promise<boolean | Evenement | string> {
         const repo = this.db.getRepository(Evenement);
-        const evenementFound = await repo.findOne({ where: { id } });
+        const evenementFound = await repo.findOne({ where: { id, isDeleted: false } });
         if (!evenementFound) return "Event not found";
     
-        await repo.remove(evenementFound);
+        evenementFound.isDeleted = true;
+        await repo.save(evenementFound);
         return evenementFound;
     }
+    
     
 }

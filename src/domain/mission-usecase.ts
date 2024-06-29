@@ -32,10 +32,10 @@ export class MissionUsecase {
         const missionRepo = this.db.getRepository(Mission);
         const eventRepo = this.db.getRepository(Evenement);
     
-        // Chercher l'événement par ID
-        const eventFound = await eventRepo.findOne({ where: { id: eventId } });
+        // Chercher l'événement par ID et vérifier qu'il n'est pas supprimé
+        const eventFound = await eventRepo.findOne({ where: { id: eventId, isDeleted: false } });
         if (!eventFound) {
-            return "Event not found";
+            return "Event not found or is deleted";
         }
     
         // Vérifier si les dates de la mission sont comprises entre les dates de l'événement
@@ -59,6 +59,7 @@ export class MissionUsecase {
         return newMission;
     }
     
+    
 
     async getMission(id: number): Promise<Mission | null> {
         const repo = this.db.getRepository(Mission);
@@ -77,9 +78,9 @@ export class MissionUsecase {
         });
         if (!missionFound) return null;
     
-        // Récupérer l'événement associé
+        // Récupérer l'événement associé et vérifier qu'il n'est pas supprimé
         const evenement = missionFound.evenement;
-        if (!evenement) return null;
+        if (!evenement || evenement.isDeleted) return "Associated event not found or is deleted";
     
         // Déterminer les nouvelles dates de début et de fin
         const newStarting = params.starting || missionFound.starting;
@@ -87,7 +88,7 @@ export class MissionUsecase {
     
         // Vérifier si la nouvelle période de la mission est dans la période de l'événement
         if (newStarting < evenement.starting || newEnding > evenement.ending) {
-           return "La période de la mission doit être comprise dans celle de l'événement."
+            return "La période de la mission doit être comprise dans celle de l'événement."
         }
     
         // Vérifier les conflits de périodes avec d'autres missions
@@ -112,6 +113,7 @@ export class MissionUsecase {
         const updatedMission = await repo.save(missionFound);
         return updatedMission;
     }
+    
     
     async deleteMission(id: number): Promise<boolean | Mission> {
         const repo = this.db.getRepository(Mission);

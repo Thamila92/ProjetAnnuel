@@ -34,9 +34,9 @@ export class StepUsecase {
 
     async createStep(state: string, description: string, starting: Date, ending: Date, projetId: number): Promise<Step> {
         const projetRepo = this.db.getRepository(Projet);
-        const projet = await projetRepo.findOne({ where: { id: projetId } });
+        const projet = await projetRepo.findOne({ where: { id: projetId, isDeleted: false } });
         if (!projet) {
-            throw new Error('Projet not found');
+            throw new Error('Projet not found or is deleted');
         }
     
         // Vérification que les dates de l'étape sont encadrées par celles du projet
@@ -60,7 +60,6 @@ export class StepUsecase {
         await stepRepo.save(newStep);
         return newStep;
     }
-    
 
     async getStep(id: number): Promise<Step | null> {
         const repo = this.db.getRepository(Step);
@@ -75,9 +74,9 @@ export class StepUsecase {
     
         if (params.projetId && params.projetId !== stepFound.projet.id) {
             const projetRepo = this.db.getRepository(Projet);
-            const projet = await projetRepo.findOne({ where: { id: params.projetId } });
+            const projet = await projetRepo.findOne({ where: { id: params.projetId, isDeleted: false } });
             if (!projet) {
-                throw new Error('Projet not found');
+                throw new Error('Projet not found or is deleted');
             }
             stepFound.projet = projet;
         }
@@ -113,6 +112,7 @@ export class StepUsecase {
         const updatedStep = await repo.save(stepFound);
         return updatedStep;
     }
+    
     
 
     async deleteStep(id: number): Promise<boolean> {

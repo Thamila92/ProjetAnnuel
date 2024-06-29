@@ -11,6 +11,9 @@ enum eventtype {
 export class Evenement {
     @PrimaryGeneratedColumn()
     id!: number;
+    
+    @Column({ default: false })
+    isDeleted!: boolean;
 
     @Column({ type: 'enum', enum: eventtype})
     type!: string;

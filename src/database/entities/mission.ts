@@ -19,6 +19,9 @@ export class Mission {
     @Column()
     description: string;
 
+    @Column({ default: false })
+    isDeleted!: boolean;
+
     @ManyToOne(() => Evenement, (evenement) => evenement.mission)
     evenement!: Evenement;
 

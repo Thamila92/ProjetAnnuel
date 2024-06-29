@@ -10,6 +10,9 @@ export class Step {
     @Column()
     state: string;
 
+    @Column({ default: false })
+    isDeleted!: boolean;
+
     @Column()
     description: string;
 
