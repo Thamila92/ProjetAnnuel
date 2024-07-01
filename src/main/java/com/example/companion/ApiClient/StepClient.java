@@ -1,6 +1,8 @@
 package com.example.companion.ApiClient;
 
 import com.example.companion.Model.Step;
+import com.example.companion.Request.StepUpdateRequest;
+import com.example.companion.Response.StepResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,15 +15,26 @@ import java.net.http.HttpResponse;
 import java.util.List;
 
 public class StepClient {
-    private static final String BASE_URL = Urlapi.BASE_URL.getUrl();
+    private static final String BASE_URL =  "http://localhost:3000";
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public StepClient() {
+    private final String authToken;
+
+    public StepClient(HttpClient httpClient, ObjectMapper objectMapper, String authToken) {
+        this.httpClient = httpClient;
+        this.objectMapper = objectMapper;
+        this.authToken = authToken;
+    }
+    public StepClient(String authToken) {
         this.httpClient = HttpClient.newHttpClient();
         this.objectMapper = new ObjectMapper();
+        this.authToken = authToken;
     }
 
+public String getToken() {
+    return authToken;
+}
     private HttpResponseWrapper sendGetRequest(String endpoint) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + endpoint))
@@ -37,11 +50,36 @@ public class StepClient {
     }
 
     public List<Step> getSteps() throws IOException, InterruptedException {
-        HttpResponseWrapper responseWrapper = sendGetRequest("/steps");
-        if (responseWrapper.getStatusCode() == 200) {
-            return objectMapper.readValue(responseWrapper.getBody().toString(), new TypeReference<List<Step>>() {});
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/steps"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + authToken)
+                .GET()
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == 200) {
+            JsonNode jsonNode = objectMapper.readTree(response.body());
+            StepResponse stepResponse = objectMapper.treeToValue(jsonNode, StepResponse.class);
+            return stepResponse.getSteps();
+        } else {
+            throw new IOException("Failed to load steps: " + response.body());
         }
-        return null;
+    }
+
+    public void deleteStep(int id) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/steps/" + id))
+                .header("Authorization", "Bearer " + authToken)
+                .DELETE()
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 204) {
+            throw new IOException("Failed to delete step: " + response.body());
+        }
     }
 
     public Step getStep(int id) throws IOException, InterruptedException {
@@ -63,27 +101,25 @@ public class StepClient {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         return objectMapper.readValue(response.body(), Step.class);
     }
+    public Step updateStep(int id, StepUpdateRequest stepUpdateRequest) throws IOException, InterruptedException {
+        String json = objectMapper.writeValueAsString(stepUpdateRequest);
 
-    public Step updateStep(int id, Step step) throws IOException, InterruptedException {
-        String json = objectMapper.writeValueAsString(step);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + "/steps/" + id))
                 .header("Content-Type", "application/json")
-                .PUT(HttpRequest.BodyPublishers.ofString(json))
+                .header("Authorization", "Bearer " + authToken)
+                .method("PATCH", HttpRequest.BodyPublishers.ofString(json))
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        return objectMapper.readValue(response.body(), Step.class);
+
+        if (response.statusCode() == 200) {
+            return objectMapper.readValue(response.body(), Step.class);
+        } else {
+            throw new IOException("Failed to update step: " + response.body());
+        }
     }
 
-    public void deleteStep(int id) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/steps/" + id))
-                .DELETE()
-                .build();
-
-        httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-    }
 
     private JsonNode parseJson(String responseBody) {
         try {

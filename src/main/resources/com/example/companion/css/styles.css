@@ -1,0 +1,50 @@
+/* styles.css */
+.table-view {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #DDDDDD;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-effect: dropshadow(one-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 0);
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #2C3E50;  /* Couleur de fond sombre pour les en-têtes */
+}
+
+.table-view .column-header, .table-view .filler {
+    -fx-size: 25px;
+    -fx-padding: 5px;
+    -fx-font-weight: bold;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-border-style: solid;
+    -fx-background-color: #2C3E50;  /* Couleur de fond sombre pour les en-têtes */
+    -fx-text-fill: #ECF0F1;  /* Couleur de texte claire pour les en-têtes */
+}
+
+.table-view .column-header .text {
+    -fx-fill: #ECF0F1;  /* Assurer que le texte est en blanc */
+}
+
+.table-view .cell {
+    -fx-padding: 10px;
+    -fx-border-color: #DDDDDD;
+    -fx-border-width: 0 0 1 0;
+    -fx-border-style: solid;
+    -fx-text-fill: #333333;  /* Couleur de texte foncée pour les cellules */
+}
+
+.table-view .cell:selected {
+    -fx-background-color: #2C3E50;
+    -fx-text-fill: #ECF0F1;  /* Couleur de texte claire pour les cellules sélectionnées */
+}
+
+.button {
+    -fx-background-color: #2C3E50;
+    -fx-text-fill: #ECF0F1;
+    -fx-font-weight: bold;
+    -fx-pref-width: 120px;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-effect: dropshadow(one-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 0);
+}

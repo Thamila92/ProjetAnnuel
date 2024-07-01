@@ -18,6 +18,7 @@ public class AdminClient {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private Admin authenticatedAdmin;
+    private String authToken;
 
     public AdminClient() {
         this.httpClient = HttpClient.newHttpClient();
@@ -59,6 +60,7 @@ public class AdminClient {
         if (responseWrapper.getStatusCode() == 200) {
             JsonNode responseBody = responseWrapper.getBody();
             String token = responseBody.get("token").asText();
+            this.authToken =token ;
             Admin admin = new Admin(email, password);
             admin.setToken(token);
             this.authenticatedAdmin = admin;
@@ -68,7 +70,21 @@ public class AdminClient {
             return false;
         }
     }
+    public Admin getLoggedInUser() throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/auth/me"))
+                .header("Authorization", "Bearer " + authToken)
+                .header("Content-Type", "application/json")
+                .GET()
+                .build();
 
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 200) {
+            return objectMapper.readValue(response.body(), Admin.class);
+        } else {
+            throw new IOException("Failed to fetch user details: " + response.body());
+        }
+    }
 
     public String getAuthToken() {
         return authenticatedAdmin != null ? authenticatedAdmin.getToken() : null;
@@ -124,6 +140,37 @@ public class AdminClient {
         } catch (Exception e) {
             e.printStackTrace();
             return null;
+        }
+    }
+    public List<Admin> getUsersByRole(String role) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/users?role=" + role))
+                .header("Authorization", "Bearer " + authToken)
+                .header("Content-Type", "application/json")
+                .GET()
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 200) {
+            return objectMapper.readValue(response.body(), new TypeReference<List<Admin>>() {});
+        } else {
+            throw new IOException("Failed to fetch users by role: " + response.body());
+        }
+    }
+    public List<String> getAdminEmailsByRole(String role) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/users?type=NORMAL" + role))
+                .header("Authorization", "Bearer " + authToken)
+                .header("Content-Type", "application/json")
+                .GET()
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == 200) {
+            return objectMapper.readValue(response.body(), objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
+        } else {
+            throw new IOException("Failed to fetch admin emails: " + response.body());
         }
     }
 

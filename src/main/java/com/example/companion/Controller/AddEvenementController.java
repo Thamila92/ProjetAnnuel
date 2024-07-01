@@ -58,12 +58,8 @@ public class AddEvenementController {
             Date startingDate = dateFormat.parse(starting);
             Date endingDate = dateFormat.parse(ending);
 
-            EvenementRequest newEvenement = new EvenementRequest();
-            newEvenement.setType(type);
-            newEvenement.setLocation(location);
-            newEvenement.setDescription(description);
-            newEvenement.setStarting(startingDate);
-            newEvenement.setEnding(endingDate);
+            EvenementRequest newEvenement = new EvenementRequest(type, location, description, startingDate, endingDate);
+
 
             Evenement createdEvenement = evenementClient.createEvenement(newEvenement);
             evenementController.addEvenementToList(createdEvenement);

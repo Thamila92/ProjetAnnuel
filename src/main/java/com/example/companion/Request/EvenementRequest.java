@@ -14,6 +14,13 @@ public class EvenementRequest {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private Date ending;
 
+    public EvenementRequest (String type, String location, String description, Date starting, Date ending) {
+        this.type = type;
+        this.location = location;
+        this.description = description;
+        this.starting = starting;
+        this.ending = ending;
+    }
     // Getters and setters
     public String getType() {
         return type;

@@ -1,0 +1,30 @@
+.root {
+    -fx-background-color: #2C3E50; /* Couleur de fond pour le thème sombre */
+    -fx-base: #273746; /* Couleur de base pour les composants */
+}
+
+.label {
+    -fx-text-fill: white; /* Couleur du texte pour les labels */
+}
+
+.button {
+    -fx-background-color: #34495E;
+    -fx-text-fill: white; /* Boutons avec fond foncé et texte clair */
+    -fx-border-color: white;
+    -fx-border-width: 2;
+}
+
+.text-field {
+    -fx-background-color: #566573;
+    -fx-text-fill: white;
+}
+
+.vbox, .hbox {
+    -fx-background-color: #2C3E50; /* Fond des box */
+}
+.label-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #FFFFFF; /* Couleur pour le dark theme */
+}
+

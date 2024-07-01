@@ -2,9 +2,11 @@ package com.example.companion.Model;
 
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.Date;
 
-public class Step {
+@JsonIgnoreProperties(ignoreUnknown = true)public class Step {
     private int id;
     private String state;
     private String description;

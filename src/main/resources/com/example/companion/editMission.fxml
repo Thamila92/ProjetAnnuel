@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.example.companion.Controller.EditMissionController"
+      spacing="10" alignment="CENTER">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="Description"/>
+    <TextField fx:id="descriptionField"/>
+    <Label text="Starting Date"/>
+    <TextField fx:id="startingField"/>
+
+    <Label text="Ending Date"/>
+    <TextField fx:id="endingField"/>
+
+    <Label text="Skills"/>
+    <VBox fx:id="skillsContainer"/>
+
+    <Label text="Users"/>
+    <VBox fx:id="usersContainer"/>
+
+    <Button text="Save" onAction="#handleSaveChanges"/>
+</VBox>

@@ -8,9 +8,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -57,6 +55,33 @@ public class ProjetController {
                 dateFormat.format(cellData.getValue().getEnding())));
 
         projectTable.setItems(projectList);
+        projectTable.setRowFactory(tv -> {
+            TableRow<Projet> row = new TableRow<>();
+            ContextMenu contextMenu = new ContextMenu();
+
+            MenuItem deleteItem = new MenuItem("Supprimer");
+            deleteItem.setOnAction(event -> {
+                Projet projet = row.getItem();
+                handleDeleteProjet(projet);
+            });
+
+            MenuItem editItem = new MenuItem("Modifier");
+            editItem.setOnAction(event -> {
+                Projet projet = row.getItem();
+                handleEditProjet(projet);
+            });
+
+            MenuItem addStepItem = new MenuItem("Ajouter étape");
+            addStepItem.setOnAction(event -> {
+                Projet projet = row.getItem();
+                handleAddStep(projet);
+            });
+
+            contextMenu.getItems().addAll(deleteItem, editItem, addStepItem);
+
+            row.contextMenuProperty().bind(javafx.beans.binding.Bindings.when(row.emptyProperty()).then((ContextMenu) null).otherwise(contextMenu));
+            return row;
+        });
     }
 
     private void loadProjects() {
@@ -110,4 +135,73 @@ public class ProjetController {
         alert.setContentText(message);
         alert.showAndWait();
     }
+    private void handleDeleteProjet(Projet projet) {
+        try {
+            projetClient.deleteProject(projet.getId());
+            projectList.remove(projet);
+        } catch (IOException | InterruptedException e) {
+            showAlert("Error", "Unable to delete project.");
+            e.printStackTrace();
+        }
+    }
+
+      private void handleEditProjet(Projet projet) {
+        try {
+            URL fxmlLocation = getClass().getResource("/com/example/companion/editProjet.fxml");
+            if (fxmlLocation == null) {
+                throw new IOException("Cannot find editProjet.fxml");
+            }
+
+            FXMLLoader loader = new FXMLLoader(fxmlLocation);
+            Parent root = loader.load();
+
+            EditProjetController editProjetController = loader.getController();
+            editProjetController.setProjetClient(projetClient);
+            editProjetController.setProjetController(this);
+            editProjetController.setProjet(projet);
+
+            Stage stage = new Stage();
+            stage.setTitle("Edit Project");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (IOException e) {
+            showAlert("Error", "Unable to load the edit project form.");
+            e.printStackTrace();
+        }
+    }
+
+    public void updateProjetInList(Projet projet) {
+        int index = projectList.indexOf(projet);
+        if (index != -1) {
+            projectList.set(index, projet);
+        }
+    }
+
+
+    private void handleAddStep(Projet projet) {
+        try {
+            URL fxmlLocation = getClass().getResource("/com/example/companion/addStep.fxml");
+            if (fxmlLocation == null) {
+                throw new IOException("Cannot find addStep.fxml");
+            }
+
+            FXMLLoader loader = new FXMLLoader(fxmlLocation);
+            Parent root = loader.load();
+
+            AddStepController addStepController = loader.getController();
+            addStepController.setProjetClient(projetClient);
+            addStepController.setProjet(projet);
+
+            Stage stage = new Stage();
+            stage.setTitle("Add Step to Project");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (IOException e) {
+            showAlert("Error", "Unable to load the add step form.");
+            e.printStackTrace();
+        }
+    }
+
 }

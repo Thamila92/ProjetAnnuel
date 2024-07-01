@@ -3,6 +3,7 @@ package com.example.companion.ApiClient;
 import com.example.companion.Model.Evenement;
 import com.example.companion.Model.Projet;
 import com.example.companion.Request.EvenementRequest;
+import com.example.companion.Request.MissionRequest;
 import com.example.companion.Response.EvenementResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -13,6 +14,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.LocalDate;
 import java.util.List;
 
 public class EvenementClient {
@@ -59,6 +61,14 @@ public class EvenementClient {
         return null;
     }
 
+    public List<Evenement> getEventsForDate(LocalDate date) throws IOException, InterruptedException {
+        HttpResponseWrapper responseWrapper = sendGetRequest("/evenements?date=" + date.toString());
+        if (responseWrapper.getStatusCode() == 200) {
+            EvenementResponse evenementResponse = objectMapper.readValue(responseWrapper.getBody().toString(), EvenementResponse.class);
+            return evenementResponse.getEvenements();
+        }
+        return null;
+    }
 
     public Evenement createEvenement(EvenementRequest evenement) throws IOException, InterruptedException {
         String json = objectMapper.writeValueAsString(evenement);
@@ -78,12 +88,13 @@ public class EvenementClient {
         }
     }
 
-    public Evenement updateEvenement(int id, Evenement evenement) throws IOException, InterruptedException {
+    public Evenement updateEvenement(int id, EvenementRequest evenement) throws IOException, InterruptedException {
         String json = objectMapper.writeValueAsString(evenement);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + "/evenements/" + id))
                 .header("Content-Type", "application/json")
-                .PUT(HttpRequest.BodyPublishers.ofString(json))
+                .header("Authorization", "Bearer " + authToken)
+                .method("PATCH", HttpRequest.BodyPublishers.ofString(json))
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -98,7 +109,21 @@ public class EvenementClient {
 
         httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
+    public void addMissionToEvent(MissionRequest missionRequest) throws IOException, InterruptedException {
+        String json = objectMapper.writeValueAsString(missionRequest);
 
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/missions"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + authToken)
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 201) {
+            throw new IOException("Failed to add mission: " + response.body());
+        }
+    }
     private JsonNode parseJson(String responseBody) {
         try {
             return new ObjectMapper().readTree(responseBody);
@@ -107,4 +132,5 @@ public class EvenementClient {
             return null;
         }
     }
+
 }

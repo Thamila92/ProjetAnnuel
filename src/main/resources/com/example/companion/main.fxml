@@ -10,30 +10,31 @@
             fx:id="rootPane"
             prefHeight="600.0" prefWidth="800.0">
 
-     <top>
-        <HBox spacing="10" alignment="CENTER" BorderPane.alignment="CENTER">
-            <TextField fx:id="searchField" promptText="Search..." HBox.hgrow="ALWAYS"/>
-            <Button text="LogIn/SignIn" onAction="#handleLogin"/>
-            <Button text="Notifications"/>
+    <top>
+        <HBox spacing="10" alignment="CENTER" style="-fx-background-color: #2C3E50; -fx-padding: 10px;">
+            <TextField fx:id="searchField" promptText="Search..." HBox.hgrow="ALWAYS" style="-fx-background-color: #ECF0F1; -fx-text-fill: #2C3E50;"/>
+            <Label fx:id="userNameLabel" style="-fx-text-fill: #ECF0F1;"/>
+            <Button fx:id="profileButton" text="Profile" onAction="#handleProfile" visible="false" style="-fx-background-color: #ECF0F1; -fx-text-fill: #2C3E50;"/>
+            <Button fx:id="loginButton" text="Login" onAction="#handleLogin" visible="true" style="-fx-background-color: #ECF0F1; -fx-text-fill: #2C3E50;"/>
+            <Button fx:id="logoutButton" text="Logout" onAction="#handleLogout" visible="false" style="-fx-background-color: #ECF0F1; -fx-text-fill: #2C3E50;"/>
         </HBox>
     </top>
 
-     <left>
-        <VBox spacing="10" style="-fx-background-color: #FFA500;">
-            <padding>
-                <Insets top="20" right="20" bottom="20" left="20"/>
-            </padding>
-            <Button text="Home" onAction="#handleHome"/>
-            <Button text="Event" onAction="#handleEvents"/>
+    <left>
+        <VBox spacing="10" style="-fx-background-color: #F39C12; -fx-padding: 10px;">
+            <Button text="Home" onAction="#handleHome" style="-fx-background-color: #ECF0F1; -fx-text-fill: #2C3E50; -fx-font-weight: bold; -fx-pref-width: 120px; -fx-alignment: CENTER;"/>
+            <Button text="Events" onAction="#handleEvents" style="-fx-background-color: #ECF0F1; -fx-text-fill: #2C3E50; -fx-font-weight: bold; -fx-pref-width: 120px; -fx-alignment: CENTER;"/>
+            <Button text="Projects" onAction="#handleProjects" style="-fx-background-color: #ECF0F1; -fx-text-fill: #2C3E50; -fx-font-weight: bold; -fx-pref-width: 120px; -fx-alignment: CENTER;"/>
+            <Button text="Steps" onAction="#handleSteps" style="-fx-background-color: #ECF0F1; -fx-text-fill: #2C3E50; -fx-font-weight: bold; -fx-pref-width: 120px; -fx-alignment: CENTER;"/>
+            <Button text="Missions" onAction="#handleMissions" style="-fx-background-color: #ECF0F1; -fx-text-fill: #2C3E50; -fx-font-weight: bold; -fx-pref-width: 120px; -fx-alignment: CENTER;"/>
+            <Button text="Planning" onAction="#handlePlanning" style="-fx-background-color: #ECF0F1; -fx-text-fill: #2C3E50; -fx-font-weight: bold; -fx-pref-width: 120px; -fx-alignment: CENTER;"/>
 
-            <Button text="Projects" onAction="#handleProjects"/>
-            <Button text="Tasks" onAction="#handleTasks"/>
-            <Button text="Settings" onAction="#handleSettings"/>
-            <Button text="Logout"/>
+            <Button text="Theme" onAction="#handleChangeTheme" style="-fx-background-color: #ECF0F1; -fx-text-fill: #2C3E50; -fx-font-weight: bold; -fx-pref-width: 120px; -fx-alignment: CENTER;"/>
+
         </VBox>
     </left>
 
-     <center>
-        <fx:include source="home.fxml"/>
+    <center>
+        <fx:include source="login.fxml"/>
     </center>
 </BorderPane>

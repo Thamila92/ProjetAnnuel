@@ -9,6 +9,7 @@ module com.example.companion {
     requires org.kordamp.ikonli.javafx;
     requires org.kordamp.bootstrapfx.core;
     //requires eu.hansolo.tilesfx;
+    requires java.logging;
     requires com.almasb.fxgl.all;
     requires java.net.http;
     requires com.fasterxml.jackson.databind;

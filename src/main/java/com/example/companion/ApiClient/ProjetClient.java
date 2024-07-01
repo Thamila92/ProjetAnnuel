@@ -2,10 +2,11 @@ package com.example.companion.ApiClient;
 
 import com.example.companion.Model.Projet;
 import com.example.companion.Request.ProjetCreateRequest;
+import com.example.companion.Request.ProjetUpdateRequest;
 import com.example.companion.Response.ProjetResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+ import  com.example.companion.Request.StepRequest;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -102,17 +103,23 @@ public class ProjetClient {
     }
 
 
-    public Projet updateProject(int id, Projet projet) throws IOException, InterruptedException {
-        String json = objectMapper.writeValueAsString(projet);
+    public Projet updateProject(int id, ProjetUpdateRequest projetUpdateRequest) throws IOException, InterruptedException {
+        String json = objectMapper.writeValueAsString(projetUpdateRequest);
+
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + "/projets/" + id))
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + authToken)
-                .PUT(HttpRequest.BodyPublishers.ofString(json))
+                .method("PATCH", HttpRequest.BodyPublishers.ofString(json))
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        return objectMapper.readValue(response.body(), Projet.class);
+
+        if (response.statusCode() == 200) {
+            return objectMapper.readValue(response.body(), Projet.class);
+        } else {
+            throw new IOException("Failed to update project: " + response.body());
+        }
     }
 
     public void deleteProject(int id) throws IOException, InterruptedException {
@@ -123,6 +130,22 @@ public class ProjetClient {
                 .build();
 
         httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    public void addStepToProject(StepRequest stepRequest) throws IOException, InterruptedException {
+        String json = objectMapper.writeValueAsString(stepRequest);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/steps"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + authToken)
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 201) {
+            throw new IOException("Failed to add step: " + response.body());
+        }
     }
 
     private JsonNode parseJson(String responseBody) {

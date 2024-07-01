@@ -8,13 +8,15 @@
       xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.example.companion.Controller.LoginController"
       alignment="CENTER"
-      spacing="10">
+      spacing="10"
+      prefWidth="300"
+      prefHeight="300">
     <padding>
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
     <Label text="Login" style="-fx-font-size: 24px;"/>
-    <TextField fx:id="emailField" promptText="Email"/>
-    <PasswordField fx:id="passwordField" promptText="Password"/>
-    <Button text="Login" onAction="#handleLogin"/>
-    <Button text="Sign Up" onAction="#loadSignUp"/>
+    <TextField fx:id="emailField" promptText="Email" style="-fx-pref-width: 250px;"/>
+    <PasswordField fx:id="passwordField" promptText="Password" style="-fx-pref-width: 250px;"/>
+    <Button text="Login" onAction="#handleLogin" style="-fx-pref-width: 250px; -fx-background-color: #2C3E50; -fx-text-fill: #ECF0F1;"/>
+    <Button text="Sign Up" onAction="#loadSignUp" style="-fx-pref-width: 250px; -fx-background-color: #F39C12; -fx-text-fill: #2C3E50;"/>
 </VBox>
