@@ -29,9 +29,7 @@ import { ListProjetRequest, ProjetRequest, listProjetValidation, projetUpdateVal
 import { ListStepRequest, StepRequest, listStepValidation, stepUpdateValidation, stepValidation } from "./validators/step-validator";
 import { ReviewUsecase } from "../domain/review-usecase";
 import { ReviewRequest, reviewValidation } from "./validators/review-validator";
-import { ComplianceUsecase } from "../domain/compliance-usecase";
-import { ComplianceRequest, ListComplianceRequest, complianceValidation, listComplianceValidation } from "./validators/compliance-validator";
-import { Evenement } from "../database/entities/evenement";
+ import { Evenement } from "../database/entities/evenement";
 import { SubjectUsecase } from "../domain/subject-usecase";
 import { createSubjectValidation, updateSubjectValidation } from "./validators/subjectValidator";
 import { VoteUsecase } from "../domain/vote-usecase";
@@ -42,6 +40,10 @@ import { createDocumentValidation, updateDocumentValidation } from "./validators
 import { createResponseValidation, updateResponseValidation } from "./validators/responseValidator";
 import multer from 'multer';
 import { Readable } from 'stream';
+import { NoteUsecase } from "../domain/note-usecase";
+import { SkillUsecase } from "../domain/skill-usecase";
+import { skillValidation } from "./validators/skill-validator";
+import { Skill } from "../database/entities/skill";
 const upload = multer();
 
 
@@ -59,10 +61,13 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
     const projetUsecase = new ProjetUsecase(AppDataSource);
     const stepUsecase = new StepUsecase(AppDataSource);
     const reviewUsecase = new ReviewUsecase(AppDataSource);
-    const complianceUsecase = new ComplianceUsecase(AppDataSource);
-    const subjectUsecase = new SubjectUsecase(AppDataSource);
+     const subjectUsecase = new SubjectUsecase(AppDataSource);
     const voteUsecase = new VoteUsecase(AppDataSource)
     const responseUsecase = new ResponseUsecase(AppDataSource);
+    const noteUsecase = new NoteUsecase(AppDataSource);
+    const userUsecase = new UserUsecase(AppDataSource);
+    const skillUsecase = new SkillUsecase(AppDataSource);
+
 
     //la route utilisee pour creer les statuts est bloquee volontairement
 
@@ -101,46 +106,40 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
        }  
       })
 
-
-
+ 
+      app.get('/users', adminMiddleware, async (req: Request, res: Response) => {
+        const validation = listUsersValidation.validate(req.query);
     
-
-    /*
-    Listing de tous les utilisateurs, on peut passer le type d'utilisateur qu'on veut avoir en Query Param
-    */
-    app.get('/users',authMiddleware,async(req: Request, res: Response)=>{
-        const validation = listUsersValidation.validate(req.query)
-
         if (validation.error) {
-            res.status(400).json(generateValidationErrorMessage(validation.error.details))
-            return
+            res.status(400).json(generateValidationErrorMessage(validation.error.details));
+            return;
         }
-
-        const listUserRequest = validation.value
-        let limit = 10
+    
+        const listUserRequest = validation.value;
+        let limit = 10;
         if (listUserRequest.limit) {
-            limit = listUserRequest.limit
+            limit = listUserRequest.limit;
         }
-
-        let type=""
+    
+        let type = "";
         if (listUserRequest.type) {
-            type = listUserRequest.type
+            type = listUserRequest.type;
         }
-
-        const page = listUserRequest.page ?? 1
-
+    
+        const page = listUserRequest.page ?? 1;
+        const skills = listUserRequest.skills ?? [];
+    
         try {
             const userUsecase = new UserUsecase(AppDataSource);
-            const listusers = await userUsecase.listUser({ ...listUserRequest, page, limit , type })
-            res.status(200).json(listusers)
+            const listusers = await userUsecase.listUser({ ...listUserRequest, page, limit, type, skills });
+            res.status(200).json(listusers);
         } catch (error) {
-            console.log(error)
-            res.status(500).json({ error: "Internal error" })
+            console.log(error);
+            res.status(500).json({ error: "Internal error" });
         }
-    })
-
-    //Listing des infos du profil d'un utilisateur quelconque
-    app.get("/users/:id",authMiddleware,async (req: Request, res: Response) => {
+    });
+    
+     app.get("/users/:id",authMiddleware,async (req: Request, res: Response) => {
         try {
             const validationResult = userIdValidation.validate(req.params)
 
@@ -208,10 +207,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
 
             await expenditureRepository.save(newExpenditure);
 
-            // const url=await paypal.createPayout(createDonationRequest.amount,'EUR')
-            // console.log(url)
-            // res.redirect(url)
-            // res.status(200).json({ ...url });
+ 
             if(await paypal.createPayout(createDonationRequest.amount,'EUR')){
                 res.status(200).json({
                     message: "Expenditure successfully registered and the amount of "+createDonationRequest.amount+"€ has been transfered",
@@ -327,10 +323,9 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             await donationRepository.save(newDonation);
 
             const url=await paypal.createOrder(createDonationRequest.description, createDonationRequest.amount)
-            // console.log(url)
-            // res.redirect(url)
+ 
             res.status(200).json({ message: "open this on your current navigator: "+url });
-            // await open(url);
+ 
         }catch(error){
             console.log(error)
             res.status(500).json({ error: "Internal error" })
@@ -417,38 +412,53 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
 
     app.post('/signup', async (req: Request, res: Response) => {
         try {
-            const validationResult = createOtherValidation.validate(req.body)
+            const validationResult = createOtherValidation.validate(req.body);
             if (validationResult.error) {
-                res.status(400).json(generateValidationErrorMessage(validationResult.error.details))
-                return
+                res.status(400).json(generateValidationErrorMessage(validationResult.error.details));
+                return;
             }
-            const createOtherRequest = validationResult.value
+    
+            const createOtherRequest = validationResult.value;
             const hashedPassword = await hash(createOtherRequest.password, 10);
-
-            const userRepository = AppDataSource.getRepository(User)
-            const status= await AppDataSource
-            .getRepository(Status)
-            .createQueryBuilder("status")
-            .where("status.description = \"NORMAL\"")
-            .getOne()
-            if (status!=null){
+    
+            const userRepository = AppDataSource.getRepository(User);
+            const status = await AppDataSource.getRepository(Status)
+                .createQueryBuilder("status")
+                .where("status.description = :status", { status: "NORMAL" })
+                .getOne();
+    
+            if (status) {
+                // Fetch or create skills
+                const skillRepo = AppDataSource.getRepository(Skill);
+                let skills = [];
+                if (createOtherRequest.skills && createOtherRequest.skills.length > 0) {
+                    skills = await Promise.all(createOtherRequest.skills.map(async (skillName: string) => {
+                        let skill = await skillRepo.findOne({ where: { name: skillName } });
+                        if (!skill) {
+                            skill = skillRepo.create({ name: skillName });
+                            await skillRepo.save(skill);
+                        }
+                        return skill;
+                    }));
+                }
+    
                 const other = await userRepository.save({
-                    name:createOtherRequest.name,
+                    name: createOtherRequest.name,
                     email: createOtherRequest.email,
                     password: hashedPassword,
-                    status:status
+                    status: status,
+                    skills: skills.length > 0 ? skills : []
                 });
-                res.status(201).json(other)
-            }else{
-                return res.status(201).json({"Erreur":"So you are coming out of nowhere"})
+    
+                res.status(201).json(other);
+            } else {
+                res.status(400).json({ "Erreur": "Status NORMAL not found" });
             }
-        } catch (error) { 
-            console.log(error)
-            res.status(500).json({ "error": "internal error retry later" })
-            return
-        } 
-    })
-
+        } catch (error) {
+            console.log(error);
+            res.status(500).json({ "error": "Internal error retry later" });
+        }
+    });
     app.post('/login', async (req: Request, res: Response) => {
         try {
 
@@ -512,7 +522,6 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
         const updateUserRequest = validation.value
 
         try {
-            const userUsecase = new UserUsecase(AppDataSource);
             const updatedUser = await userUsecase.updateUser(updateUserRequest.id,{...updateUserRequest})
             if (updatedUser === null) {
                 res.status(404).json({ "error": `user ${updateUserRequest.id} not found` })
@@ -525,7 +534,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
         }
     })
 
-    app.delete("/users/:id",authMiddleware,async (req: Request, res: Response) => {
+    app.delete("/users/:id",adminMiddleware,async (req: Request, res: Response) => {
         try {
             const validationResult = updateUserValidation.validate({ ...req.params, ...req.body });
     
@@ -559,7 +568,20 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).json({ error: "Internal error" });
         }
     });
+    app.get('/users/emails',adminMiddleware, async (req, res) => {
+        const { role } = req.query;
     
+        if (!role) {
+            return res.status(400).json({ message: 'Role parameter is required' });
+        }
+    
+        try {
+            const emails = await userUsecase.getUsersByRole(role as string);
+            res.status(200).json(emails);
+        } catch (error) {
+            res.status(500).json({ message: 'Internal server error'});
+        }
+    });
 
 
 
@@ -745,6 +767,17 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).json({ error: "Internal error" })
         }
     })
+    app.post('/users/:userId/skills', adminMiddleware,async (req, res) => {
+        const userId = parseInt(req.params.userId);
+        const { skillName } = req.body;
+    
+        try {
+            const result = await userUsecase.addSkillToUser(userId, skillName);
+            res.status(200).send(result);
+        } catch (error) {
+            res.status(500).send({ error: 'Internal server error' });
+        }
+    });
 
 
 
@@ -1038,6 +1071,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).send({ error: "Internal error" });
         }
     });
+  
 
 
 
@@ -1045,42 +1079,50 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
 
 
 
-
-
-    app.post("/missions",adminMiddleware,async (req: Request, res: Response) => {
-        const validation = missionValidation.validate(req.body);
-        if (validation.error) {
-            res.status(400).send(generateValidationErrorMessage(validation.error.details));
-            return;
-        }
-
-        const { starting, ending, description,eventId }: MissionRequest = validation.value;
+    app.post('/missions', adminMiddleware, async (req, res) => {
+        const { starting, ending, description, eventId, stepId, skills, userEmails } = req.body;
+    
         try {
-            const missionCreated = await missionUsecase.createMission(starting, ending, description,eventId);
-            res.status(201).send(missionCreated);
+            const mission = await missionUsecase.createMission(
+                new Date(starting), 
+                new Date(ending), 
+                description, 
+                eventId || null, 
+                stepId || null, 
+                skills || null, 
+                userEmails || null
+            );
+            res.status(201).send(mission);
         } catch (error) {
             console.log(error);
-            res.status(500).send({ error: "Internal error" });
+            res.status(500).send({ error: 'Internal error' });
         }
     });
-
-    app.get("/missions", async (req: Request, res: Response) => {
+    app.get('/missions', adminMiddleware, async (req: Request, res: Response) => {
         const validation = listMissionValidation.validate(req.query);
+    
         if (validation.error) {
-            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            res.status(400).json(generateValidationErrorMessage(validation.error.details));
             return;
         }
-
-        const { page = 1, limit = 10 }: ListMissionRequest = validation.value;
+    
+        const listMissionRequest = validation.value;
+        let limit = 10;
+        if (listMissionRequest.limit) {
+            limit = listMissionRequest.limit;
+        }
+    
+        const page = listMissionRequest.page ?? 1;
+    
         try {
-            const result = await missionUsecase.listMissions({ page, limit });
-            res.status(200).send(result);
+            const missionUsecase = new MissionUsecase(AppDataSource);
+            const { missions, totalCount } = await missionUsecase.listMissions({ ...listMissionRequest, page, limit });
+            res.status(200).json({ missions, totalCount });
         } catch (error) {
             console.log(error);
-            res.status(500).send({ error: "Internal error" });
+            res.status(500).json({ error: "Internal error" });
         }
     });
-
     app.get("/missions/:id", async (req: Request, res: Response) => {
         const id = parseInt(req.params.id);
         try {
@@ -1132,9 +1174,51 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).send({ error: "Internal error" });
         }
     });
+        // Route pour affecter des compétences requises à une mission
+    app.post('/missions/:missionId/skills', adminMiddleware, async (req, res) => {
+        const missionId = parseInt(req.params.missionId);
+        const { skillIds } = req.body;
 
+        try {
+            const mission = await missionUsecase.addSkillsToMission(missionId, skillIds);
+            res.status(200).send(mission);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
 
+    app.post('/missions/:missionId/assign-users', async (req, res) => {
+        const missionId = parseInt(req.params.missionId);
+        const { userEmails } = req.body;
+    
+        try {
+            const mission = await missionUsecase.assignUsersToMission(missionId, userEmails);
+            if (typeof mission === "string") {
+                res.status(400).send({ error: mission });
+            } else {
+                res.status(200).send(mission);
+            }
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: 'Internal error' });
+        }
+    });
+    
+    app.get('/missions/:missionId/users-by-skills', adminMiddleware, async (req, res) => {
+        const missionId = parseInt(req.params.missionId);
+    
+        try {
+            const users = await missionUsecase.getUsersByMissionSkills(missionId);
+            res.status(200).send(users);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+ 
 
+  
 
 
 
@@ -1391,96 +1475,13 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
 
 
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ 
 
-
-
-    app.post("/compliances", async (req: Request, res: Response) => {
-        const validation = complianceValidation.validate(req.body);
-        if (validation.error) {
-            res.status(400).send(generateValidationErrorMessage(validation.error.details));
-            return;
-        }
-
-        const { description, status, userId, missionId }: ComplianceRequest = validation.value;
-        try {
-            const complianceCreated = await complianceUsecase.createCompliance(description, status, userId, missionId);
-            res.status(201).send(complianceCreated);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
-    app.get("/compliances/:id", async (req: Request, res: Response) => {
-        const id = parseInt(req.params.id);
-        try {
-            const compliance = await complianceUsecase.getCompliance(id);
-            if (!compliance) {
-                res.status(404).send({ error: "Compliance not found" });
-                return;
-            }
-            res.status(200).send(compliance);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
-    app.patch("/compliances/:id", async (req: Request, res: Response) => {
-        const id = parseInt(req.params.id);
-        const validation = complianceValidation.validate(req.body);
-        if (validation.error) {
-            res.status(400).send(generateValidationErrorMessage(validation.error.details));
-            return;
-        }
-
-        const { description, status }: ComplianceRequest = validation.value;
-        try {
-            const compliance = await complianceUsecase.updateCompliance(id, { description, status });
-            if (!compliance) {
-                res.status(404).send({ error: "Compliance not found" });
-                return;
-            }
-            res.status(200).send(compliance);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
-    app.delete("/compliances/:id", async (req: Request, res: Response) => {
-        const id = parseInt(req.params.id);
-        try {
-            const success = await complianceUsecase.deleteCompliance(id);
-            if (!success) {
-                res.status(404).send({ error: "Compliance not found" });
-                return;
-            }
-            res.status(204).send();
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
-    app.get("/compliances", async (req: Request, res: Response) => {
-        const validation = listComplianceValidation.validate(req.query);
-        if (validation.error) {
-            res.status(400).send(generateValidationErrorMessage(validation.error.details));
-            return;
-        }
-
-        const { page = 1, limit = 10 }: ListComplianceRequest = validation.value;
-        try {
-            const result = await complianceUsecase.listCompliances({ page, limit });
-            res.status(200).send(result);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
-
+ 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    
     // Routes for Subject
-    app.post("/subjects", async (req: Request, res: Response) => {
+    app.post("/subjects",adminMiddleware, async (req: Request, res: Response) => {
         const validation = createSubjectValidation.validate(req.body);
         if (validation.error) {
             res.status(400).send(generateValidationErrorMessage(validation.error.details));
@@ -1792,4 +1793,131 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             }
         }
     });
+
+ 
+     app.post('/notes', adminMiddleware, async (req, res) => {
+        const userId = (req as any).user.id;
+        const result = await noteUsecase.createNote(userId, {
+            name: req.body.name,
+            content: req.body.content
+        });
+    
+        if (typeof result === 'string') {
+            return res.status(400).json({ message: result });
+        }
+    
+        res.status(201).json(result);
+    });
+
+    app.get('/notes', adminMiddleware, async (req, res) => {
+        const userId = (req as any).user.id;
+        const notes = await noteUsecase.listNotes(userId);
+        res.status(200).json(notes);
+    });
+    
+    app.get('/notes/:id', adminMiddleware, async (req, res) => {
+        const userId = (req as any).user.id;
+        const id = parseInt(req.params.id);
+
+        const note = await noteUsecase.getNoteById(id , userId);
+    
+        if (!note) {
+            return res.status(404).json({ message: 'Note not found' });
+        }
+    
+        res.status(200).json(note);
+    });
+    
+ 
+    app.patch('/notes/:id', adminMiddleware, async (req, res) => {
+        const userId = (req as any).user.id;
+        const id = parseInt(req.params.id);
+
+        const result = await noteUsecase.updateNote(id, userId, req.body);
+    
+        if (typeof result === 'string') {
+            return res.status(400).json({ message: result });
+        }
+    
+        res.status(200).json(result);
+    });
+    
+   
+    app.delete('/notes/:id', adminMiddleware, async (req, res) => {
+        const userId = (req as any).user.id;
+        const id = parseInt(req.params.id);
+
+        const success = await noteUsecase.deleteNote(id, userId);
+    
+        if (!success) {
+            return res.status(404).json({ message: 'Note not found' });
+        }
+    
+        res.status(204).send();
+    });
+    app.post("/skills", adminMiddleware,async (req, res) => {
+        const { error } = skillValidation.validate(req.body);
+        if (error) {
+            return res.status(400).send({ error: error.details[0].message });
+        }
+    
+        try {
+            const skill = await skillUsecase.createSkill(req.body.name);
+            res.status(201).send(skill);
+        } catch (err) {
+            res.status(500).send({ error: "Internal Server Error" });
+        }
+    });
+    
+    app.get("/skills/:id",adminMiddleware, async (req, res) => {
+        try {
+            const skill = await skillUsecase.getSkill(parseInt(req.params.id));
+            if (!skill) {
+                return res.status(404).send({ error: "Skill not found" });
+            }
+            res.status(200).send(skill);
+        } catch (err) {
+            res.status(500).send({ error: "Internal Server Error" });
+        }
+    });
+    
+    app.get("/skills",adminMiddleware, async (req, res) => {
+        try {
+            const skills = await skillUsecase.listSkills();
+            res.status(200).send(skills);
+        } catch (err) {
+            res.status(500).send({ error: "Internal Server Error" });
+        }
+    });
+    
+    app.patch("/skills/:id",adminMiddleware, async (req, res) => {
+        const { error } = skillValidation.validate(req.body);
+        if (error) {
+            return res.status(400).send({ error: error.details[0].message });
+        }
+    
+        try {
+            const skill = await skillUsecase.updateSkill(parseInt(req.params.id), req.body.name);
+            if (!skill) {
+                return res.status(404).send({ error: "Skill not found" });
+            }
+            res.status(200).send(skill);
+        } catch (err) {
+            res.status(500).send({ error: "Internal Server Error" });
+        }
+    });
+    
+    app.delete("/skills/:id", adminMiddleware,async (req, res) => {
+        try {
+            const success = await skillUsecase.deleteSkill(parseInt(req.params.id));
+            if (!success) {
+                return res.status(404).send({ error: "Skill not found" });
+            }
+            res.status(204).send();
+        } catch (err) {
+            res.status(500).send({ error: "Internal Server Error" });
+        }
+    });
+    
+    
 };

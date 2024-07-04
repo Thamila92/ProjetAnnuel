@@ -6,8 +6,7 @@ import { DocumentUsecase } from './domain/document-usecase';
 import 'dotenv/config';
 import { swaggerDocs } from "./swagger/swagger";
 import "reflect-metadata";
-import { Document } from './database/entities/document';
-import { User } from './database/entities/user';
+ 
 const paypal = require("./handlers/paypal");
 
 const main = async () => {

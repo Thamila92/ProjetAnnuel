@@ -3,11 +3,15 @@ import { User } from "../database/entities/user";
 import { Status } from "../database/entities/status";
 import { AppDataSource } from "../database/database";
 import { compare, hash } from "bcrypt";
+import { Skill } from "../database/entities/skill";
+import { createOtherValidation } from "../handlers/validators/user-validator";
+import { generateValidationErrorMessage } from "../handlers/validators/generate-validation-message";
 
 export interface ListUserFilter {
     limit: number
     page: number
     type:string
+    skills?: string[];
 }
 
 export interface UpdateMovieParams {
@@ -152,35 +156,72 @@ export class UserUsecase {
       const uUpdated = await userRepo.save(userFound);
       return uUpdated;
   }
+  async listUser(listUserFilter: ListUserFilter): Promise<{ users: User[]; totalCount: number; } | string> {
+    const query = AppDataSource.getRepository(User)
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.status', 'status')
+        .leftJoinAndSelect('user.skills', 'skill')
+        .where('user.isDeleted = :isDeleted', { isDeleted: false });
 
-    async listUser(listUserFilter: ListUserFilter): Promise<{ users: User[]; totalCount: number; } | string> {
-        console.log(listUserFilter);
-        const query = AppDataSource.getRepository(User)
-            .createQueryBuilder('user')
-            .where('user.isDeleted = :isDeleted', { isDeleted: false })
-            .leftJoinAndSelect('user.status', 'status');
-    
-        if (listUserFilter.type) {
-            const status = await AppDataSource.getRepository(Status)
-                .createQueryBuilder('status')
-                .where('status.description = :description', { description: listUserFilter.type })
-                .getOne();
-    
-            if (status) {
-                query.andWhere('user.status.id = :statusId', { statusId: status.id });
-            } else {
-                return `Nothing Found !!! from type: ${listUserFilter.type}`;
-            }
+    if (listUserFilter.type) {
+        const status = await AppDataSource.getRepository(Status)
+            .createQueryBuilder('status')
+            .where('status.description = :description', { description: listUserFilter.type })
+            .getOne();
+
+        if (status) {
+            query.andWhere('user.status.id = :statusId', { statusId: status.id });
+        } else {
+            return `Nothing Found !!! from type: ${listUserFilter.type}`;
         }
-    
-        query.skip((listUserFilter.page - 1) * listUserFilter.limit)
-            .take(listUserFilter.limit);
-    
-        const [users, totalCount] = await query.getManyAndCount();
-        return {
-            users,
-            totalCount
-        };
     }
+
+    if (listUserFilter.skills && listUserFilter.skills.length > 0) {
+        query.andWhere('skill.name IN (:...skills)', { skills: listUserFilter.skills });
+    }
+
+    query.skip((listUserFilter.page - 1) * listUserFilter.limit)
+        .take(listUserFilter.limit);
+
+    const [users, totalCount] = await query.getManyAndCount();
+    return {
+        users,
+        totalCount
+    };
+}
+
+    async getUsersByRole(role: string): Promise<string[]> {
+      const users = await this.db.getRepository(User)
+          .createQueryBuilder('user')
+          .leftJoinAndSelect('user.status', 'status')
+          .where('status.description = NORMAL')
+          .andWhere('user.isDeleted = false')
+          .select('user.email')
+          .getMany();
+  
+      return users.map(user => user.email);
+  }
+ 
+
+  async addSkillToUser(userId: number, skillName: string): Promise<User | string> {
+    const userRepo = this.db.getRepository(User);
+    const skillRepo = this.db.getRepository(Skill);
+
+    const userFound = await userRepo.findOne({ where: { id: userId, isDeleted: false }, relations: ['skills'] });
+    if (!userFound) {
+        return "User not found";
+    }
+
+    let skillFound = await skillRepo.findOne({ where: { name: skillName } });
+    if (!skillFound) {
+        skillFound = skillRepo.create({ name: skillName });
+        await skillRepo.save(skillFound);
+    }
+
+    userFound.skills.push(skillFound);
+    await userRepo.save(userFound);
+    return userFound;
+}
+  
     
 }

@@ -10,6 +10,8 @@ import { Step } from "./step";
 import { Projet } from "./projet";
 import { Document } from "./document";
 import { Response } from "./response";
+import { Note } from "./note";
+import { Skill } from "./skill";
 
 
 
@@ -48,12 +50,16 @@ export class User {
 
     @OneToMany(() => Evenement, ev => ev.user)
     evenements!: Evenement[]
+    
+    @ManyToMany(() => Skill, { eager: true })
+    @JoinTable()
+    skills!: Skill[];
 
     @OneToMany(() => Projet, projet => projet.user)
     projets!: []
 
-    @OneToMany(() => Mission, mission=>mission.user)
-    missions!:Mission[];
+    @ManyToMany(() => Mission, (mission) => mission.assignedUsers)
+    missions!: Mission[];
 
     @OneToMany(() => Review, review => review.user)
     reviews!: Review[]
@@ -68,5 +74,7 @@ export class User {
 
     @OneToMany(() => Document, document => document.user)
     documents!: Document[];
+    @OneToMany(() => Note, note => note.user)  
+    notes!: Note[];
 
 }
