@@ -12,6 +12,8 @@ import { Document } from "./document";
 import { Response } from "./response";
 import { Note } from "./note";
 import { Skill } from "./skill";
+import { Notification } from './notification';
+
 
 
 
@@ -76,5 +78,7 @@ export class User {
     documents!: Document[];
     @OneToMany(() => Note, note => note.user)  
     notes!: Note[];
+    @OneToMany(() => Notification, notification => notification.user)
+    notifications!: Notification[];
 
 }

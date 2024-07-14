@@ -44,6 +44,7 @@ import { NoteUsecase } from "../domain/note-usecase";
 import { SkillUsecase } from "../domain/skill-usecase";
 import { skillValidation } from "./validators/skill-validator";
 import { Skill } from "../database/entities/skill";
+import { NotificationUsecase } from "../domain/notification-usecase";
 const upload = multer();
 
 
@@ -67,6 +68,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
     const noteUsecase = new NoteUsecase(AppDataSource);
     const userUsecase = new UserUsecase(AppDataSource);
     const skillUsecase = new SkillUsecase(AppDataSource);
+    const notificationUsecase = new NotificationUsecase(AppDataSource);
 
 
     //la route utilisee pour creer les statuts est bloquee volontairement
@@ -1919,5 +1921,82 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
         }
     });
     
-    
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Route pour lister les notifications
+app.get('/notifications', async (req: Request, res: Response) => {
+    const { limit = 10, page = 1 } = req.query;
+    try {
+        const result = await notificationUsecase.listNotifications({ limit: Number(limit), page: Number(page) });
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error", error: error });
+    }
+});
+
+// Route pour créer une notification
+app.post('/notifications', async (req: Request, res: Response) => {
+    const { title, message, userId } = req.body;
+    try {
+        const result = await notificationUsecase.createNotification({ title, message, userId });
+        if (typeof result === 'string') {
+            return res.status(404).json({ error: result });
+        }
+        res.status(201).json(result);
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error", error: error });
+    }
+});
+
+// Route pour obtenir une notification spécifique
+app.get('/notifications/:id', async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        const result = await notificationUsecase.getNotification(Number(id));
+        if (!result) {
+            return res.status(404).json({ error: 'Notification not found' });
+        }
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error", error: error });
+    }
+});
+
+ app.patch('/notifications/:id', async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { title, message, read } = req.body;
+    try {
+        const result = await notificationUsecase.updateNotification(Number(id), { title, message, read });
+        if (!result) {
+            return res.status(404).json({ error: 'Notification not found' });
+        }
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error", error: error });
+    }
+});
+
+ app.delete('/notifications/:id', async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        const result = await notificationUsecase.deleteNotification(Number(id));
+        if (!result) {
+            return res.status(404).json({ error: 'Notification not found' });
+        }
+        res.status(200).json({ message: 'Notification deleted' });
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error", error: error });
+    }
+});
+app.get('/users/:userId/notifications', async (req: Request, res: Response) => {
+    const { userId } = req.params;
+    try {
+        const notifications = await notificationUsecase.getNotificationsByUser(Number(userId));
+        res.status(200).json(notifications);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
 };
