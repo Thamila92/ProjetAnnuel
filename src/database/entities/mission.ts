@@ -4,6 +4,7 @@ import { User } from "./user";
 import { Step } from "./step";
 import { Review } from "./review";
 import { Skill } from "./skill";
+import { Resource } from "./ressource";
 
 @Entity({ name: "mission" })
 export class Mission {
@@ -36,6 +37,10 @@ export class Mission {
     @OneToMany(() => Review, (review) => review.mission)
     reviews!: Review[];
 
+    @ManyToMany(() => Resource, { eager: true })
+    @JoinTable()
+    resources!: Resource[];
+    
     constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step) {
         this.starting = starting;
         this.ending = ending;

@@ -45,6 +45,8 @@ import { SkillUsecase } from "../domain/skill-usecase";
 import { skillValidation } from "./validators/skill-validator";
 import { Skill } from "../database/entities/skill";
 import { NotificationUsecase } from "../domain/notification-usecase";
+import { ResourceUsecase } from "../domain/ressource-usecase";
+import { assignResourceToMissionValidation, resourceValidation } from "./validators/ressource-validator";
 const upload = multer();
 
 
@@ -1218,8 +1220,80 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).send({ error: "Internal error" });
         }
     });
- 
-
+    app.post('/resources', async (req, res) => {
+        const validation = resourceValidation.validate(req.body);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
+    
+        const resourceUsecase = new ResourceUsecase(AppDataSource);
+        const { name, type, isAvailable } = validation.value;
+        try {
+            const newResource = await resourceUsecase.createResource(name, type, isAvailable);
+            res.status(201).send(newResource);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: 'Internal error' });
+        }
+    });
+    
+    app.post('/missions/:id/resources', adminMiddleware, async (req, res) => {
+        const { id } = req.params;
+        const { resourceIds } = req.body;
+    
+        const validation = assignResourceToMissionValidation.validate({ missionId: id, resourceIds });
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
+    
+        const resourceUsecase = new ResourceUsecase(AppDataSource);
+        try {
+            const mission = await resourceUsecase.assignResourcesToMission(parseInt(id), resourceIds);
+            res.status(200).send(mission);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: 'Internal error' });
+        }
+    });
+    
+    app.post('/missions/:id/release-resources', adminMiddleware, async (req, res) => {
+        const { id } = req.params;
+    
+        const resourceUsecase = new ResourceUsecase(AppDataSource);
+        try {
+            const mission = await resourceUsecase.releaseResourcesFromMission(parseInt(id));
+            res.status(200).send(mission);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: 'Internal error' });
+        }
+    });
+    
+    app.get('/resources/available', async (req, res) => {
+        const resourceUsecase = new ResourceUsecase(AppDataSource);
+        try {
+            const availableResources = await resourceUsecase.getAvailableResources();
+            res.status(200).send(availableResources);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: 'Internal error' });
+        }
+    });
+    
+    // Route pour obtenir les ressources associées à une mission
+    app.get('/missions/:id/resources', async (req, res) => {
+        const { id } = req.params;
+        const resourceUsecase = new ResourceUsecase(AppDataSource);
+        try {
+            const missionResources = await resourceUsecase.getResourcesByMission(parseInt(id));
+            res.status(200).send(missionResources);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: 'Internal error' });
+        }
+    });
   
 
 
