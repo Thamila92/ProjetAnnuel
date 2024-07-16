@@ -1907,7 +1907,8 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
         const userId = (req as any).user.id;
         const result = await noteUsecase.createNote(userId, {
             name: req.body.name,
-            content: req.body.content
+            content: req.body.content,
+            date :req.body.date
         });
     
         if (typeof result === 'string') {

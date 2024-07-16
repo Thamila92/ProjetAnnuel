@@ -5,12 +5,14 @@ import { Note } from '../database/entities/note';
 export interface CreateNoteParams {
     name: string;
     content: string;
-}
+    date: Date;  }
 
 export interface UpdateNoteParams {
     name?: string;
     content?: string;
+    date?: Date;   
 }
+
 
 export class NoteUsecase {
     constructor(private readonly db: DataSource) {}
@@ -53,6 +55,7 @@ export class NoteUsecase {
 
         if (params.name) note.name = params.name;
         if (params.content) note.content = params.content;
+        if (params.date) note.date = params.date;   
 
         const updatedNote = await noteRepo.save(note);
         return updatedNote;
