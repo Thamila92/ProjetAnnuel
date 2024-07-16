@@ -46,7 +46,12 @@ import { choiceValidation, propositionValidation } from "./validators/propositio
 import { Proposition } from "../database/entities/proposition";
 import { PropositionUsecase } from "../domain/proposition-usecase";
 import { Round } from "../database/entities/round";
+import { repetitivity , eventtype} from "../database/entities/evenement";
 import { VoteRecord } from "../database/entities/vote-record";
+import { Location } from "../database/entities/location";
+import { AttendeeRole } from "../database/entities/evenement-attendee";
+import { Notification } from "../database/entities/notification";
+
 const upload = multer();
 
 
@@ -893,140 +898,12 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
     Thamila addings
     */
 
-    app.post("/evenements", adminMiddleware, async (req: Request, res: Response) => {
-        try {
-            const validation = evenementValidation.validate(req.body);
-            if (validation.error) {
-                res.status(400).send(generateValidationErrorMessage(validation.error.details));
-                return;
-            }
-            const ev = validation.value;
-            const authHeader = req.headers['authorization'];
-            if (!authHeader) return res.status(401).json({ "error": "Unauthorized" });
+    
+    
+     
+    
 
-            const token = authHeader.split(' ')[1];
-            if (token === null) return res.status(401).json({ "error": "Unauthorized" });
-
-            const tokenRepo = AppDataSource.getRepository(Token);
-            const tokenFound = await tokenRepo.findOne({ where: { token }, relations: ['user'] });
-
-            if (!tokenFound) {
-                return res.status(403).json({ "error": "Access Forbidden" });
-            }
-
-            if (!tokenFound.user) {
-                return res.status(500).json({ "error": "Internal server error u" });
-            }
-
-            const userRepo = AppDataSource.getRepository(User);
-            const userFound = await userRepo.findOne({ where: { id: tokenFound.user.id } });
-
-            if (!userFound) {
-                return res.status(500).json({ "error": "Internal server error stat " });
-            }
-            const evRepository = AppDataSource.getRepository(Evenement);
-            const conflictingEvents = await evRepository.createQueryBuilder('event')
-                .where(':starting < event.ending AND :ending > event.starting', { starting: ev.starting, ending: ev.ending })
-                .getMany();
-
-            if (conflictingEvents.length > 0) {
-                return res.status(409).json({ "error": "Conflicting event exists" });
-            }
-
-            if (ev.type == "AG" && !ev.quorum) {
-                res.status(201).json({ "message": "Quorum non indicated" });
-            } else if (ev.type != "AG") {
-                ev.quorum = 0
-            }
-            const newEvent = evRepository.create({
-                user: userFound,
-                type: ev.type,
-                description: ev.description,
-                quorum: ev.quorum,
-                starting: ev.starting,
-                ending: ev.ending,
-                location: ev.location
-            });
-
-            await evRepository.save(newEvent);
-
-            res.status(201).json(newEvent);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
-
-    app.get("/evenements", async (req: Request, res: Response) => {
-        const validation = listMissionValidation.validate(req.query);
-        if (validation.error) {
-            res.status(400).send(generateValidationErrorMessage(validation.error.details));
-            return;
-        }
-
-        const { page = 1, limit = 10 }: ListEvenementRequest = validation.value;
-        try {
-            const result = await evenementUsecase.listEvenements({ page, limit });
-            res.status(200).send(result);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
-
-    app.get("/evenements/:id", async (req: Request, res: Response) => {
-        const id = parseInt(req.params.id);
-        try {
-            const evenement = await evenementUsecase.getEvenement(id);
-            if (!evenement) {
-                res.status(404).send({ error: "Evenement not found" });
-                return;
-            }
-            res.status(200).send(evenement);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
-
-    app.patch("/evenements/:id", adminMiddleware, async (req: Request, res: Response) => {
-        const id = parseInt(req.params.id);
-        // const validation = evenementValidation.validate(req.body);
-        // if (validation.error) {
-        //     res.status(400).send(generateValidationErrorMessage(validation.error.details));
-        //     return;
-        try {
-            const validation = evenementUpdateValidation.validate(req.body);
-            if (validation.error) {
-                res.status(400).send(generateValidationErrorMessage(validation.error.details));
-                return;
-            }
-            const ev = validation.value;
-            const evenement = await evenementUsecase.updateEvenement(id, ev);
-            if (!evenement) {
-                res.status(404).send({ error: "Evenement not found" });
-                return;
-            }
-            res.status(200).send(evenement);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
-
-    app.delete("/evenements/:id", adminMiddleware, async (req: Request, res: Response) => {
-        const id = parseInt(req.params.id);
-        try {
-            const result = await evenementUsecase.deleteEvenement(id);
-            if (typeof result === 'string') {
-                return res.status(404).send({ error: result });
-            }
-            res.status(200).send(result);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
+    
 
 
 
@@ -1069,7 +946,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).send({ error: "Internal error" });
         }
     });
-
+ 
     app.get("/missions/:id", async (req: Request, res: Response) => {
         const id = parseInt(req.params.id);
         try {
@@ -1124,6 +1001,164 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
 
 
 
+    app.post("/evenements", adminMiddleware, async (req: Request, res: Response) => {
+        try {
+            // Validate request body
+            const validation = evenementValidation.validate(req.body);
+            if (validation.error) {
+                res.status(400).send(generateValidationErrorMessage(validation.error.details));
+                return;
+            }
+            const ev = validation.value as EvenementRequest; // Explicitly casting to EvenementRequest
+    
+            // Authorization check
+            const authHeader = req.headers["authorization"];
+            if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
+    
+            const token = authHeader.split(" ")[1];
+            if (token === null) return res.status(401).json({ error: "Unauthorized" });
+    
+            const tokenRepo = AppDataSource.getRepository(Token);
+            const tokenFound = await tokenRepo.findOne({
+                where: { token },
+                relations: ["user"],
+            });
+    
+            if (!tokenFound) {
+                return res.status(403).json({ error: "Access Forbidden" });
+            }
+    
+            if (!tokenFound.user) {
+                return res.status(500).json({ error: "Internal server error" });
+            }
+    
+            const userRepo = AppDataSource.getRepository(User);
+            const userFound = await userRepo.findOne({
+                where: { id: tokenFound.user.id },
+            });
+    
+            if (!userFound) {
+                return res.status(500).json({ error: "Internal server error" });
+            }
+    
+            const locRepo = AppDataSource.getRepository(Location);
+            const locFound = await locRepo.findOne({
+                where: { id: ev.location },
+            });
+    
+            if (!locFound) {
+                return res.status(500).json({ error: "Location not found" });
+            }
+    
+            // Collect all attendees
+            const attFound: { user: User; role: AttendeeRole }[] = [];
+            for (const attendee of ev.attendees) {
+                try {
+                    const user = await userRepo.findOne({ where: { id: attendee.userId, isDeleted: false } });
+                    if (user) {
+                        attFound.push({ user, role: attendee.role });
+                    } else {
+                        return res.status(500).json({ error: `User with ID ${attendee.userId} not found.` });
+                    }
+                } catch (error) {
+                    return res.status(500).json({ error: `User with ID ${attendee.userId} not found.` });
+                }
+            }
+    
+            // Validate event configuration
+            if (ev.type == "AG" && (!ev.quorum || ev.quorum <= 0 || !ev.repetitivity || ev.repetitivity === repetitivity.NONE)) {
+                res.status(400).json({ message: "AG not well configured" });
+                return;
+            } else if (ev.type !="AG") {
+                ev.quorum = 0;
+                ev.repetitivity = repetitivity.NONE;
+            }
+    
+            // Additional custom validation
+            if (ev.type =="AG" && attFound.length === 0) {
+                return res.status(500).json({ error: "AG type event must have at least one attendee." });
+            }
+    
+            const importantAttendeesCount = attFound.filter(attendee => attendee.role === AttendeeRole.IMPORTANT).length;
+            if (importantAttendeesCount > ev.quorum) {
+                return res.status(500).json({ error: "Number of important attendees cannot exceed quorum." });
+            }
+    
+            // Check for conflicting events
+            const evRepository = AppDataSource.getRepository(Evenement);
+            const conflictingEvents = await evRepository
+                .createQueryBuilder("event")
+                .where(":starting < event.ending AND :ending > event.starting", {
+                    starting: ev.starting,
+                    ending: ev.ending,
+                })
+                .getMany();
+    
+            if (conflictingEvents.length > 0) {
+                return res.status(409).json({ error: "Conflicting event exists" });
+            }
+    
+            if (ev.isVirtual && !ev.virtualLink) {
+                return res.status(409).json({ error: "Veuillez precisez le lien de reunion" });
+            } else {
+                ev.virtualLink = "";
+            }
+    
+            // Create notifications for each attendee
+            const notificationRepo = AppDataSource.getRepository(Notification);
+            for (const attendee of attFound) {
+                const notification = notificationRepo.create({
+                    description: `Mr/Mme. ${attendee.user.name} est convié(e) à l'assemblée générale du ${ev.starting}`,
+                    users: [attendee.user],
+                });
+                await notificationRepo.save(notification);
+            }
+    
+            // Create and save the new event
+            const newEvent = evRepository.create({
+                typee: ev.type as unknown as eventtype,
+                description: ev.description,
+                quorum: ev.quorum,
+                isVirtual: ev.isVirtual,
+                virtualLink: ev.virtualLink,
+                starting: new Date(ev.starting),
+                ending: new Date(ev.ending),
+                repetitivity: ev.repetitivity,
+                user: userFound,
+                attendees: attFound.map(att => att.user), // Only user objects are saved in attendees
+                location: [locFound], // Assign location as an array
+            });
+    
+            await evRepository.save(newEvent);
+    
+            res.status(201).json(newEvent);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+    
+
+    app.get("/evenements", async (req: Request, res: Response) => {
+        const validation = listMissionValidation.validate(req.query);
+        if (validation.error) {
+            res.status(400).send(generateValidationErrorMessage(validation.error.details));
+            return;
+        }
+
+        const { page = 1, limit = 10 }: ListEvenementRequest = validation.value;
+        try {
+            const result = await evenementUsecase.listEvenements({ page, limit });
+            res.status(200).send(result);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: "Internal error" });
+        }
+    });
+
+    
+    
+    
 
 
 
@@ -1825,4 +1860,10 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
     });
     
 
+
+
+
+
+
+    
 } 

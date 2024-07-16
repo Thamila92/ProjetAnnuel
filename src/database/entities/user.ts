@@ -10,6 +10,8 @@ import { Step } from "./step";
 import { Projet } from "./projet";
 import { UserDocument } from "./document";
 import { Vote } from "./vote";
+import { Location } from "./location";
+import { EvenementAttendee } from "./evenement-attendee";
 
 
 @Entity()
@@ -59,6 +61,9 @@ export class User {
 
     @OneToMany(() => Donation, donation => donation.benefactor)
     donations!: Donation[]
+
+    @OneToMany(() => Location, location => location.user)
+    locations!: Donation[]
     
     @OneToMany(() => Expenditures, expenditures => expenditures.user)
     expenditures!: Expenditures[];
@@ -69,4 +74,6 @@ export class User {
     @OneToMany(() =>Vote, vote => vote.user)
     votes!: Vote[];
 
+    @OneToMany(() => EvenementAttendee, (attendee) => attendee.user)
+    evenementAttendees!: EvenementAttendee[];
 }
