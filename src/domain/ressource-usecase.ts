@@ -22,12 +22,14 @@ export class ResourceUsecase {
         const resources = await resourceRepo.findByIds(resourceIds);
         if (resources.length !== resourceIds.length) return "One or more resources not found";
 
-        resources.forEach(resource => {
-            if (!resource.isAvailable) throw new Error(`Resource ${resource.name} is not available`);
-            resource.isAvailable = false;
-            mission.resources.push(resource);
-        });
+        for (const resource of resources) {
+            if (!resource.isAvailable) {
+                return `Resource ${resource.name} is not available`;
+            }
+            resource.isAvailable = false; // Mark the resource as unavailable
+        }
 
+        mission.resources.push(...resources);
         await resourceRepo.save(resources);
         await missionRepo.save(mission);
 
@@ -61,5 +63,22 @@ export class ResourceUsecase {
         const mission = await missionRepo.findOne({ where: { id: missionId }, relations: ['resources'] });
         if (!mission) throw new Error('Mission not found');
         return mission.resources;
+    }
+
+    async getAllResources(): Promise<Resource[]> {
+        const resourceRepo = this.db.getRepository(Resource);
+        return await resourceRepo.find();
+    }
+    async updateResource(id: number, updateData: Partial<Resource>): Promise<Resource | null> {
+        const resourceRepo = this.db.getRepository(Resource);
+        const resource = await resourceRepo.findOne({ where: { id } });
+
+        if (!resource) {
+            return null;
+        }
+
+        Object.assign(resource, updateData);
+        await resourceRepo.save(resource);
+        return resource;
     }
 }

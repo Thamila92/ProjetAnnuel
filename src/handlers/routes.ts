@@ -1220,7 +1220,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).send({ error: "Internal error" });
         }
     });
-    app.post('/resources', async (req, res) => {
+    app.post('/resources', adminMiddleware,async (req, res) => {
         const validation = resourceValidation.validate(req.body);
         if (validation.error) {
             res.status(400).send(generateValidationErrorMessage(validation.error.details));
@@ -1250,13 +1250,18 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
     
         const resourceUsecase = new ResourceUsecase(AppDataSource);
         try {
-            const mission = await resourceUsecase.assignResourcesToMission(parseInt(id), resourceIds);
-            res.status(200).send(mission);
+            const result = await resourceUsecase.assignResourcesToMission(parseInt(id), resourceIds);
+            if (typeof result === 'string') {
+                res.status(400).send({ error: result });
+            } else {
+                res.status(200).send(result);
+            }
         } catch (error) {
             console.log(error);
             res.status(500).send({ error: 'Internal error' });
         }
     });
+    
     
     app.post('/missions/:id/release-resources', adminMiddleware, async (req, res) => {
         const { id } = req.params;
@@ -1271,7 +1276,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
         }
     });
     
-    app.get('/resources/available', async (req, res) => {
+    app.get('/resources/available', adminMiddleware,async (req, res) => {
         const resourceUsecase = new ResourceUsecase(AppDataSource);
         try {
             const availableResources = await resourceUsecase.getAvailableResources();
@@ -1283,7 +1288,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
     });
     
     // Route pour obtenir les ressources associées à une mission
-    app.get('/missions/:id/resources', async (req, res) => {
+    app.get('/missions/:id/resources',adminMiddleware, async (req, res) => {
         const { id } = req.params;
         const resourceUsecase = new ResourceUsecase(AppDataSource);
         try {
@@ -1294,9 +1299,36 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).send({ error: 'Internal error' });
         }
     });
-  
+    app.get('/resources', adminMiddleware, async (req, res) => {
+        const resourceUsecase = new ResourceUsecase(AppDataSource);
+        try {
+            const allResources = await resourceUsecase.getAllResources();
+            res.status(200).send(allResources);
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: 'Internal error' });
+        }
+    });
+    
 
-
+    app.patch('/resources/:id', adminMiddleware, async (req, res) => {
+        const { id } = req.params;
+        const updateData = req.body;
+    
+        const resourceUsecase = new ResourceUsecase(AppDataSource);
+        try {
+            const updatedResource = await resourceUsecase.updateResource(parseInt(id), updateData);
+            if (updatedResource) {
+                res.status(200).send(updatedResource);
+            } else {
+                res.status(404).send({ error: 'Resource not found' });
+            }
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({ error: 'Internal error' });
+        }
+    });
+    
 
 
 

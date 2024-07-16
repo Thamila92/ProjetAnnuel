@@ -26,6 +26,7 @@ export class MissionUsecase {
             .leftJoinAndSelect('mission.assignedUsers', 'user')
             .leftJoinAndSelect('mission.evenement', 'evenement')
             .leftJoinAndSelect('mission.step', 'step')
+            .leftJoinAndSelect('mission.resources', 'resource')  
             .skip((filter.page - 1) * filter.limit)
             .take(filter.limit);
     
@@ -35,6 +36,7 @@ export class MissionUsecase {
             totalCount
         };
     }
+
     
     
 
