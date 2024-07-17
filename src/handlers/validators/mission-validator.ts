@@ -14,10 +14,6 @@ export interface MissionRequest {
     description: string;
 }
 
-
-
-
-
 export const missionUpdateValidation = Joi.object<MissionRequest>({
     starting: Joi.date().iso().min('now').optional(), 
     ending: Joi.date().iso().greater(Joi.ref('starting')).optional(),
@@ -31,9 +27,6 @@ export interface MissionRequest {
     ending: Date;
     description: string;
 }
-
-
-
 
 export const listMissionValidation = Joi.object<ListMissionRequest>({
     page: Joi.number().min(1).optional(),

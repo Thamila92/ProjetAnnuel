@@ -1,8 +1,7 @@
 import Joi from "joi";
 
 export const projetValidation = Joi.object<ProjetRequest>({
-    userId:Joi.number().required(),
-    description: Joi.string().required(),
+     description: Joi.string().required(),
     starting: Joi.date().iso().min('now').required(), 
     ending: Joi.date().iso().greater(Joi.ref('starting')).required(),
 }).options({ abortEarly: false });
