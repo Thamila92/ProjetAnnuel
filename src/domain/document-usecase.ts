@@ -22,6 +22,7 @@ export interface CreateDocumentParams {
     description: string;
     type: string;
     fileId: string;
+    path: string;
     userId: number;
 }
 export class DocumentUsecase {
@@ -33,8 +34,8 @@ export class DocumentUsecase {
         this.googleDriveService = new GoogleDriveService(oAuth2Client);
     }
 
-    async listDocuments(filter: ListDocumentFilter): Promise<{ documents: UserDocument[]; totalCount: number; }> {
-        const query = this.db.createQueryBuilder(UserDocument, 'document')
+    async listDocuments(filter: ListDocumentFilter): Promise<{ documents: Document[]; totalCount: number; }> {
+        const query = this.db.createQueryBuilder(Document, 'document')
             .skip((filter.page - 1) * filter.limit)
             .take(filter.limit);
 
@@ -45,35 +46,35 @@ export class DocumentUsecase {
         };
     }
 
-    // async createDocument(params: CreateDocumentParams): Promise<UserDocument | string> {
-    //     const userRepo = this.db.getRepository(User);
-    //     const documentRepo = this.db.getRepository(UserDocument);
+    async createDocument(params: CreateDocumentParams): Promise<Document | string> {
+        const userRepo = this.db.getRepository(User);
+        const documentRepo = this.db.getRepository(Document);
 
-    //     const userFound = await userRepo.findOne({ where: { id: params.userId } });
-    //     if (!userFound) {
-    //         return "User not found";
-    //     }
+        const userFound = await userRepo.findOne({ where: { id: params.userId } });
+        if (!userFound) {
+            return "User not found";
+        }
 
-    //     const newDocument = documentRepo.create({
-    //         title: params.title,
-    //         description: params.description,
-    //         type: params.type,
-    //         path: params.path,
-    //         user: userFound
-    //     });
+        const newDocument = documentRepo.create({
+            title: params.title,
+            description: params.description,
+            type: params.type,
+            path: params.path,
+            user: userFound
+        });
 
-    //     await documentRepo.save(newDocument);
-    //     return newDocument;
-    // }
+        await documentRepo.save(newDocument);
+        return newDocument;
+    }
 
-    async getDocument(id: number): Promise<UserDocument | null> {
-        const repo = this.db.getRepository(UserDocument);
+    async getDocument(id: number): Promise<Document | null> {
+        const repo = this.db.getRepository(Document);
         const documentFound = await repo.findOne({ where: { id } });
         return documentFound || null;
     }
 
-    async updateDocument(id: number, params: UpdateDocumentParams): Promise<UserDocument | null> {
-        const repo = this.db.getRepository(UserDocument);
+    async updateDocument(id: number, params: UpdateDocumentParams): Promise<Document | null> {
+        const repo = this.db.getRepository(Document);
         const documentFound = await repo.findOne({ where: { id } });
         if (!documentFound) return null;
 
@@ -81,6 +82,7 @@ export class DocumentUsecase {
         if (params.description) documentFound.description = params.description;
         if (params.type) documentFound.type = params.type;
         if (params.path) documentFound.fileId = params.path;
+        if (params.path) documentFound.path = params.path;
         if (params.userId) {
             const userRepo = this.db.getRepository(User);
             const userFound = await userRepo.findOne({ where: { id: params.userId } });
@@ -91,8 +93,8 @@ export class DocumentUsecase {
         return updatedDocument;
     }
 
-    async deleteDocument(id: number): Promise<boolean | UserDocument> {
-        const repo = this.db.getRepository(UserDocument);
+    async deleteDocument(id: number): Promise<boolean | Document> {
+        const repo = this.db.getRepository(Document);
         const documentFound = await repo.findOne({ where: { id } });
         if (!documentFound) return false;
 
@@ -100,8 +102,8 @@ export class DocumentUsecase {
         return documentFound;
     }
 
-    async getDocumentsByUser(userId: number): Promise<UserDocument[]> {
-        const repo = this.db.getRepository(UserDocument);
+    async getDocumentsByUser(userId: number): Promise<Document[]> {
+        const repo = this.db.getRepository(Document);
         return await repo.find({ where: { user: { id: userId } } });
     }
 
@@ -116,5 +118,25 @@ export class DocumentUsecase {
     async uploadFileToGoogleDrive(name: string, mimeType: string, body: Readable): Promise<string> {
         const file = await this.googleDriveService.uploadFile(name, mimeType, body);
         return file.id || '';
+    }
+    async createDocumentWithGoogleDrive(params: CreateDocumentParams, fileId: string): Promise<Document | string> {
+        const userRepo = this.db.getRepository(User);
+        const documentRepo = this.db.getRepository(Document);
+
+        const userFound = await userRepo.findOne({ where: { id: params.userId } });
+        if (!userFound) {
+            return "User not found";
+        }
+
+        const newDocument = documentRepo.create({
+            title: params.title,
+            description: params.description,
+            type: params.type,
+            path: fileId,  
+            user: userFound
+        });
+
+        await documentRepo.save(newDocument);
+        return newDocument;
     }
 }

@@ -3,6 +3,8 @@ import { initRoutes } from "./handlers/routes";
 import { AppDataSource } from "./database/database";
 import { OAuth2Client } from 'google-auth-library';
 import { DocumentUsecase } from './domain/document-usecase';
+import { OAuth2Client } from 'google-auth-library';
+import { DocumentUsecase } from './domain/document-usecase';
 import 'dotenv/config';
 import { swaggerDocs } from "./swagger/swagger";
 import "reflect-metadata";
@@ -18,6 +20,8 @@ const main = async () => {
     app.use(cors());
 
     try {
+        await AppDataSource.initialize();
+        console.log("well connected to database");
         await AppDataSource.initialize();
         console.log("well connected to database");
     } catch (error) {
@@ -46,6 +50,10 @@ const main = async () => {
     app.listen(port, () => {
         console.log(`Server running on port ${port}`);
     });
+        console.log(`Server running on port ${port}`);
+    });
 }
+
+main();
 
 main();
