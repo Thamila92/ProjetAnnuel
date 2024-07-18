@@ -99,9 +99,9 @@ export class UserUsecase {
           userFound.email = userToUpdate.email;
         }
       
-        if (userToUpdate.iban) {
-          userFound.iban = userToUpdate.iban;
-        }
+        //if (userToUpdate.iban) {
+          //userFound.iban = userToUpdate.iban;
+        //}
       
         if (userToUpdate.password) {
           userFound.password = await hash(userToUpdate.password, 10);
@@ -110,14 +110,56 @@ export class UserUsecase {
         const uUpdated = await userRepo.save(userFound);
         return uUpdated;
     }
+    async updateBenefactor(id: number, userToUpdate: UserToUpdate): Promise<User | string> {
+      const userRepo = this.db.getRepository(User);
+      const userFound = await userRepo.findOne({
+        where: { id, isDeleted: false },
+        relations: ['status']
+      });
+      
+    
+      if (!userFound) {
+        return "User not Found !!!";
+      }
+      if(userFound.status && userFound.status.description!="BENEFACTOR"){
+        return "This is not a benefactor !!!"
+      }
+    
+      // Vérifier si le mot de passe actuel est correct
+      const isValid =await compare(userToUpdate.actual_password,userFound.password)
+      if (!isValid) {
+        return "Actual password incorrect !!!";
+      }
+    
+      // Si le mot de passe actuel est correct, effectuer les modifications
+      if (userToUpdate.email) {
+        userFound.email = userToUpdate.email;
+      }
+    
+      if (userToUpdate.name) {
+        userFound.name = userToUpdate.name;
+      }
+      // if (userToUpdate.iban) {
+      //   userFound.iban = userToUpdate.iban;
+      // }
+    
+      if (userToUpdate.password) {
+        userFound.password = await hash(userToUpdate.password, 10);
+      }
+    
+      const uUpdated = await userRepo.save(userFound);
+      return uUpdated;
+  }
 
     async listUser(listUserFilter: ListUserFilter): Promise<{ users: User[]; totalCount: number; } | string> {
         console.log(listUserFilter);
         const query = AppDataSource.getRepository(User)
-            .createQueryBuilder('user')
-            .where('user.isDeleted = :isDeleted', { isDeleted: false })
-            .leftJoinAndSelect('user.status', 'status');
-    
+        .createQueryBuilder('user')
+      
+        .leftJoinAndSelect('user.status', 'status')
+        .leftJoinAndSelect('user.skills', 'skill')
+        .where('user.isDeleted = :isDeleted', { isDeleted: false });
+
         if (listUserFilter.type) {
             const status = await AppDataSource.getRepository(Status)
                 .createQueryBuilder('status')
@@ -134,6 +176,9 @@ export class UserUsecase {
                 return `Nothing Found !!! from type: ${listUserFilter.type} ${adminStatus?.description}`;
             }
         }
+        if (listUserFilter.skills && listUserFilter.skills.length > 0) {
+          query.andWhere('skill.name IN (:...skills)', { skills: listUserFilter.skills });
+      }
     
         query.skip((listUserFilter.page - 1) * listUserFilter.limit)
             .take(listUserFilter.limit);
@@ -144,5 +189,38 @@ export class UserUsecase {
             totalCount
         };
     }
+    async getUsersByRole(role: string): Promise<string[]> {
+      const users = await this.db.getRepository(User)
+          .createQueryBuilder('user')
+          .leftJoinAndSelect('user.status', 'status')
+          .where('status.description = NORMAL')
+          .andWhere('user.isDeleted = false')
+          .select('user.email')
+          .getMany();
+
+      return users.map(user => user.email);
+  }
+
+
+  async addSkillToUser(userId: number, skillName: string): Promise<User | string> {
+    const userRepo = this.db.getRepository(User);
+    const skillRepo = this.db.getRepository(Skill);
+
+    const userFound = await userRepo.findOne({ where: { id: userId, isDeleted: false }, relations: ['skills'] });
+    if (!userFound) {
+        return "User not found";
+    }
+
+    let skillFound = await skillRepo.findOne({ where: { name: skillName } });
+    if (!skillFound) {
+        skillFound = skillRepo.create({ name: skillName });
+        await skillRepo.save(skillFound);
+    }
+
+    userFound.skills.push(skillFound);
+    await userRepo.save(userFound);
+    return userFound;
+}
+
     
 }

@@ -1,49 +1,43 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, ManyToMany, JoinTable } from "typeorm";
 import { Evenement } from "./evenement";
+import { User } from "./user";
 import { Step } from "./step";
 import { Review } from "./review";
-import { Compliance } from "./compliance";
-import { User } from "./user";
+import { Skill } from "./skill";
+import { Resource } from "./ressource";
 
 @Entity({ name: "mission" })
 export class Mission {
     @PrimaryGeneratedColumn()
-    id: number;
-
+    id!: number;
     @Column()
     starting: Date;
-
     @Column()
     ending: Date;
-
     @Column()
     description: string;
-
-    @Column({ default: false })
-    isDeleted!: boolean;
-
-    @ManyToOne(() => Evenement, (evenement) => evenement.mission)
-    evenement!: Evenement;
-
-    @ManyToOne(() => User, (user) => user.missions)
-    user!: User;
-
-    @OneToMany(() => Step, (step) => step.mission)
-    steps: Step[];
-
+    @ManyToOne(() => Evenement, (evenement) => evenement.mission, { nullable: true })
+    evenement?: Evenement;
+    @ManyToOne(() => Step, (step) => step.mission, { nullable: true })
+    step?: Step;
+    @ManyToMany(() => User, { eager: true })
+    @JoinTable()
+    assignedUsers!: User[];
+    @ManyToMany(() => Skill, { eager: true })
+    @JoinTable()
+    requiredSkills!: Skill[];
     @OneToMany(() => Review, (review) => review.mission)
-    reviews: Review[];
+    reviews!: Review[];
 
-    @OneToMany(() => Compliance, (compliance) => compliance.mission)
-    compliances: Compliance[];
+    @ManyToMany(() => Resource, { eager: true })
+    @JoinTable()
+    resources!: Resource[];
 
-    constructor(id: number, starting: Date, ending: Date, description: string,steps:Step[], reviews:Review[], compliances:Compliance[]) {
-        this.id = id;
+    constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step) {
         this.starting = starting;
         this.ending = ending;
         this.description = description;
-        this.steps=steps;
-        this.reviews = reviews;
-        this.compliances=compliances;
+        this.evenement = evenement;
+        this.step = step;
     }
 }

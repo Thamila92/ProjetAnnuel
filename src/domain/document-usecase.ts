@@ -1,5 +1,5 @@
 import { DataSource } from "typeorm";
-import { UserDocument } from "../database/entities/document";
+import { Document } from "../database/entities/document";
 import { User } from "../database/entities/user";
 import GoogleDriveService from "../services/googleDriveService";
 import { OAuth2Client } from 'google-auth-library';
@@ -59,7 +59,7 @@ export class DocumentUsecase {
             title: params.title,
             description: params.description,
             type: params.type,
-            path: params.path,
+            fileId: params.path,
             user: userFound
         });
 
@@ -82,8 +82,7 @@ export class DocumentUsecase {
         if (params.description) documentFound.description = params.description;
         if (params.type) documentFound.type = params.type;
         if (params.path) documentFound.fileId = params.path;
-        if (params.path) documentFound.path = params.path;
-        if (params.userId) {
+         if (params.userId) {
             const userRepo = this.db.getRepository(User);
             const userFound = await userRepo.findOne({ where: { id: params.userId } });
             if (userFound) documentFound.user = userFound;
@@ -132,7 +131,7 @@ export class DocumentUsecase {
             title: params.title,
             description: params.description,
             type: params.type,
-            path: fileId,  
+            fileId: fileId,  
             user: userFound
         });
 
