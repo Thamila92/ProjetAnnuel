@@ -39,20 +39,21 @@ import { createVoteValidation, updateVoteValidation } from "./validators/voteVal
 import { createDocumentValidation, updateDocumentValidation } from "./validators/documentValidator";
 // <<<<<<< dev-brad-updt
 import { OAuth2Client } from "google-auth-library";
-import { UserDocument } from "../database/entities/document";
+// import { UserDocument } from "../database/entities/document";
 import { voteValidation } from "./validators/vote-validator";
-import { VoteUsecase } from "../domain/vote-usecase";
+// import { VoteUsecase } from "../domain/vote-usecase";
 import { roundValidation } from "./validators/round-validator";
 import { RoundUsecase } from "../domain/round-usecase";
 import { choiceValidation, propositionValidation } from "./validators/proposition-validator";
 import { Proposition } from "../database/entities/proposition";
 import { PropositionUsecase } from "../domain/proposition-usecase";
 import { Round } from "../database/entities/round";
-import { repetitivity , eventtype} from "../database/entities/evenement";
+import { repetitivity} from "../database/entities/evenement";
 import { VoteRecord } from "../database/entities/vote-record";
 import { Location } from "../database/entities/location";
 import { AttendeeRole } from "../database/entities/evenement-attendee";
 import { Notification } from "../database/entities/notification";
+import { eventtype } from "../types/event-types";
 
 // =======
 import { createResponseValidation, updateResponseValidation } from "./validators/responseValidator";
@@ -968,69 +969,69 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
 
     
 // =======
-    app.post("/evenements",adminMiddleware,async (req: Request, res: Response) => {
-        try {
-            const validation = evenementValidation.validate(req.body);
-            if (validation.error) {
-                res.status(400).send(generateValidationErrorMessage(validation.error.details));
-                return;
-            }
-            const ev = validation.value;
-            const authHeader = req.headers['authorization'];
-            if (!authHeader) return res.status(401).json({ "error": "Unauthorized" });
+    // app.post("/evenements",adminMiddleware,async (req: Request, res: Response) => {
+    //     try {
+    //         const validation = evenementValidation.validate(req.body);
+    //         if (validation.error) {
+    //             res.status(400).send(generateValidationErrorMessage(validation.error.details));
+    //             return;
+    //         }
+    //         const ev = validation.value;
+    //         const authHeader = req.headers['authorization'];
+    //         if (!authHeader) return res.status(401).json({ "error": "Unauthorized" });
 
-            const token = authHeader.split(' ')[1];
-            if (token === null) return res.status(401).json({ "error": "Unauthorized" });
+    //         const token = authHeader.split(' ')[1];
+    //         if (token === null) return res.status(401).json({ "error": "Unauthorized" });
 
-            const tokenRepo = AppDataSource.getRepository(Token);
-            const tokenFound = await tokenRepo.findOne({ where: { token }, relations: ['user'] });
+    //         const tokenRepo = AppDataSource.getRepository(Token);
+    //         const tokenFound = await tokenRepo.findOne({ where: { token }, relations: ['user'] });
 
-            if (!tokenFound) {
-                return res.status(403).json({ "error": "Access Forbidden" });
-            }
+    //         if (!tokenFound) {
+    //             return res.status(403).json({ "error": "Access Forbidden" });
+    //         }
 
-            if (!tokenFound.user) {
-                return res.status(500).json({ "error": "Internal server error u"});
-            }
+    //         if (!tokenFound.user) {
+    //             return res.status(500).json({ "error": "Internal server error u"});
+    //         }
 
-            const userRepo = AppDataSource.getRepository(User);
-            const userFound = await userRepo.findOne({ where: { id:tokenFound.user.id }});
+    //         const userRepo = AppDataSource.getRepository(User);
+    //         const userFound = await userRepo.findOne({ where: { id:tokenFound.user.id }});
 
-            if (!userFound) {
-                return res.status(500).json({ "error": "Internal server error stat "});
-            }
-            const evRepository = AppDataSource.getRepository(Evenement);
-            const conflictingEvents = await evRepository.createQueryBuilder('event')
-            .where(':starting < event.ending AND :ending > event.starting', { starting: ev.starting, ending: ev.ending })
-            .getMany();
+    //         if (!userFound) {
+    //             return res.status(500).json({ "error": "Internal server error stat "});
+    //         }
+    //         const evRepository = AppDataSource.getRepository(Evenement);
+    //         const conflictingEvents = await evRepository.createQueryBuilder('event')
+    //         .where(':starting < event.ending AND :ending > event.starting', { starting: ev.starting, ending: ev.ending })
+    //         .getMany();
 
-            if (conflictingEvents.length > 0) {
-                return res.status(409).json({ "error": "Conflicting event exists" });
-            }
+    //         if (conflictingEvents.length > 0) {
+    //             return res.status(409).json({ "error": "Conflicting event exists" });
+    //         }
 
-            if(ev.type=="AG" && !ev.quorum){
-                res.status(201).json({"message":"Quorum non indicated"});
-            }else if(ev.type!="AG"){
-                ev.quorum=0
-            }
-            const newEvent = evRepository.create({
-                user:userFound,
-                type:ev.type,
-                description:ev.description,
-                quorum:ev.quorum,
-                starting:ev.starting,
-                ending:ev.ending,
-                location:ev.location
-            });
+    //         if(ev.type=="AG" && !ev.quorum){
+    //             res.status(201).json({"message":"Quorum non indicated"});
+    //         }else if(ev.type!="AG"){
+    //             ev.quorum=0
+    //         }
+    //         const newEvent = evRepository.create({
+    //             user:userFound,
+    //             type:ev.type,
+    //             description:ev.description,
+    //             quorum:ev.quorum,
+    //             starting:ev.starting,
+    //             ending:ev.ending,
+    //             location:ev.location
+    //         });
 
-            await evRepository.save(newEvent);
+    //         await evRepository.save(newEvent);
 
-            res.status(201).json(newEvent);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
-        }
-    });
+    //         res.status(201).json(newEvent);
+    //     } catch (error) {
+    //         console.log(error);
+    //         res.status(500).send({ error: "Internal error" });
+    //     }
+    // });
 
     app.get("/evenements", async (req: Request, res: Response) => {
         const validation = listMissionValidation.validate(req.query);
@@ -1423,7 +1424,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             }
     
             const importantAttendeesCount = attFound.filter(attendee => attendee.role === AttendeeRole.IMPORTANT).length;
-            if (importantAttendeesCount > ev.quorum) {
+            if (ev.quorum && importantAttendeesCount > ev.quorum) {
                 return res.status(500).json({ error: "Number of important attendees cannot exceed quorum." });
             }
     
@@ -1451,8 +1452,8 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             const notificationRepo = AppDataSource.getRepository(Notification);
             for (const attendee of attFound) {
                 const notification = notificationRepo.create({
-                    description: `Mr/Mme. ${attendee.user.name} est convié(e) à l'assemblée générale du ${ev.starting}`,
-                    users: [attendee.user],
+                    message: `Mr/Mme. ${attendee.user.name} est convié(e) à l'assemblée générale du ${ev.starting}`,
+                    user: attendee.user, // Use `user` instead of `users`
                 });
                 await notificationRepo.save(notification);
             }
@@ -1464,13 +1465,14 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
                 quorum: ev.quorum,
                 isVirtual: ev.isVirtual,
                 virtualLink: ev.virtualLink,
-                starting: new Date(ev.starting),
-                ending: new Date(ev.ending),
+                starting: ev.starting ? new Date(ev.starting) : new Date(), // Handle undefined case
+                ending: ev.ending ? new Date(ev.ending) : new Date(), // Handle undefined case
                 repetitivity: ev.repetitivity,
                 user: userFound,
                 attendees: attFound.map(att => att.user), // Only user objects are saved in attendees
-                location: [locFound], // Assign location as an array
+                location: [locFound], // Assuming locFound is a single Location, not an array
             });
+
     
             await evRepository.save(newEvent);
     
@@ -2041,6 +2043,8 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).send({ error: "Internal error" });
         }
     });
+
+
     app.post('/upload', upload.single('file'),  adminMiddleware, async (req, res) => {
         try {
             const file = req.file;
@@ -2064,6 +2068,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             const defaultType = file.mimetype;
 
             const newDocumentParams = {
+                fileId:fileId,
                 title: defaultTitle,
                 description: defaultDescription,
                 type: defaultType,
@@ -2150,16 +2155,6 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
     app.delete('/notes/:id', adminMiddleware, async (req, res) => {
         const userId = (req as any).user.id;
         const id = parseInt(req.params.id);
-
-// <<<<<<< dev-brad-updt
-
-
-
-
-
-    
-} 
-// =======
         const success = await noteUsecase.deleteNote(id, userId);
     
         if (!success) {
@@ -2168,6 +2163,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
     
         res.status(204).send();
     });
+
     app.post("/skills", adminMiddleware,async (req, res) => {
         const { error } = skillValidation.validate(req.body);
         if (error) {
@@ -2309,6 +2305,4 @@ app.get('/users/:userId/notifications', async (req: Request, res: Response) => {
         res.status(500).json({ message: "Internal server error", error });
     }
 });
-
-};
-// >>>>>>> dev-brad
+}

@@ -1,10 +1,8 @@
 import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { User } from "./user";
 import { Round } from "./round";
-import { Subject } from './subject';
-import { Response } from './response';
 
-@Entity({ name: "vote" })
+@Entity()
 export class Vote {
     @PrimaryGeneratedColumn()
     id!: number;
@@ -26,7 +24,9 @@ export class Vote {
 
     @OneToMany(() => Round, (round) => round.vote, { cascade: true }) // Added cascade option
     rounds!: Round[];
+    subject: any;
+    responses: any;
 
-    @ManyToOne(() => User, user => user.votes)
-    user!: User;
+    // @ManyToOne(() => User, user => user.votes)
+    // user!: User;
 }

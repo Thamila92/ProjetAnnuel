@@ -1,35 +1,35 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
-import { User } from './user';
+// import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
+// import { User } from './user';
 
-@Entity({ name: "document" })
-export class Document {
-    @PrimaryGeneratedColumn()
-    id!: number;
+// @Entity({ name: "document" })
+// export class Document {
+//     @PrimaryGeneratedColumn()
+//     id!: number;
 
-    @Column()
-    title!: string;
+//     @Column()
+//     title!: string;
 
-    @Column()
-    description!: string;
+//     @Column()
+//     description!: string;
 
-    @Column()
-    type!: string;
+//     @Column()
+//     type!: string;
 
-    @Column()
-    path!: string;
+//     @Column()
+//     path!: string;
 
-    @CreateDateColumn({ type: 'datetime' })
-    createdAt!: Date;
+//     @CreateDateColumn({ type: 'datetime' })
+//     createdAt!: Date;
 
-    @ManyToOne(() => User, user => user.documents)
-    user!: User;
-}
+//     @ManyToOne(() => User, user => user.documents)
+//     user!: User;
+// }
 
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
 import { User } from './user';
 
 @Entity()
-export class UserDocument {
+export class Document {
     @PrimaryGeneratedColumn()
     id!: number;
 

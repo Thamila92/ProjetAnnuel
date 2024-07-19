@@ -1,9 +1,11 @@
 import Joi from "joi";
 
-enum eventtype {
-    AG = "AG",
-    suivi = "SUIVI"
-}
+// enum eventtype {
+//     AG = "AG",
+//     suivi = "SUIVI"
+// }
+
+import { eventtype } from "../../types/event-types";
 
 enum repetitivity {
     MONTHLY = "MONTHLY",
@@ -22,57 +24,55 @@ export interface Attendee {
 }
 
 export interface EvenementRequest {
-    type: eventtype;
+    type?: eventtype;  // type is optional
     virtualLink?: string;
     isVirtual: boolean;
     attendees: Attendee[];
     repetitivity: repetitivity;
-    description: string;
-    quorum: number;
-    starting: Date;
-    ending: Date;
-    location: number;
+    description?: string;  // description is optional
+    quorum?: number;  // quorum is optional
+    starting?: Date;  // starting is optional
+    ending?: Date;  // ending is optional
+    location?: number;  // location is optional
 }
 
 export const evenementValidation = Joi.object<EvenementRequest>({
-    type: Joi.string().valid(...Object.values(eventtype)).required(),
+    type: Joi.string().valid(...Object.values(eventtype)).optional(),
     attendees: Joi.array().items(
         Joi.object({
             userId: Joi.number().integer().required(),
             role: Joi.string().valid(...Object.values(AttendeeRole)).default(AttendeeRole.NORMAL).required(),
         })
     ).required(),
-    description: Joi.string().required(),
-    quorum: Joi.number().required(),
+    description: Joi.string().optional(),
+    quorum: Joi.number().optional(),
     isVirtual: Joi.boolean().required(),
     virtualLink: Joi.string().optional(),
-    location: Joi.number().required(),
-    starting: Joi.date().iso().min('now').required(),
-    ending: Joi.date().iso().greater(Joi.ref('starting')).required(),
-    repetitivity: Joi.string().valid(...Object.values(repetitivity)).required(),
+    location: Joi.number().optional(),
+    starting: Joi.date().iso().min('now').optional(),
+    ending: Joi.date().iso().greater(Joi.ref('starting')).optional(),
+    repetitivity: Joi.string().valid(...Object.values(repetitivity)).optional(),
 }).options({ abortEarly: false });
 
+export interface UpdateEvenementParams {
+    type?: eventtype;
+    location?: string;
+    description?: string;
+    quorum?: number;
+    starting?: Date;
+    ending?: Date;
+    missionId?: number;
+}
 
-export const evenementUpdateValidation = Joi.object<EvenementRequest>({
+export const evenementUpdateValidation = Joi.object<UpdateEvenementParams>({
     type: Joi.string().valid(...Object.values(eventtype)).optional(),
     location: Joi.string().optional(),
     description: Joi.string().optional(),
     quorum: Joi.number().optional(),
     starting: Joi.date().iso().min('now').optional(), 
     ending: Joi.date().iso().greater(Joi.ref('starting')).optional(),
-    // missionId: Joi.number().required()
+    missionId: Joi.number().optional()
 }).options({ abortEarly: false });
-
-// export interface EvenementRequest {
-//     type: eventtype;
-//     location: string;
-//     description: string;
-//     quorum: number;
-//     starting: Date;
-//     ending: Date;
-//     // missionId: number;
-// }
-
 
 export const listEvenementValidation = Joi.object<ListEvenementRequest>({
     page: Joi.number().min(1).optional(),

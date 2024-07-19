@@ -42,7 +42,7 @@ export class VoteUsecase {
         }
 
         const newVote = voteRepo.create({
-            type: params.type,
+            // type: params.type,
             subject: subjectFound
         });
 
@@ -61,7 +61,7 @@ export class VoteUsecase {
         const voteFound = await repo.findOne({ where: { id } });
         if (!voteFound) return null;
 
-        if (params.type) voteFound.type = params.type;
+        // if (params.type) voteFound.type = params.type;
         if (params.subjectId) {
             const subjectRepo = this.db.getRepository(Subject);
             const subjectFound = await subjectRepo.findOne({ where: { id: params.subjectId } });

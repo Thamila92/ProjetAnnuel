@@ -1,7 +1,8 @@
 import { DataSource } from "typeorm";
-import { Evenement } from "../database/entities/evenement";
+import { Evenement} from "../database/entities/evenement";
 import { Mission } from "../database/entities/mission";
 import { AppDataSource } from "../database/database";
+import { eventtype } from "../types/event-types";
 
 export interface ListEvenementFilter {
     limit: number;
@@ -9,7 +10,7 @@ export interface ListEvenementFilter {
 }
 
 export interface UpdateEvenementParams {
-    type?: string;
+    type?: eventtype;
     location?: string;
     description?: string;
     quorum?: number;
@@ -81,44 +82,44 @@ export class EvenementUsecase {
         return evenementFound || null;
     }
 
-    // async updateEvenement(id: number, params: UpdateEvenementParams): Promise<Evenement | null | string> {
-    //     const repo = this.db.getRepository(Evenement);
-    //     const evenementFound = await repo.findOne({ where: { id, isDeleted: false } });
+    async updateEvenement(id: number, params: UpdateEvenementParams): Promise<Evenement | null | string> {
+        const repo = this.db.getRepository(Evenement);
+        const evenementFound = await repo.findOne({ where: { id, isDeleted: false } });
     
-    //     if (!evenementFound) return null;
+        if (!evenementFound) return null;
     
-    //     if (params.type === "AG" && !params.quorum) {
-    //         return "You must specify the Quorum";
-    //     }
+        if (params.type === "AG" && !params.quorum) {
+            return "You must specify the Quorum";
+        }
     
-    //     if (params.type) evenementFound.type = params.type;
-    //     // if (params.location) evenementFound.location = params.location;
-    //     if (params.description) evenementFound.description = params.description;
-    //     if (params.quorum) evenementFound.quorum = params.quorum;
+        if (params.type) evenementFound.typee = params.type;
+        // if (params.location) evenementFound.location = params.location;
+        if (params.description) evenementFound.description = params.description;
+        if (params.quorum) evenementFound.quorum = params.quorum;
     
-    //     const { starting, ending } = params;
+        const { starting, ending } = params;
     
-    //     if (starting || ending) {
-    //         const checkStarting = starting || evenementFound.starting;
-    //         const checkEnding = ending || evenementFound.ending;
+        if (starting || ending) {
+            const checkStarting = starting || evenementFound.starting;
+            const checkEnding = ending || evenementFound.ending;
     
-    //         const conflictingEvents = await repo.createQueryBuilder('event')
-    //             .where(':starting < event.ending AND :ending > event.starting', { starting: checkStarting, ending: checkEnding })
-    //             .andWhere('event.id != :id', { id })
-    //             .andWhere('event.isDeleted = false')
-    //             .getMany();
+            const conflictingEvents = await repo.createQueryBuilder('event')
+                .where(':starting < event.ending AND :ending > event.starting', { starting: checkStarting, ending: checkEnding })
+                .andWhere('event.id != :id', { id })
+                .andWhere('event.isDeleted = false')
+                .getMany();
     
-    //         if (conflictingEvents.length > 0) {
-    //             return "Conflicting event exists";
-    //         }
+            if (conflictingEvents.length > 0) {
+                return "Conflicting event exists";
+            }
     
-    //         if (starting) evenementFound.starting = starting;
-    //         if (ending) evenementFound.ending = ending;
-    //     }
+            if (starting) evenementFound.starting = starting;
+            if (ending) evenementFound.ending = ending;
+        }
     
-    //     const updatedEvenement = await repo.save(evenementFound);
-    //     return updatedEvenement;
-    // }
+        const updatedEvenement = await repo.save(evenementFound);
+        return updatedEvenement;
+    }
     
     
     async deleteEvenement(id: number): Promise<boolean | Evenement | string> {
