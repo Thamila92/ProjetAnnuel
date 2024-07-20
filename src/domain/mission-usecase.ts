@@ -1,5 +1,5 @@
  
-import { DataSource, LessThanOrEqual, MoreThanOrEqual, Not } from "typeorm";
+import { DataSource, LessThanOrEqual, MoreThanOrEqual, Not ,In} from "typeorm";
 import { Mission } from "../database/entities/mission";
 import { Evenement } from "../database/entities/evenement";
 import { Skill } from "../database/entities/skill";
@@ -13,9 +13,12 @@ export interface ListMissionFilter {
 }
 
 export interface UpdateMissionParams {
+    description?: string;
     starting?: Date;
     ending?: Date;
-    description?: string;
+    skills?: string[];
+    userEmails?: string[];
+    resources?: number[];
 }
 
 export class MissionUsecase {
@@ -144,28 +147,31 @@ export class MissionUsecase {
 
     async updateMission(id: number, params: UpdateMissionParams): Promise<Mission | null | string> {
         const repo = this.db.getRepository(Mission);
-        const evenementRepo = this.db.getRepository(Evenement); 
-    
+        const evenementRepo = this.db.getRepository(Evenement);
+        const skillRepo = this.db.getRepository(Skill);
+        const userRepo = this.db.getRepository(User);
+        const resourceRepo = this.db.getRepository(Resource);
+
         // Trouver la mission à mettre à jour
         const missionFound = await repo.findOne({
             where: { id },
-            relations: ['evenement'], // Ensure 'evenement' is loaded
+            relations: ['evenement', 'requiredSkills', 'assignedUsers', 'resources'], // Ensure relations are loaded
         });
         if (!missionFound) return null;
-    
+
         // Récupérer l'événement associé
         const evenement = missionFound.evenement;
         if (!evenement) return null;
-    
+
         // Déterminer les nouvelles dates de début et de fin
         const newStarting = params.starting || missionFound.starting;
         const newEnding = params.ending || missionFound.ending;
-    
+
         // Vérifier si la nouvelle période de la mission est dans la période de l'événement
         if (newStarting < evenement.starting || newEnding > evenement.ending) {
-           return "La période de la mission doit être comprise dans celle de l'événement."
+            return "La période de la mission doit être comprise dans celle de l'événement.";
         }
-    
+
         // Vérifier les conflits de périodes avec d'autres missions
         const conflictingMissions = await repo.find({
             where: {
@@ -175,16 +181,31 @@ export class MissionUsecase {
                 ending: MoreThanOrEqual(newStarting),
             },
         });
-    
+
         if (conflictingMissions.length > 0) {
-            return "Il existe déjà une mission sur cette période."
+            return "Il existe déjà une mission sur cette période.";
         }
-    
+
         // Mettre à jour la mission
         if (params.starting) missionFound.starting = params.starting;
         if (params.ending) missionFound.ending = params.ending;
         if (params.description) missionFound.description = params.description;
-    
+
+        // Mettre à jour les compétences (skills)
+        if (params.skills) {
+            missionFound.requiredSkills = await skillRepo.find({ where: { name: In(params.skills) } });
+        }
+
+        // Mettre à jour les utilisateurs (users)
+        if (params.userEmails) {
+            missionFound.assignedUsers = await userRepo.find({ where: { email: In(params.userEmails) } });
+        }
+
+        // Mettre à jour les ressources (resources)
+        if (params.resources) {
+            missionFound.resources = await resourceRepo.find({ where: { id: In(params.resources) } });
+        }
+
         const updatedMission = await repo.save(missionFound);
         return updatedMission;
     }
