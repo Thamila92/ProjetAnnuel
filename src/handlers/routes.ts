@@ -131,7 +131,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
       })
 
  
-      app.get('/users', adminMiddleware, async (req: Request, res: Response) => {
+      app.get('/users', adminMiddleware, async (req, res) => {
         const validation = listUsersValidation.validate(req.query);
     
         if (validation.error) {
@@ -146,7 +146,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
         }
     
         let type = "";
-        if (listUserRequest.type) {
+        if (listUserRequest.type) { // Utiliser 'type' au lieu de 'status'
             type = listUserRequest.type;
         }
     
@@ -162,6 +162,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).json({ error: "Internal error" });
         }
     });
+    
     
      app.get("/users/:id",authMiddleware,async (req: Request, res: Response) => {
         try {
@@ -1111,26 +1112,31 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
 
 
 
+app.post('/missions', adminMiddleware, async (req: Request, res: Response) => {
+    const { starting, ending, description, skills, userEmails, resourceIds } = req.body;
+    const stepId = parseInt(req.query.StepId as string, 10);
+    const eventId = parseInt(req.query.EventId as string, 10);
 
-    app.post('/missions', adminMiddleware, async (req, res) => {
-        const { starting, ending, description, eventId, stepId, skills, userEmails } = req.body;
-    
-        try {
-            const mission = await missionUsecase.createMission(
-                new Date(starting), 
-                new Date(ending), 
-                description, 
-                eventId || null, 
-                stepId || null, 
-                skills || null, 
-                userEmails || null
-            );
-            res.status(201).send(mission);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: 'Internal error' });
-        }
-    });
+    try {
+        const mission = await missionUsecase.createMission(
+            new Date(starting), 
+            new Date(ending), 
+            description, 
+            isNaN(eventId) ? null : eventId, 
+            isNaN(stepId) ? null : stepId, 
+            skills || null, 
+            userEmails || null,
+            resourceIds || null
+        );
+        res.status(201).send(mission);
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({ error: 'Internal error' });
+    }
+});
+
+
+
     app.get('/missions', adminMiddleware, async (req: Request, res: Response) => {
         const validation = listMissionValidation.validate(req.query);
     
@@ -1645,7 +1651,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(400).send(generateValidationErrorMessage(validation.error.details));
             return;
         }
-
+    
         const { page = 1, limit = 10 }: ListStepRequest = validation.value;
         try {
             const result = await stepUsecase.listSteps({ page, limit });
@@ -1655,6 +1661,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).send({ error: "Internal error" });
         }
     });
+    
     app.get("/steps/:id", async (req: Request, res: Response) => {
         const id = parseInt(req.params.id);
         try {

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, ManyToMany, JoinTable } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, JoinTable, OneToMany } from "typeorm";
 import { Evenement } from "./evenement";
 import { User } from "./user";
 import { Step } from "./step";
@@ -10,22 +10,30 @@ import { Resource } from "./ressource";
 export class Mission {
     @PrimaryGeneratedColumn()
     id!: number;
+
     @Column()
     starting: Date;
+
     @Column()
     ending: Date;
+
     @Column()
     description: string;
+
     @ManyToOne(() => Evenement, (evenement) => evenement.mission, { nullable: true })
     evenement?: Evenement;
-    @ManyToOne(() => Step, (step) => step.mission, { nullable: true })
+
+    @ManyToOne(() => Step, (step) => step.missions, { nullable: true })
     step?: Step;
+
     @ManyToMany(() => User, { eager: true })
     @JoinTable()
     assignedUsers!: User[];
+
     @ManyToMany(() => Skill, { eager: true })
     @JoinTable()
     requiredSkills!: Skill[];
+
     @OneToMany(() => Review, (review) => review.mission)
     reviews!: Review[];
 
