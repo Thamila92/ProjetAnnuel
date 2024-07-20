@@ -1181,24 +1181,24 @@ app.post('/missions', adminMiddleware, async (req: Request, res: Response) => {
         }
     });
 
-    app.patch("/missions/:id",adminMiddleware,async (req: Request, res: Response) => {
+    app.patch('/missions/:id', adminMiddleware, async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
-            const validation = missionUpdateValidation.validate(req.body);
-            if (validation.error) {
-                res.status(400).send(generateValidationErrorMessage(validation.error.details));
-                return;
+            const { error, value } = missionUpdateValidation.validate(req.body);
+            if (error) {
+                return res.status(400).send(generateValidationErrorMessage(error.details));
             }
-
-            const { starting, ending, description }: MissionRequest = validation.value;
+    
+            const { starting, ending, description, skills, userEmails, resources } = value;
             
-            const mission = await missionUsecase.updateMission(id, { starting, ending, description });
+            const mission = await missionUsecase.updateMission(id, { starting, ending, description, skills, userEmails, resources });
             if (!mission) {
-                res.status(404).send({ error: "Mission not found" });
+                return res.status(404).send({ error: "Mission not found" });
             }
+    
             res.status(200).send(mission);
         } catch (error) {
-            console.log(error);
+            console.error('Error updating mission:', error);
             res.status(500).send({ error: "Internal error" });
         }
     });

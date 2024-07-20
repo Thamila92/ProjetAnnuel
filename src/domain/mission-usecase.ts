@@ -144,42 +144,55 @@ export class MissionUsecase {
         const missionFound = await repo.findOne({ where: { id } });
         return missionFound || null;
     }
-
     async updateMission(id: number, params: UpdateMissionParams): Promise<Mission | null | string> {
         const repo = this.db.getRepository(Mission);
         const evenementRepo = this.db.getRepository(Evenement);
+        const stepRepo = this.db.getRepository(Step);
         const skillRepo = this.db.getRepository(Skill);
         const userRepo = this.db.getRepository(User);
         const resourceRepo = this.db.getRepository(Resource);
 
-        // Trouver la mission à mettre à jour
         const missionFound = await repo.findOne({
             where: { id },
-            relations: ['evenement', 'requiredSkills', 'assignedUsers', 'resources'], // Ensure relations are loaded
+            relations: ['evenement', 'step', 'requiredSkills', 'assignedUsers', 'resources'],
         });
-        if (!missionFound) return null;
+        if (!missionFound) return "Mission not found";
 
-        // Récupérer l'événement associé
         const evenement = missionFound.evenement;
-        if (!evenement) return null;
+        const step = missionFound.step;
 
-        // Déterminer les nouvelles dates de début et de fin
+        if (!evenement && !step) return "Mission must be associated with either an event or a step";
+
         const newStarting = params.starting || missionFound.starting;
         const newEnding = params.ending || missionFound.ending;
 
-        // Vérifier si la nouvelle période de la mission est dans la période de l'événement
-        if (newStarting < evenement.starting || newEnding > evenement.ending) {
-            return "La période de la mission doit être comprise dans celle de l'événement.";
+        if (evenement) {
+            if (newStarting < evenement.starting || newEnding > evenement.ending) {
+                return "La période de la mission doit être comprise dans celle de l'événement.";
+            }
         }
 
-        // Vérifier les conflits de périodes avec d'autres missions
+        if (step) {
+            if (newStarting < step.starting || newEnding > step.ending) {
+                return "La période de la mission doit être comprise dans celle de l'étape.";
+            }
+        }
+
         const conflictingMissions = await repo.find({
-            where: {
-                evenement: evenement,
-                id: Not(id), // Exclure la mission actuelle
-                starting: LessThanOrEqual(newEnding),
-                ending: MoreThanOrEqual(newStarting),
-            },
+            where: [
+                {
+                    evenement: evenement,
+                    id: Not(id),
+                    starting: LessThanOrEqual(newEnding),
+                    ending: MoreThanOrEqual(newStarting),
+                },
+                {
+                    step: step,
+                    id: Not(id),
+                    starting: LessThanOrEqual(newEnding),
+                    ending: MoreThanOrEqual(newStarting),
+                }
+            ],
         });
 
         if (conflictingMissions.length > 0) {
@@ -209,7 +222,6 @@ export class MissionUsecase {
         const updatedMission = await repo.save(missionFound);
         return updatedMission;
     }
-    
     async deleteMission(id: number): Promise<boolean | Mission> {
         const repo = this.db.getRepository(Mission);
         const missionFound = await repo.findOne({ where: { id } });
