@@ -25,13 +25,13 @@ export interface EvenementRequest {
     type: eventtype;
     virtualLink?: string;
     isVirtual: boolean;
-    attendees: Attendee[];
+    attendees?: Attendee[];
     repetitivity: repetitivity;
     description: string;
-    quorum: number;
+    quorum?: number;
     starting: Date;
     ending: Date;
-    location: number;
+    location: string;
 }
 
 export const evenementValidation = Joi.object<EvenementRequest>({
@@ -41,26 +41,27 @@ export const evenementValidation = Joi.object<EvenementRequest>({
             userId: Joi.number().integer().required(),
             role: Joi.string().valid(...Object.values(AttendeeRole)).default(AttendeeRole.NORMAL).required(),
         })
-    ).required(),
+    ).default([]),
     description: Joi.string().required(),
-    quorum: Joi.number().required(),
+    quorum: Joi.number().default(0),
     isVirtual: Joi.boolean().required(),
-    virtualLink: Joi.string().optional(),
-    location: Joi.number().required(),
+    virtualLink: Joi.string().allow('', null).optional(),
+    location: Joi.string().required(),
     starting: Joi.date().iso().min('now').required(),
     ending: Joi.date().iso().greater(Joi.ref('starting')).required(),
-    repetitivity: Joi.string().valid(...Object.values(repetitivity)).required(),
+    repetitivity: Joi.string().valid(...Object.values(repetitivity)).default(repetitivity.NONE),
 }).options({ abortEarly: false });
 
-
-export const evenementUpdateValidation = Joi.object<EvenementRequest>({
+export const evenementUpdateValidation = Joi.object({
     type: Joi.string().valid(...Object.values(eventtype)).optional(),
     location: Joi.string().optional(),
     description: Joi.string().optional(),
     quorum: Joi.number().optional(),
-    starting: Joi.date().iso().min('now').optional(), 
+    isVirtual: Joi.boolean().optional(),
+    virtualLink: Joi.string().allow('', null).optional(),
+    starting: Joi.date().iso().min('now').optional(),
     ending: Joi.date().iso().greater(Joi.ref('starting')).optional(),
-    // missionId: Joi.number().required()
+    repetitivity: Joi.string().valid(...Object.values(repetitivity)).optional(),
 }).options({ abortEarly: false });
 
 // export interface EvenementRequest {
