@@ -46,7 +46,7 @@ import { choiceValidation, propositionValidation } from "./validators/propositio
 import { Proposition } from "../database/entities/proposition";
 import { PropositionUsecase } from "../domain/proposition-usecase";
 import { Round } from "../database/entities/round";
-import { repetitivity, eventtype } from "../database/entities/evenement";
+import { repetitivity } from "../database/entities/evenement";
 
 import { VoteRecord } from "../database/entities/vote-record";
 import { Location } from "../database/entities/location";
@@ -66,6 +66,8 @@ import { NotificationUsecase } from "../domain/notification-usecase";
 import { ResourceUsecase } from "../domain/ressource-usecase";
 import { assignResourceToMissionValidation, resourceValidation } from "./validators/ressource-validator";
 import { SkillUsecase } from "../domain/skill-usecase";
+import { VoteUsecase } from "../domain/vote-usecase";
+import { UserDocument } from "../database/entities/document";
 // >>>>>>> dev-brad
 const upload = multer();
 
@@ -964,7 +966,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
 
 // <<<<<<< merge_fi2
 
-=======
+
     
 // =======
     // app.post("/evenements",adminMiddleware,async (req: Request, res: Response) => {
@@ -1342,9 +1344,9 @@ app.post('/missions', adminMiddleware, async (req: Request, res: Response) => {
     app.patch("/missions/:id", adminMiddleware, async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
-            const { error, value } = missionUpdateValidation.validate(req.body);
-            if (error) {
-                return res.status(400).send(generateValidationErrorMessage(error.details));
+            const validation = missionUpdateValidation.validate(req.body);
+            if (validation.error) {
+                return res.status(400).send(generateValidationErrorMessage(validation.error.details));
             }
 
             const { starting, ending, description }: MissionRequest = validation.value;

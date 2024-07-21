@@ -18,7 +18,7 @@ import { Notification } from "./notification";
 // import { Location } from "./location";
 // import { EvenementAttendee } from "./evenement-attendee";
 // import { Document } from "./document";
-import { Response } from "./response";
+// import { Response } from "./response";
 import { Note } from "./note";
 import { Skill } from "./skill";
 

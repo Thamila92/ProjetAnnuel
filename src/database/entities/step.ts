@@ -23,7 +23,7 @@ export class Step {
     projet: Projet;
 
     @ManyToOne(() => Mission, (mission) => mission.step)
-    mission: Mission;
+    missions: Mission[];
 
     constructor(id: number, state: string, description: string, starting: Date, ending: Date, projet: Projet, missions: Mission[]) {
         this.id = id;

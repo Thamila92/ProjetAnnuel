@@ -6,7 +6,7 @@ import { OAuth2Client } from 'google-auth-library';
 import 'dotenv/config';
 import { swaggerDocs } from "./swagger/swagger";
 import "reflect-metadata";
-import { Document } from './database/entities/document';
+import { UserDocument } from './database/entities/document';
 import { User } from './database/entities/user';
 const paypal = require("./handlers/paypal");
 import cors from 'cors';

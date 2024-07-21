@@ -23,7 +23,7 @@ export class Mission {
     @ManyToOne(() => Evenement, (evenement) => evenement.mission, { nullable: true })
     evenement?: Evenement;
 
-    @ManyToOne(() => Step, (step) => step.mission, { nullable: true })
+    @ManyToOne(() => Step, (step) => step.missions, { nullable: true })
     step?: Step;
 
     @ManyToMany(() => User, { eager: true })
