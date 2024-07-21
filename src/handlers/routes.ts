@@ -37,9 +37,9 @@ import { DocumentUsecase } from "../domain/document-usecase";
 // import { createVoteValidation, updateVoteValidation } from "./validators/voteValidator";
 import { createDocumentValidation, updateDocumentValidation } from "./validators/documentValidator";
 import { OAuth2Client } from "google-auth-library";
-import { UserDocument } from "../database/entities/document";
+// import { UserDocument } from "../database/entities/document";
 import { voteValidation } from "./validators/vote-validator";
-import { VoteUsecase } from "../domain/vote-usecase";
+// import { VoteUsecase } from "../domain/vote-usecase";
 import { roundValidation } from "./validators/round-validator";
 import { RoundUsecase } from "../domain/round-usecase";
 import { choiceValidation, propositionValidation } from "./validators/proposition-validator";
@@ -47,10 +47,12 @@ import { Proposition } from "../database/entities/proposition";
 import { PropositionUsecase } from "../domain/proposition-usecase";
 import { Round } from "../database/entities/round";
 import { repetitivity, eventtype } from "../database/entities/evenement";
+
 import { VoteRecord } from "../database/entities/vote-record";
 import { Location } from "../database/entities/location";
 import { AttendeeRole } from "../database/entities/evenement-attendee";
 import { Notification } from "../database/entities/notification";
+import { eventtype } from "../types/event-types";
 
 // =======
 import { createResponseValidation, updateResponseValidation } from "./validators/responseValidator";
@@ -146,7 +148,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
         }
 
         let type = "";
-        if (listUserRequest.type) {
+        if (listUserRequest.type) { // Utiliser 'type' au lieu de 'status'
             type = listUserRequest.type;
         }
 
@@ -162,7 +164,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).json({ error: "Internal error" });
         }
     });
-
+  
     app.get("/users/:id", authMiddleware, async (req: Request, res: Response) => {
         try {
             const validationResult = userIdValidation.validate(req.params)
@@ -960,7 +962,75 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
 
 
 
+// <<<<<<< merge_fi2
 
+=======
+    
+// =======
+    // app.post("/evenements",adminMiddleware,async (req: Request, res: Response) => {
+    //     try {
+    //         const validation = evenementValidation.validate(req.body);
+    //         if (validation.error) {
+    //             res.status(400).send(generateValidationErrorMessage(validation.error.details));
+    //             return;
+    //         }
+    //         const ev = validation.value;
+    //         const authHeader = req.headers['authorization'];
+    //         if (!authHeader) return res.status(401).json({ "error": "Unauthorized" });
+
+    //         const token = authHeader.split(' ')[1];
+    //         if (token === null) return res.status(401).json({ "error": "Unauthorized" });
+
+    //         const tokenRepo = AppDataSource.getRepository(Token);
+    //         const tokenFound = await tokenRepo.findOne({ where: { token }, relations: ['user'] });
+
+    //         if (!tokenFound) {
+    //             return res.status(403).json({ "error": "Access Forbidden" });
+    //         }
+
+    //         if (!tokenFound.user) {
+    //             return res.status(500).json({ "error": "Internal server error u"});
+    //         }
+
+    //         const userRepo = AppDataSource.getRepository(User);
+    //         const userFound = await userRepo.findOne({ where: { id:tokenFound.user.id }});
+
+    //         if (!userFound) {
+    //             return res.status(500).json({ "error": "Internal server error stat "});
+    //         }
+    //         const evRepository = AppDataSource.getRepository(Evenement);
+    //         const conflictingEvents = await evRepository.createQueryBuilder('event')
+    //         .where(':starting < event.ending AND :ending > event.starting', { starting: ev.starting, ending: ev.ending })
+    //         .getMany();
+
+    //         if (conflictingEvents.length > 0) {
+    //             return res.status(409).json({ "error": "Conflicting event exists" });
+    //         }
+
+    //         if(ev.type=="AG" && !ev.quorum){
+    //             res.status(201).json({"message":"Quorum non indicated"});
+    //         }else if(ev.type!="AG"){
+    //             ev.quorum=0
+    //         }
+    //         const newEvent = evRepository.create({
+    //             user:userFound,
+    //             type:ev.type,
+    //             description:ev.description,
+    //             quorum:ev.quorum,
+    //             starting:ev.starting,
+    //             ending:ev.ending,
+    //             location:ev.location
+    //         });
+
+    //         await evRepository.save(newEvent);
+
+    //         res.status(201).json(newEvent);
+    //     } catch (error) {
+    //         console.log(error);
+    //         res.status(500).send({ error: "Internal error" });
+    //     }
+    // });
+// >>>>>>> merge_fi
 
     app.post("/evenements", adminMiddleware, async (req: Request, res: Response) => {
         try {
@@ -1046,6 +1116,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
 
             if (conflictingEvents.length > 0) {
                 return res.status(409).json({ error: "Conflicting event exists" });
+
             }
 
             if (ev.isVirtual && !ev.virtualLink) {
@@ -1064,7 +1135,6 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
                 });
                 await notificationRepo.save(notification);
             }
-
             // Create and save the new event
             const newEvent = evRepository.create({
                 typee: ev.type as unknown as eventtype,
@@ -1178,6 +1248,31 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
 
 
 
+app.post('/missions', adminMiddleware, async (req: Request, res: Response) => {
+    const { starting, ending, description, skills, userEmails, resourceIds } = req.body;
+    const stepId = parseInt(req.query.StepId as string, 10);
+    const eventId = parseInt(req.query.EventId as string, 10);
+
+    try {
+        const mission = await missionUsecase.createMission(
+            new Date(starting), 
+            new Date(ending), 
+            description, 
+            isNaN(eventId) ? null : eventId, 
+            isNaN(stepId) ? null : stepId, 
+            skills || null, 
+            userEmails || null,
+            resourceIds || null
+        );
+        res.status(201).send(mission);
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({ error: 'Internal error' });
+    }
+});
+
+
+
 
     app.post('/missions', adminMiddleware, async (req: Request, res: Response) => {
         const { starting, ending, description, skills, userEmails, resourceIds } = req.body;
@@ -1201,6 +1296,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).send({ error: 'Internal error' });
         }
     });
+
     app.get('/missions', adminMiddleware, async (req: Request, res: Response) => {
         const validation = listMissionValidation.validate(req.query);
 
@@ -1242,24 +1338,25 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
         }
     });
 
+
     app.patch("/missions/:id", adminMiddleware, async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
-            const validation = missionUpdateValidation.validate(req.body);
-            if (validation.error) {
-                res.status(400).send(generateValidationErrorMessage(validation.error.details));
-                return;
+            const { error, value } = missionUpdateValidation.validate(req.body);
+            if (error) {
+                return res.status(400).send(generateValidationErrorMessage(error.details));
             }
 
             const { starting, ending, description }: MissionRequest = validation.value;
 
             const mission = await missionUsecase.updateMission(id, { starting, ending, description });
             if (!mission) {
-                res.status(404).send({ error: "Mission not found" });
+                return res.status(404).send({ error: "Mission not found" });
             }
+    
             res.status(200).send(mission);
         } catch (error) {
-            console.log(error);
+            console.error('Error updating mission:', error);
             res.status(500).send({ error: "Internal error" });
         }
     });
@@ -1409,8 +1506,6 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).send({ error: 'Internal error' });
         }
     });
-
-
     
 
 
@@ -1552,7 +1647,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(400).send(generateValidationErrorMessage(validation.error.details));
             return;
         }
-
+    
         const { page = 1, limit = 10 }: ListStepRequest = validation.value;
         try {
             const result = await stepUsecase.listSteps({ page, limit });
@@ -1562,6 +1657,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             res.status(500).send({ error: "Internal error" });
         }
     });
+    
     app.get("/steps/:id", async (req: Request, res: Response) => {
         const id = parseInt(req.params.id);
         try {
@@ -2189,7 +2285,9 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
     });
 
 
+
     app.post('/upload', upload.single('file'), async (req, res) => {
+
         try {
             const file = req.file;
             if (!file) {
@@ -2203,6 +2301,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             readableStream.push(null);
 
             const fileId = await documentUsecase.uploadFileToGoogleDrive(file.originalname, file.mimetype, readableStream);
+
 
             const docRepo = AppDataSource.getRepository(UserDocument);
             const token = req.headers['authorization']?.split(' ')[1];
@@ -2238,6 +2337,7 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             });
             docRepo.save(newDocument);
             res.json({ newDocument });
+
         } catch (error: unknown) {
             if (error instanceof Error) {
                 res.status(500).json({ error: error.message });
@@ -2505,3 +2605,4 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
     });
 
 };
+

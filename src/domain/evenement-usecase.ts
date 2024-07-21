@@ -2,6 +2,7 @@ import { DataSource } from "typeorm";
 import { Evenement, eventtype } from "../database/entities/evenement";
 import { Mission } from "../database/entities/mission";
 import { AppDataSource } from "../database/database";
+import { eventtype } from "../types/event-types";
 
 export interface ListEvenementFilter {
     limit: number;

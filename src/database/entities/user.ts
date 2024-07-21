@@ -8,11 +8,17 @@ import { Evenement } from "./evenement";
 import { Mission } from "./mission";
 import { Step } from "./step";
 import { Projet } from "./projet";
+
 import { UserDocument } from "./document";
 import { Vote } from "./vote";
 import { Location } from "./location";
 import { EvenementAttendee } from "./evenement-attendee";
 import { Notification } from "./notification";
+// import { Vote } from "./vote";
+// import { Location } from "./location";
+// import { EvenementAttendee } from "./evenement-attendee";
+// import { Document } from "./document";
+import { Response } from "./response";
 import { Note } from "./note";
 import { Skill } from "./skill";
 
@@ -42,6 +48,7 @@ export class User {
     @ManyToMany(() => Notification, notification => notification.users)
     @JoinTable()
     notifications!: Notification[];
+
 
     @CreateDateColumn({type: "datetime"})
     createdAt!: Date
@@ -84,6 +91,7 @@ export class User {
 
     @OneToMany(() =>Vote, note => note.user)
     notes!: Vote[];
+
 
     @OneToMany(() => EvenementAttendee, (attendee) => attendee.user)
     evenementAttendees!: EvenementAttendee[];

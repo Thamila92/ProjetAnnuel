@@ -24,6 +24,8 @@ export class Vote {
 
     @OneToMany(() => Round, (round) => round.vote, { cascade: true }) // Added cascade option
     rounds!: Round[];
+    subject: any;
+    responses: any;
 
     @ManyToOne(() => User, user => user.votes)
     user!: User;

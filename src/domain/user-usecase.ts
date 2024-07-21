@@ -152,44 +152,41 @@ export class UserUsecase {
       return uUpdated;
   }
 
-    async listUser(listUserFilter: ListUserFilter): Promise<{ users: User[]; totalCount: number; } | string> {
-        console.log(listUserFilter);
-        const query = AppDataSource.getRepository(User)
+  async listUser(filter: ListUserFilter): Promise<{ users: User[]; totalCount: number; } | string> {
+    console.log(filter);
+    const query = this.db.getRepository(User)
         .createQueryBuilder('user')
-      
         .leftJoinAndSelect('user.status', 'status')
         .leftJoinAndSelect('user.skills', 'skill')
         .where('user.isDeleted = :isDeleted', { isDeleted: false });
 
-        if (listUserFilter.type) {
-            const status = await AppDataSource.getRepository(Status)
-                .createQueryBuilder('status')
-                .where('status.description = :description', { description: listUserFilter.type })
-                .getOne();
-    
-            if (status) {
-                query.andWhere('user.status.id = :statusId', { statusId: status.id });
-            } else {
-                const adminStatus = await AppDataSource.getRepository(Status)
-                    .createQueryBuilder('status')
-                    .where('status.description = :description', { description: 'ADMIN' })
-                    .getOne();
-                return `Nothing Found !!! from type: ${listUserFilter.type} ${adminStatus?.description}`;
-            }
+    if (filter.type) {
+        const status = await this.db.getRepository(Status)
+            .createQueryBuilder('status')
+            .where('status.description = :description', { description: filter.type })
+            .getOne();
+
+        if (status) {
+            query.andWhere('user.status.id = :statusId', { statusId: status.id });
+        } else {
+            return `Nothing Found !!! from type: ${filter.type}`;
         }
-        if (listUserFilter.skills && listUserFilter.skills.length > 0) {
-          query.andWhere('skill.name IN (:...skills)', { skills: listUserFilter.skills });
-      }
-    
-        query.skip((listUserFilter.page - 1) * listUserFilter.limit)
-            .take(listUserFilter.limit);
-    
-        const [users, totalCount] = await query.getManyAndCount();
-        return {
-            users,
-            totalCount
-        };
     }
+
+    if (filter.skills && filter.skills.length > 0) {
+        query.andWhere('skill.name IN (:...skills)', { skills: filter.skills });
+    }
+
+    query.skip((filter.page - 1) * filter.limit)
+        .take(filter.limit);
+
+    const [users, totalCount] = await query.getManyAndCount();
+    return {
+        users,
+        totalCount
+    };
+}
+
     async getUsersByRole(role: string): Promise<string[]> {
       const users = await this.db.getRepository(User)
           .createQueryBuilder('user')
@@ -221,6 +218,25 @@ export class UserUsecase {
     userFound.skills.push(skillFound);
     await userRepo.save(userFound);
     return userFound;
+}
+async getUsersByStatus(statusDescription: string): Promise<User[]> {
+  const status = await this.db.getRepository(Status)
+      .createQueryBuilder('status')
+      .where('status.description = :description', { description: statusDescription })
+      .getOne();
+
+  if (!status) {
+      throw new Error(`Status with description ${statusDescription} not found`);
+  }
+
+  const users = await this.db.getRepository(User)
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.status', 'status')
+      .where('user.status.id = :statusId', { statusId: status.id })
+      .andWhere('user.isDeleted = :isDeleted', { isDeleted: false })
+      .getMany();
+
+  return users;
 }
 
     

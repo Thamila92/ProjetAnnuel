@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } f
 import { User } from './user';
 
 @Entity()
-export class UserDocument {
+export class Document {
     @PrimaryGeneratedColumn()
     id!: number;
 

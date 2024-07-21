@@ -1,12 +1,12 @@
 import express from "express";
 import { initRoutes } from "./handlers/routes";
 import { AppDataSource } from "./database/database";
+ import { DocumentUsecase } from './domain/document-usecase';
 import { OAuth2Client } from 'google-auth-library';
-import { DocumentUsecase } from './domain/document-usecase';
 import 'dotenv/config';
 import { swaggerDocs } from "./swagger/swagger";
 import "reflect-metadata";
-import { UserDocument } from './database/entities/document';
+import { Document } from './database/entities/document';
 import { User } from './database/entities/user';
 const paypal = require("./handlers/paypal");
 import cors from 'cors';
@@ -20,6 +20,7 @@ const main = async () => {
     try {
         await AppDataSource.initialize();
         console.log("well connected to database");
+
     } catch (error) {
         console.log(error);
         console.error("Cannot contact database");
@@ -49,3 +50,4 @@ const main = async () => {
 }
 
 main();
+

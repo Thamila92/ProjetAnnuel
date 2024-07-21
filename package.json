@@ -36,9 +36,9 @@
     "@types/multer": "^1.4.11",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.6",
-    "nodemon": "^3.1.3",
+    "nodemon": "^3.1.4",
     "ts-node": "^10.9.2"
   },
   "keywords": [],
-  "description": ""
+  "description": "cle de creation admin : \"yek nimda\" postman collection link : https://grey-resonance-455176.postman.co/workspace/My-Workspace~a7810f74-7c0b-4ed0-8f7d-79191a8ffbc4/collection/24968734-50fe4910-869e-420a-b924-a16b4e11d469?action=share&creator=24968734"
 }

@@ -75,6 +75,24 @@ export class VoteUsecase {
         return newVote;
     }
 
+// <<<<<<< merge_fi2
+// =======
+//     async updateVote(id: number, params: UpdateVoteParams): Promise<Vote | null> {
+//         const repo = this.db.getRepository(Vote);
+//         const voteFound = await repo.findOne({ where: { id } });
+//         if (!voteFound) return null;
+
+//         // if (params.type) voteFound.type = params.type;
+//         if (params.subjectId) {
+//             const subjectRepo = this.db.getRepository(Subject);
+//             const subjectFound = await subjectRepo.findOne({ where: { id: params.subjectId } });
+//             if (subjectFound) voteFound.subject = subjectFound;
+//         }
+
+//         const updatedVote = await repo.save(voteFound);
+//         return updatedVote;
+//     }
+// >>>>>>> merge_fi
 
     async deleteVote(id: number): Promise<boolean | Vote> {
         const repo = this.db.getRepository(Vote);

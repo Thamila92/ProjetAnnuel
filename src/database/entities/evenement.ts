@@ -13,11 +13,12 @@ import { User } from "./user";
 import { Program } from "./program";
 import { Location } from "./location";
 import { EvenementAttendee } from "./evenement-attendee";
+import { eventtype } from "../../types/event-types";
 
-export enum eventtype {
-    AG = "AG",
-    SUIVI = "SUIVI",
-}
+// export enum eventtype {
+//     AG = "AG",
+//     SUIVI = "SUIVI",
+// }
 
 export enum repetitivity {
     NONE = "NONE",
@@ -33,8 +34,12 @@ export class Evenement {
     @Column({ default: false })
     isDeleted!: boolean;
 
-    @Column({ type: "enum", enum: eventtype })
+    @Column({
+        type: "enum",
+        enum: eventtype
+    })
     typee!: eventtype;
+
 
     @Column()
     description!: string;
