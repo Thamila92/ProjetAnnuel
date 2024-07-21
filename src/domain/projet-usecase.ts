@@ -25,10 +25,11 @@ export class ProjetUsecase {
 
     async listProjets(filter: ListProjetFilter): Promise<{ projets: Projet[]; totalCount: number; }> {
         const query: SelectQueryBuilder<Projet> = this.db.createQueryBuilder(Projet, 'projet')
+            .leftJoinAndSelect('projet.steps', 'step')
             .where('projet.isDeleted = :isDeleted', { isDeleted: false })
             .skip((filter.page - 1) * filter.limit)
             .take(filter.limit);
-    
+
         const [projets, totalCount] = await query.getManyAndCount();
         return {
             projets,
@@ -66,6 +67,12 @@ export class ProjetUsecase {
         const projetFound = await repo.findOne({ where: { id, isDeleted: false } });
         return projetFound || null;
     }
+    async getAllProjet(id: number): Promise<Projet | null> {
+        const repo = this.db.getRepository(Projet);
+        const projetFound = await repo.findOne({ where: { id } });
+        return projetFound || null;
+    }
+
 
     async updateProjet(id: number, params: UpdateProjetParams): Promise<Projet | string | null> {
         const repo = this.db.getRepository(Projet);

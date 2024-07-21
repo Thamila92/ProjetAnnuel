@@ -1,5 +1,5 @@
 import { DataSource } from "typeorm";
-import { Evenement} from "../database/entities/evenement";
+import { Evenement } from "../database/entities/evenement";
 import { Mission } from "../database/entities/mission";
 import { AppDataSource } from "../database/database";
 import { eventtype } from "../types/event-types";
@@ -10,8 +10,8 @@ export interface ListEvenementFilter {
 }
 
 export interface UpdateEvenementParams {
-    type?: eventtype;
-    location?: string;
+    type?: string;
+    location?: number;
     description?: string;
     quorum?: number;
     starting?: Date;
@@ -91,8 +91,18 @@ export class EvenementUsecase {
         if (params.type === "AG" && !params.quorum) {
             return "You must specify the Quorum";
         }
-    
-        if (params.type) evenementFound.typee = params.type;
+        
+        if (params.type){
+            // Vérifiez si la chaîne est une valeur valide de l'énumération
+            const isValidEventType = Object.values(eventtype).includes(params.type as eventtype);
+
+            if (isValidEventType) {
+                const eventType: eventtype = params.type as eventtype;
+                console.log(eventType); // OUTPUT: EventType.Click
+            } else {
+                console.error("Invalid event type");
+            }
+        }
         // if (params.location) evenementFound.location = params.location;
         if (params.description) evenementFound.description = params.description;
         if (params.quorum) evenementFound.quorum = params.quorum;

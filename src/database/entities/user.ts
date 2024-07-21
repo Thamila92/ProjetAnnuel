@@ -84,7 +84,7 @@ export class User {
     @OneToMany(() => Note, note => note.user)  
     notes!: Note[];
 
-    @OneToMany(() => Notification, notification => notification.user)
+    @OneToMany(() => Notification, notification => notification.users)
     notifications!: Notification[];
 
     @OneToMany(() => EvenementAttendee, (attendee) => attendee.user)
