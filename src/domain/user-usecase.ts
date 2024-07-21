@@ -3,9 +3,10 @@ import { User } from "../database/entities/user";
 import { Status } from "../database/entities/status";
 import { AppDataSource } from "../database/database";
 import { compare, hash } from "bcrypt";
-import { Skill } from "../database/entities/skill";
+// import { Skill } from "../database/entities/skill";
 import { createOtherValidation } from "../handlers/validators/user-validator";
 import { generateValidationErrorMessage } from "../handlers/validators/generate-validation-message";
+import { Skill } from "../database/entities/skill";
 
 export interface ListUserFilter {
     limit: number

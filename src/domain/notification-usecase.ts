@@ -37,21 +37,22 @@ export class NotificationUsecase {
     async createNotification(params: CreateNotificationParams): Promise<Notification | string> {
         const userRepo = this.db.getRepository(User);
         const notificationRepo = this.db.getRepository(Notification);
-
+    
         const userFound = await userRepo.findOne({ where: { id: params.userId } });
         if (!userFound) {
             return "User not found";
         }
-
+    
         const newNotification = notificationRepo.create({
             title: params.title,
             message: params.message,
-            user: userFound
+            users: [userFound],  // Change 'user' to 'users' to match the entity
         });
-
+    
         await notificationRepo.save(newNotification);
         return newNotification;
     }
+    
 
     async getNotification(id: number): Promise<Notification | null> {
         const repo = this.db.getRepository(Notification);
@@ -75,11 +76,12 @@ export class NotificationUsecase {
     async getNotificationsByUser(userId: number): Promise<Notification[]> {
         const notificationRepository = this.db.getRepository(Notification);
         const notifications = await notificationRepository.find({
-            where: { user: { id: userId } },
-            relations: ["user"]   
+            where: { users: { id: userId } },  // Correct 'user' to 'users'
+            relations: ["users"]               // Correct 'user' to 'users'
         });
         return notifications;
     }
+    
     
     async deleteNotification(id: number): Promise<boolean|Notification> {
         const repo = this.db.getRepository(Notification);

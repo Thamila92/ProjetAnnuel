@@ -10,29 +10,37 @@ import { Resource } from "./ressource";
 export class Mission {
     @PrimaryGeneratedColumn()
     id!: number;
+
     @Column()
     starting: Date;
+
     @Column()
     ending: Date;
+
     @Column()
     description: string;
+
     @ManyToOne(() => Evenement, (evenement) => evenement.mission, { nullable: true })
     evenement?: Evenement;
+
     @ManyToOne(() => Step, (step) => step.mission, { nullable: true })
     step?: Step;
+
     @ManyToMany(() => User, { eager: true })
     @JoinTable()
     assignedUsers!: User[];
+
     @ManyToMany(() => Skill, { eager: true })
     @JoinTable()
     requiredSkills!: Skill[];
+
     @OneToMany(() => Review, (review) => review.mission)
     reviews!: Review[];
 
     @ManyToMany(() => Resource, { eager: true })
     @JoinTable()
     resources!: Resource[];
-
+    
     constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step) {
         this.starting = starting;
         this.ending = ending;

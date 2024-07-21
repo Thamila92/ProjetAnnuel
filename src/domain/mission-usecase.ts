@@ -2,9 +2,11 @@
 import { DataSource, LessThanOrEqual, MoreThanOrEqual, Not } from "typeorm";
 import { Mission } from "../database/entities/mission";
 import { Evenement } from "../database/entities/evenement";
-import { Skill } from "../database/entities/skill";
+// import { Skill } from "../database/entities/skill";
 import { User } from "../database/entities/user";
 import { Step } from "../database/entities/step";
+import { Skill } from "../database/entities/skill";
+import { Resource } from "../database/entities/ressource";
 
 export interface ListMissionFilter {
     limit: number;
@@ -48,13 +50,15 @@ export class MissionUsecase {
         eventId: number | null, 
         stepId: number | null, 
         skills: string[] | null, 
-        userEmails: string[] | null
+        userEmails: string[] | null, 
+        resourceIds: number[] | null
     ): Promise<Mission | string> {
         const missionRepo = this.db.getRepository(Mission);
         const eventRepo = this.db.getRepository(Evenement);
         const stepRepo = this.db.getRepository(Step);
         const skillRepo = this.db.getRepository(Skill);
         const userRepo = this.db.getRepository(User);
+        const resourceRepo = this.db.getRepository(Resource);
     
         let eventFound = null;
         let stepFound = null;
@@ -113,6 +117,11 @@ export class MissionUsecase {
                 .getMany();
         }
     
+        let assignedResources: Resource[] = [];
+        if (resourceIds) {
+            assignedResources = await resourceRepo.findByIds(resourceIds);
+        }
+    
         const newMission = missionRepo.create({ 
             starting, 
             ending, 
@@ -120,11 +129,13 @@ export class MissionUsecase {
             evenement: eventFound || undefined, 
             step: stepFound || undefined, 
             requiredSkills, 
-            assignedUsers 
+            assignedUsers,
+            resources: assignedResources 
         });
         await missionRepo.save(newMission);
         return newMission;
     }
+    
     
     async getMission(id: number): Promise<Mission | null> {
         const repo = this.db.getRepository(Mission);

@@ -1,10 +1,8 @@
 import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { User } from "./user";
 import { Round } from "./round";
-import { Subject } from './subject';
-import { Response } from './response';
 
-@Entity({ name: "vote" })
+@Entity()
 export class Vote {
     @PrimaryGeneratedColumn()
     id!: number;

@@ -5,12 +5,26 @@ import { Mission } from "../database/entities/mission";
 export class ResourceUsecase {
     constructor(private readonly db: DataSource) { }
 
+    async updateResource(id: number, updateData: Partial<Resource>): Promise<Resource | null> {
+        const resourceRepo = this.db.getRepository(Resource);
+        const resource = await resourceRepo.findOne({ where: { id } });
+
+        if (!resource) {
+            return null;
+        }
+
+        Object.assign(resource, updateData);
+        await resourceRepo.save(resource);
+        return resource;
+    }
+
     async createResource(name: string, type: string, isAvailable: boolean = true): Promise<Resource> {
         const resourceRepo = this.db.getRepository(Resource);
         const newResource = resourceRepo.create({ name, type, isAvailable });
         await resourceRepo.save(newResource);
         return newResource;
     }
+    
 
     async assignResourcesToMission(missionId: number, resourceIds: number[]): Promise<Mission | string> {
         const missionRepo = this.db.getRepository(Mission);
@@ -53,6 +67,7 @@ export class ResourceUsecase {
 
         return mission;
     }
+
     async getAvailableResources(): Promise<Resource[]> {
         const resourceRepo = this.db.getRepository(Resource);
         return await resourceRepo.find({ where: { isAvailable: true } });
@@ -69,16 +84,5 @@ export class ResourceUsecase {
         const resourceRepo = this.db.getRepository(Resource);
         return await resourceRepo.find();
     }
-    async updateResource(id: number, updateData: Partial<Resource>): Promise<Resource | null> {
-        const resourceRepo = this.db.getRepository(Resource);
-        const resource = await resourceRepo.findOne({ where: { id } });
 
-        if (!resource) {
-            return null;
-        }
-
-        Object.assign(resource, updateData);
-        await resourceRepo.save(resource);
-        return resource;
-    }
 }

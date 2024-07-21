@@ -8,26 +8,17 @@ import { Evenement } from "./evenement";
 import { Mission } from "./mission";
 import { Step } from "./step";
 import { Projet } from "./projet";
-// <<<<<<< dev-brad-updt
 import { UserDocument } from "./document";
 import { Vote } from "./vote";
 import { Location } from "./location";
 import { EvenementAttendee } from "./evenement-attendee";
-// =======
-import { Document } from "./document";
-import { Response } from "./response";
+import { Notification } from "./notification";
 import { Note } from "./note";
 import { Skill } from "./skill";
-import { Notification } from './notification';
-
-
-// >>>>>>> dev-brad
 
 
 @Entity()
 export class User {
-    compliances: any;
-
     compliances: any;
 
     @PrimaryGeneratedColumn()
@@ -43,15 +34,14 @@ export class User {
 
     @Column()
     name!: string
-    
-    // @Column({ default: "FR7630006000011234567890189" })
-    // iban?: string
 
-    @Column()
-    name!: string
-    
-    // @Column({ default: "FR7630006000011234567890189" })
-    // iban?: string
+    @ManyToMany(() => Skill, skill => skill.users, { cascade: true })
+    @JoinTable()
+    skills!: Skill[];
+
+    @ManyToMany(() => Notification, notification => notification.users)
+    @JoinTable()
+    notifications!: Notification[];
 
     @CreateDateColumn({type: "datetime"})
     createdAt!: Date
@@ -67,16 +57,12 @@ export class User {
 
     @OneToMany(() => Evenement, ev => ev.user)
     evenements!: Evenement[]
-    
-    @ManyToMany(() => Skill, { eager: true })
-    @JoinTable()
-    skills!: Skill[];
 
     @OneToMany(() => Projet, projet => projet.user)
     projets!: []
 
-    @ManyToMany(() => Mission, (mission) => mission.assignedUsers)
-    missions!: Mission[];
+    @OneToMany(() => Mission, mission=>mission.assignedUsers)
+    missions!:Mission[];
 
     @OneToMany(() => Review, review => review.user)
     reviews!: Review[]
@@ -85,20 +71,23 @@ export class User {
     donations!: Donation[]
 
     @OneToMany(() => Location, location => location.user)
-    locations!: Donation[]
+    locations!: Location[]
     
     @OneToMany(() => Expenditures, expenditures => expenditures.user)
     expenditures!: Expenditures[];
-    @OneToMany(() => Response, response => response.user)
-    responses!: Response[];
 
-    @OneToMany(() => Document, document => document.user)
-    documents!: Document[];
-    @OneToMany(() => Note, note => note.user)  
-    notes!: Note[];
-    @OneToMany(() => Notification, notification => notification.user)
-    notifications!: Notification[];
+    @OneToMany(() => UserDocument, document => document.user)
+    documents!: UserDocument[];
+
+    @OneToMany(() =>Vote, vote => vote.user)
+    votes!: Vote[];
+
+    @OneToMany(() =>Vote, note => note.user)
+    notes!: Vote[];
 
     @OneToMany(() => EvenementAttendee, (attendee) => attendee.user)
     evenementAttendees!: EvenementAttendee[];
+
+    // @ManyToOne(() => Notification, notification => notification.users)
+    // notifications!: User;
 }
