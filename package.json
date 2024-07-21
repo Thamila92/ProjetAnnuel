@@ -8,7 +8,7 @@
     "typeorm": "typeorm-ts-node-commonjs",
     "start": "ts-node dist/index.js",
     "postinstall": "npm rebuild bcrypt",
-       "build": "tsc"
+    "build": "tsc"
   },
   "author": "",
   "license": "ISC",
