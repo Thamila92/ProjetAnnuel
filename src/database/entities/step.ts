@@ -10,9 +10,6 @@ export class Step {
     @Column()
     state: string;
 
-    @Column({ default: false })
-    isDeleted!: boolean;
-
     @Column()
     description: string;
 
@@ -25,8 +22,8 @@ export class Step {
     @ManyToOne(() => Projet, (projet) => projet.steps)
     projet: Projet;
 
-    @OneToMany(() => Mission, (mission) => mission.step, { eager: true })
-    missions: Mission[];
+    @ManyToOne(() => Mission, (mission) => mission.step)
+    mission: Mission;
 
     constructor(id: number, state: string, description: string, starting: Date, ending: Date, projet: Projet, missions: Mission[]) {
         this.id = id;

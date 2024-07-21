@@ -15,6 +15,6 @@ export class Resource {
     @Column({ default: true })
     isAvailable!: boolean;
 
-    @ManyToMany(() => Mission, (mission) => mission.resources)
-    missions!: Mission[];
+    // @ManyToMany(() => Mission, (mission) => mission.resources)
+    // missions!: Mission[];
 }

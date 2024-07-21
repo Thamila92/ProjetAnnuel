@@ -23,7 +23,7 @@ export class Mission {
     @ManyToOne(() => Evenement, (evenement) => evenement.mission, { nullable: true })
     evenement?: Evenement;
 
-    @ManyToOne(() => Step, (step) => step.missions, { nullable: true })
+    @ManyToOne(() => Step, (step) => step.mission, { nullable: true })
     step?: Step;
 
     @ManyToMany(() => User, { eager: true })
@@ -40,7 +40,7 @@ export class Mission {
     @ManyToMany(() => Resource, { eager: true })
     @JoinTable()
     resources!: Resource[];
-
+    
     constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step) {
         this.starting = starting;
         this.ending = ending;

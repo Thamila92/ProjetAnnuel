@@ -1,36 +1,17 @@
 version: '3.8'
 services:
-  app:
-    build: .
-    volumes:
-      - .:/app
-      - /app/node_modules
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-    depends_on:
-      mysql-db:
-        condition: service_healthy
-
   mysql-db:
     image: mysql:latest
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: your_password
       MYSQL_DATABASE: ensemble_autrement
-      MYSQL_USER: ensemble_autrement
-      MYSQL_PASSWORD: root
+      MYSQL_USER: your_username
+      MYSQL_PASSWORD: your_password
     ports:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./data:/docker-entrypoint-initdb.d
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
@@ -40,7 +21,6 @@ services:
       - mysql-db
     environment:
       - PMA_HOST=mysql-db
-
 volumes:
   mysql-data:
     driver: local
