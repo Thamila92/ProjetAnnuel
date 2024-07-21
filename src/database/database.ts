@@ -23,7 +23,7 @@ export const AppDataSource = new DataSource({
 
     ],
     ssl: {
-        rejectUnauthorized: false // Ajustez selon vos besoins de sécurité
+        rejectUnauthorized: false  
       },
     "driver": require('mysql2')
 })
