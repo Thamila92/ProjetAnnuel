@@ -3,7 +3,7 @@ import { initRoutes } from "./handlers/routes";
 import { AppDataSource } from "./database/database";
  import { DocumentUsecase } from './domain/document-usecase';
 import { OAuth2Client } from 'google-auth-library';
- import 'dotenv/config';
+import 'dotenv/config';
 import { swaggerDocs } from "./swagger/swagger";
 import "reflect-metadata";
 import { Document } from './database/entities/document';
@@ -20,7 +20,7 @@ const main = async () => {
     try {
         await AppDataSource.initialize();
         console.log("well connected to database");
- 
+
     } catch (error) {
         console.log(error);
         console.error("Cannot contact database");
@@ -47,9 +47,7 @@ const main = async () => {
     app.listen(port, () => {
         console.log(`Server running on port ${port}`);
     });
- 
 }
 
- 
-
 main();
+

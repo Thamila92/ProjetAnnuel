@@ -1,36 +1,40 @@
 import Joi from "joi";
 
-export const createVoteValidation = Joi.object<CreateVoteValidationRequest>({
-    type: Joi.string().required(),
-    subjectId: Joi.number().required(),
+export const voteValidation = Joi.object<ProjetRequest>({
+    description: Joi.string().required(),
+    starting: Joi.date().iso().min('now').required(), 
+    ending: Joi.date().iso().greater(Joi.ref('starting')).required(),
+    rounds:Joi.number().required()
 }).options({ abortEarly: false });
 
-export interface CreateVoteValidationRequest {
-    type: string;
-    subjectId: number;
+export interface ProjetRequest {
+    description: string;
+    starting: Date;
+    ending: Date;
+    rounds:number
 }
 
-export const updateVoteValidation = Joi.object<UpdateVoteValidationRequest>({
-    id: Joi.number().required(),
-    type: Joi.string().optional(),
-    subjectId: Joi.number().optional(),
-}).options({ abortEarly: false });
 
-export interface UpdateVoteValidationRequest {
-    id: number;
-    type?: string;
-    subjectId?: number;
+// export const projetUpdateValidation = Joi.object<ProjetRequest>({
+//     userId:Joi.number().optional(),
+//     description: Joi.string().optional(),
+//     starting: Joi.date().iso().min('now').optional(), 
+//     ending: Joi.date().iso().greater(Joi.ref('starting')).optional(),
+// }).options({ abortEarly: false });
+
+// export interface ProjetRequest {
+//     userId:number;
+//     description: string;
+//     starting: Date;
+//     ending: Date;
+// }
+
+export const listProjetValidation = Joi.object<ListProjetRequest>({
+    page: Joi.number().min(1).optional(),
+    limit: Joi.number().min(1).optional(),
+});
+
+export interface ListProjetRequest {
+    page?: number;
+    limit?: number;
 }
-
-export const voteIdValidation = Joi.object<VoteIdRequest>({
-    id: Joi.number().required(),
-}).options({ abortEarly: false });
-
-export interface VoteIdRequest {
-    id: number;
-}
-export default {
-    createVoteValidation,
-    updateVoteValidation,
-    voteIdValidation
-};

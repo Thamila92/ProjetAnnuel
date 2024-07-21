@@ -40,7 +40,7 @@ export class Mission {
     @ManyToMany(() => Resource, { eager: true })
     @JoinTable()
     resources!: Resource[];
-
+    
     constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step) {
         this.starting = starting;
         this.ending = ending;

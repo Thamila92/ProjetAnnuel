@@ -27,6 +27,6 @@ export class Vote {
     subject: any;
     responses: any;
 
-    // @ManyToOne(() => User, user => user.votes)
-    // user!: User;
+    @ManyToOne(() => User, user => user.votes)
+    user!: User;
 }

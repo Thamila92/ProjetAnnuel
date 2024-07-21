@@ -2,9 +2,11 @@
 import { DataSource, LessThanOrEqual, MoreThanOrEqual, Not ,In} from "typeorm";
 import { Mission } from "../database/entities/mission";
 import { Evenement } from "../database/entities/evenement";
-import { Skill } from "../database/entities/skill";
+// import { Skill } from "../database/entities/skill";
 import { User } from "../database/entities/user";
 import { Step } from "../database/entities/step";
+import { Skill } from "../database/entities/skill";
+
 import { Resource } from "../database/entities/ressource";
 
 export interface ListMissionFilter {

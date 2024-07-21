@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
 import { Round } from "./round";
-import { User } from "./user"; // Assuming you have a User entity
+import { User } from "./user"; 
 
 @Entity()
 export class VoteRecord {
