@@ -1331,36 +1331,7 @@ app.post("/evenements", adminMiddleware, async (req: Request, res: Response) => 
     });
 
 
-
-
-
-
-
-app.post('/missions', adminMiddleware, async (req: Request, res: Response) => {
-    const { starting, ending, description, skills, userEmails, resourceIds } = req.body;
-    const stepId = parseInt(req.query.StepId as string, 10);
-    const eventId = parseInt(req.query.EventId as string, 10);
-
-    try {
-        const mission = await missionUsecase.createMission(
-            new Date(starting), 
-            new Date(ending), 
-            description, 
-            isNaN(eventId) ? null : eventId, 
-            isNaN(stepId) ? null : stepId, 
-            skills || null, 
-            userEmails || null,
-            resourceIds || null
-        );
-        res.status(201).send(mission);
-    } catch (error) {
-        console.log(error);
-        res.status(500).send({ error: 'Internal error' });
-    }
-});
-
-
-
+ 
 
     app.post('/missions', adminMiddleware, async (req: Request, res: Response) => {
         const { starting, ending, description, skills, userEmails, resourceIds } = req.body;
@@ -1394,7 +1365,7 @@ app.post('/missions', adminMiddleware, async (req: Request, res: Response) => {
         }
 
         const listMissionRequest = validation.value;
-        let limit = 10;
+        let limit = 30;
         if (listMissionRequest.limit) {
             limit = listMissionRequest.limit;
         }
@@ -1646,7 +1617,7 @@ app.post('/missions', adminMiddleware, async (req: Request, res: Response) => {
             return;
         }
 
-        const { page = 1, limit = 10 }: ListProjetRequest = validation.value;
+        const { page = 1, limit = 20 }: ListProjetRequest = validation.value;
         try {
             const result = await projetUsecase.listProjets({ page, limit });
             res.status(200).send(result);
@@ -1736,7 +1707,7 @@ app.post('/missions', adminMiddleware, async (req: Request, res: Response) => {
             return;
         }
     
-        const { page = 1, limit = 10 }: ListStepRequest = validation.value;
+        const { page = 1, limit = 20 }: ListStepRequest = validation.value;
         try {
             const result = await stepUsecase.listSteps({ page, limit });
             res.status(200).send(result);

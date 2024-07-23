@@ -1170,19 +1170,6 @@ const initRoutes = (app, documentUsecase) => {
             res.status(500).send({ error: 'Internal error' });
         }
     }));
-    app.post('/missions', admin_middleware_1.adminMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        const { starting, ending, description, skills, userEmails, resourceIds } = req.body;
-        const stepId = parseInt(req.query.StepId, 10);
-        const eventId = parseInt(req.query.EventId, 10);
-        try {
-            const mission = yield missionUsecase.createMission(new Date(starting), new Date(ending), description, isNaN(eventId) ? null : eventId, isNaN(stepId) ? null : stepId, skills || null, userEmails || null, resourceIds || null);
-            res.status(201).send(mission);
-        }
-        catch (error) {
-            console.log(error);
-            res.status(500).send({ error: 'Internal error' });
-        }
-    }));
     app.get('/missions', admin_middleware_1.adminMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
         const validation = mission_validator_1.listMissionValidation.validate(req.query);
@@ -1191,7 +1178,7 @@ const initRoutes = (app, documentUsecase) => {
             return;
         }
         const listMissionRequest = validation.value;
-        let limit = 10;
+        let limit = 30;
         if (listMissionRequest.limit) {
             limit = listMissionRequest.limit;
         }
@@ -1426,7 +1413,7 @@ const initRoutes = (app, documentUsecase) => {
             res.status(400).send((0, generate_validation_message_1.generateValidationErrorMessage)(validation.error.details));
             return;
         }
-        const { page = 1, limit = 10 } = validation.value;
+        const { page = 1, limit = 20 } = validation.value;
         try {
             const result = yield projetUsecase.listProjets({ page, limit });
             res.status(200).send(result);
@@ -1509,7 +1496,7 @@ const initRoutes = (app, documentUsecase) => {
             res.status(400).send((0, generate_validation_message_1.generateValidationErrorMessage)(validation.error.details));
             return;
         }
-        const { page = 1, limit = 10 } = validation.value;
+        const { page = 1, limit = 20 } = validation.value;
         try {
             const result = yield stepUsecase.listSteps({ page, limit });
             res.status(200).send(result);
