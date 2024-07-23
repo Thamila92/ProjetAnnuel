@@ -38,11 +38,29 @@ export class MissionUsecase {
             .take(filter.limit);
     
         const [missions, totalCount] = await query.getManyAndCount();
+    
+        const currentDate = new Date();
+    
+        for (const mission of missions) {
+            if (currentDate > mission.ending) {
+                mission.state = 'ENDED';
+            } else if (currentDate > mission.starting && currentDate < mission.ending) {
+                mission.state = 'RUNNING';
+            } else if (currentDate.toDateString() === mission.starting.toDateString()) {
+                mission.state = 'STARTED';
+            } else {
+                mission.state = 'UNSTARTED';
+            }
+    
+            await this.db.getRepository(Mission).save(mission);  
+        }
+    
         return {
             missions,
             totalCount
         };
     }
+    
 
     
     
@@ -136,6 +154,7 @@ export class MissionUsecase {
             starting, 
             ending, 
             description, 
+            state: 'UNSTARTED',
             evenement: eventFound || undefined, 
             step: stepFound || undefined, 
             requiredSkills, 
@@ -148,11 +167,30 @@ export class MissionUsecase {
     
     
     
+    
+ 
     async getMission(id: number): Promise<Mission | null> {
         const repo = this.db.getRepository(Mission);
         const missionFound = await repo.findOne({ where: { id } });
-        return missionFound || null;
+        if (!missionFound) return null;
+    
+        const currentDate = new Date();
+    
+        if (currentDate > missionFound.ending) {
+            missionFound.state = 'ENDED';
+        } else if (currentDate > missionFound.starting && currentDate < missionFound.ending) {
+            missionFound.state = 'RUNNING';
+        } else if (currentDate.toDateString() === missionFound.starting.toDateString()) {
+            missionFound.state = 'STARTED';
+        } else {
+            missionFound.state = 'UNSTARTED';
+        }
+    
+        await repo.save(missionFound); // Optionally save the updated state to the database
+    
+        return missionFound;
     }
+    
     async updateMission(id: number, params: UpdateMissionParams): Promise<Mission | null | string> {
         const repo = this.db.getRepository(Mission);
         const evenementRepo = this.db.getRepository(Evenement);
@@ -160,33 +198,33 @@ export class MissionUsecase {
         const skillRepo = this.db.getRepository(Skill);
         const userRepo = this.db.getRepository(User);
         const resourceRepo = this.db.getRepository(Resource);
-
+    
         const missionFound = await repo.findOne({
             where: { id },
             relations: ['evenement', 'step', 'requiredSkills', 'assignedUsers', 'resources'],
         });
         if (!missionFound) return "Mission not found";
-
+    
         const evenement = missionFound.evenement;
         const step = missionFound.step;
-
+    
         if (!evenement && !step) return "Mission must be associated with either an event or a step";
-
+    
         const newStarting = params.starting || missionFound.starting;
         const newEnding = params.ending || missionFound.ending;
-
+    
         if (evenement) {
             if (newStarting < evenement.starting || newEnding > evenement.ending) {
                 return "La période de la mission doit être comprise dans celle de l'événement.";
             }
         }
-
+    
         if (step) {
             if (newStarting < step.starting || newEnding > step.ending) {
                 return "La période de la mission doit être comprise dans celle de l'étape.";
             }
         }
-
+    
         const conflictingMissions = await repo.find({
             where: [
                 {
@@ -203,34 +241,48 @@ export class MissionUsecase {
                 }
             ],
         });
-
+    
         if (conflictingMissions.length > 0) {
             return "Il existe déjà une mission sur cette période.";
         }
-
+    
         // Mettre à jour la mission
         if (params.starting) missionFound.starting = params.starting;
         if (params.ending) missionFound.ending = params.ending;
         if (params.description) missionFound.description = params.description;
-
+    
         // Mettre à jour les compétences (skills)
         if (params.skills) {
             missionFound.requiredSkills = await skillRepo.find({ where: { name: In(params.skills) } });
         }
-
+    
         // Mettre à jour les utilisateurs (users)
         if (params.userEmails) {
             missionFound.assignedUsers = await userRepo.find({ where: { email: In(params.userEmails) } });
         }
-
+    
         // Mettre à jour les ressources (resources)
         if (params.resources) {
             missionFound.resources = await resourceRepo.find({ where: { id: In(params.resources) } });
         }
-
+    
+        // Mettre à jour l'état en fonction des nouvelles dates
+        const currentDate = new Date();
+        if (currentDate > missionFound.ending) {
+            missionFound.state = 'ENDED';
+        } else if (currentDate > missionFound.starting && currentDate < missionFound.ending) {
+            missionFound.state = 'RUNNING';
+        } else if (currentDate.toDateString() === missionFound.starting.toDateString()) {
+            missionFound.state = 'STARTED';
+        } else {
+            missionFound.state = 'UNSTARTED';
+        }
+    
         const updatedMission = await repo.save(missionFound);
         return updatedMission;
     }
+    
+    
     async deleteMission(id: number): Promise<boolean | Mission> {
         const repo = this.db.getRepository(Mission);
         const missionFound = await repo.findOne({ where: { id } });

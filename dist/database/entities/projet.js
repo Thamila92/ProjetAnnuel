@@ -14,6 +14,9 @@ const typeorm_1 = require("typeorm");
 const step_1 = require("./step");
 const user_1 = require("./user");
 let Projet = class Projet {
+    constructor() {
+        this.state = 'UNSTARTED';
+    }
 };
 exports.Projet = Projet;
 __decorate([
@@ -37,6 +40,10 @@ __decorate([
     __metadata("design:type", Date)
 ], Projet.prototype, "ending", void 0);
 __decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], Projet.prototype, "state", void 0);
+__decorate([
     (0, typeorm_1.OneToMany)(() => step_1.Step, (step) => step.projet),
     __metadata("design:type", Array)
 ], Projet.prototype, "steps", void 0);
@@ -45,5 +52,6 @@ __decorate([
     __metadata("design:type", user_1.User)
 ], Projet.prototype, "user", void 0);
 exports.Projet = Projet = __decorate([
-    (0, typeorm_1.Entity)({ name: "projet" })
+    (0, typeorm_1.Entity)({ name: "projet" }),
+    __metadata("design:paramtypes", [])
 ], Projet);

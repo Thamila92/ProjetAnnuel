@@ -5,6 +5,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.missionUpdateValidation = exports.listMissionValidation = exports.missionValidation = void 0;
 const joi_1 = __importDefault(require("joi"));
+var statustype;
+(function (statustype) {
+    statustype["unstarted"] = "UNSTARTED";
+    statustype["started"] = "STARTED";
+    statustype["running"] = "RUNNING";
+    statustype["ended"] = "ENDED";
+})(statustype || (statustype = {}));
 exports.missionValidation = joi_1.default.object({
     starting: joi_1.default.date().iso().min('now').required(),
     ending: joi_1.default.date().iso().greater(joi_1.default.ref('starting')).required(),

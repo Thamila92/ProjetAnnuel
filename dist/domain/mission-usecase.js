@@ -34,6 +34,22 @@ class MissionUsecase {
                 .skip((filter.page - 1) * filter.limit)
                 .take(filter.limit);
             const [missions, totalCount] = yield query.getManyAndCount();
+            const currentDate = new Date();
+            for (const mission of missions) {
+                if (currentDate > mission.ending) {
+                    mission.state = 'ENDED';
+                }
+                else if (currentDate > mission.starting && currentDate < mission.ending) {
+                    mission.state = 'RUNNING';
+                }
+                else if (currentDate.toDateString() === mission.starting.toDateString()) {
+                    mission.state = 'STARTED';
+                }
+                else {
+                    mission.state = 'UNSTARTED';
+                }
+                yield this.db.getRepository(mission_1.Mission).save(mission);
+            }
             return {
                 missions,
                 totalCount
@@ -110,6 +126,7 @@ class MissionUsecase {
                 starting,
                 ending,
                 description,
+                state: 'UNSTARTED',
                 evenement: eventFound || undefined,
                 step: stepFound || undefined,
                 requiredSkills,
@@ -124,7 +141,23 @@ class MissionUsecase {
         return __awaiter(this, void 0, void 0, function* () {
             const repo = this.db.getRepository(mission_1.Mission);
             const missionFound = yield repo.findOne({ where: { id } });
-            return missionFound || null;
+            if (!missionFound)
+                return null;
+            const currentDate = new Date();
+            if (currentDate > missionFound.ending) {
+                missionFound.state = 'ENDED';
+            }
+            else if (currentDate > missionFound.starting && currentDate < missionFound.ending) {
+                missionFound.state = 'RUNNING';
+            }
+            else if (currentDate.toDateString() === missionFound.starting.toDateString()) {
+                missionFound.state = 'STARTED';
+            }
+            else {
+                missionFound.state = 'UNSTARTED';
+            }
+            yield repo.save(missionFound); // Optionally save the updated state to the database
+            return missionFound;
         });
     }
     updateMission(id, params) {
@@ -194,6 +227,20 @@ class MissionUsecase {
             // Mettre à jour les ressources (resources)
             if (params.resources) {
                 missionFound.resources = yield resourceRepo.find({ where: { id: (0, typeorm_1.In)(params.resources) } });
+            }
+            // Mettre à jour l'état en fonction des nouvelles dates
+            const currentDate = new Date();
+            if (currentDate > missionFound.ending) {
+                missionFound.state = 'ENDED';
+            }
+            else if (currentDate > missionFound.starting && currentDate < missionFound.ending) {
+                missionFound.state = 'RUNNING';
+            }
+            else if (currentDate.toDateString() === missionFound.starting.toDateString()) {
+                missionFound.state = 'STARTED';
+            }
+            else {
+                missionFound.state = 'UNSTARTED';
             }
             const updatedMission = yield repo.save(missionFound);
             return updatedMission;

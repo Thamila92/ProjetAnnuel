@@ -1,5 +1,15 @@
 import Joi from "joi";
 
+
+
+
+enum statustype {
+    unstarted="UNSTARTED",
+    started= "STARTED",
+    running = "RUNNING",
+    ended="ENDED"
+}
+
 export const missionValidation = Joi.object<MissionRequest>({
     starting: Joi.date().iso().min('now').required(), 
     ending: Joi.date().iso().greater(Joi.ref('starting')).required(),

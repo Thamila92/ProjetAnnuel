@@ -17,10 +17,6 @@ const program_1 = require("./program");
 const location_1 = require("./location");
 const evenement_attendee_1 = require("./evenement-attendee");
 const event_types_1 = require("../../types/event-types");
-// export enum eventtype {
-//     AG = "AG",
-//     SUIVI = "SUIVI",
-// }
 var repetitivity;
 (function (repetitivity) {
     repetitivity["NONE"] = "NONE";
@@ -28,6 +24,9 @@ var repetitivity;
     repetitivity["ANNUAL"] = "ANNUAL";
 })(repetitivity || (exports.repetitivity = repetitivity = {}));
 let Evenement = class Evenement {
+    constructor() {
+        this.state = 'UNSTARTED';
+    }
 };
 exports.Evenement = Evenement;
 __decorate([
@@ -94,6 +93,11 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Evenement.prototype, "virtualLink", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], Evenement.prototype, "state", void 0);
 exports.Evenement = Evenement = __decorate([
-    (0, typeorm_1.Entity)({ name: "evenement" })
+    (0, typeorm_1.Entity)({ name: "evenement" }),
+    __metadata("design:paramtypes", [])
 ], Evenement);

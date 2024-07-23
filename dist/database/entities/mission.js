@@ -18,12 +18,13 @@ const review_1 = require("./review");
 const skill_1 = require("./skill");
 const ressource_1 = require("./ressource");
 let Mission = class Mission {
-    constructor(starting, ending, description, evenement, step) {
+    constructor(starting, ending, description, evenement, step, state = 'UNSTARTED') {
         this.starting = starting;
         this.ending = ending;
         this.description = description;
         this.evenement = evenement;
         this.step = step;
+        this.state = state;
     }
 };
 exports.Mission = Mission;
@@ -39,6 +40,10 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Date)
 ], Mission.prototype, "ending", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], Mission.prototype, "state", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
@@ -72,5 +77,5 @@ __decorate([
 ], Mission.prototype, "resources", void 0);
 exports.Mission = Mission = __decorate([
     (0, typeorm_1.Entity)({ name: "mission" }),
-    __metadata("design:paramtypes", [Date, Date, String, evenement_1.Evenement, step_1.Step])
+    __metadata("design:paramtypes", [Date, Date, String, evenement_1.Evenement, step_1.Step, String])
 ], Mission);

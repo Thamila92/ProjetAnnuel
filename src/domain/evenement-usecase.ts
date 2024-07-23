@@ -44,6 +44,23 @@ export class EvenementUsecase {
             .take(filter.limit);
         
         const [evenements, totalCount] = await query.getManyAndCount();
+    
+        const currentDate = new Date();
+    
+        for (const evenement of evenements) {
+            if (currentDate > evenement.ending) {
+                evenement.state = 'ENDED';
+            } else if (currentDate > evenement.starting && currentDate < evenement.ending) {
+                evenement.state = 'RUNNING';
+            } else if (currentDate.toDateString() === evenement.starting.toDateString()) {
+                evenement.state = 'STARTED';
+            } else {
+                evenement.state = 'UNSTARTED';
+            }
+    
+            await this.db.getRepository(Evenement).save(evenement);  
+        }
+    
         return {
             evenements,
             totalCount
@@ -52,36 +69,8 @@ export class EvenementUsecase {
     
     
     
-
-    // async createEvenement(ev: EventToCreate): Promise<Evenement | string | undefined> {
-    //     if (ev.type == "AG" && !ev.quorum) {
-    //         return "Veuillez preciser le Quorum !!!";
-    //     }
     
-    //     const evenementRepo = this.db.getRepository(Evenement);
-    
-    //     // Vérification de l'existence d'un événement avec les mêmes dates de début et de fin
-    //     const existingEvenement = await evenementRepo.findOne({
-    //         where: { starting: ev.starting, ending: ev.ending }
-    //     });
-    
-    //     if (existingEvenement) {
-    //         return "Un événement avec les mêmes dates de début et de fin existe déjà.";
-    //     }
-    
-    //     const newEvenement = evenementRepo.create({
-    //         type: ev.type,
-    //         location: ev.location,
-    //         description: ev.description,
-    //         quorum: ev.quorum,
-    //         starting: ev.starting,
-    //         ending: ev.ending
-    //     });
-    
-    //     await evenementRepo.save(newEvenement);
-    //     return newEvenement;
-    // }
-    
+ 
     async getEvenement(id: number): Promise<Evenement | null> {
         const repo = this.db.getRepository(Evenement);
         const evenementFound = await repo.findOne({ 
@@ -90,17 +79,17 @@ export class EvenementUsecase {
         });
         return evenementFound || null;
     }
-    
     async updateEvenement(id: number, params: UpdateEvenementParams): Promise<Evenement | null | string> {
-        const repo =this.db. getRepository(Evenement);
+        const repo = this.db.getRepository(Evenement);
+        const locationRepo = this.db.getRepository(Location);
+    
         const evenementFound = await repo.findOne({ where: { id, isDeleted: false }, relations: ["location"] });
-
         if (!evenementFound) return null;
-
+    
         if (params.type === "AG" && !params.quorum) {
             return "You must specify the Quorum";
         }
-
+    
         if (params.type) {
             const isValidEventType = Object.values(eventtype).includes(params.type as eventtype);
             if (!isValidEventType) {
@@ -108,48 +97,60 @@ export class EvenementUsecase {
             }
             evenementFound.typee = params.type as eventtype;
         }
-
+    
         if (params.description) evenementFound.description = params.description;
         if (params.quorum) evenementFound.quorum = params.quorum;
         if (params.repetitivity) evenementFound.repetitivity = params.repetitivity as repetitivity;
         if (params.isVirtual !== undefined) evenementFound.isVirtual = params.isVirtual;
         if (params.virtualLink !== undefined) evenementFound.virtualLink = params.virtualLink;
-
+    
         const { starting, ending } = params;
-
+    
         if (starting || ending) {
             const checkStarting = starting || evenementFound.starting;
             const checkEnding = ending || evenementFound.ending;
-
+    
             const conflictingEvents = await repo.createQueryBuilder('event')
                 .where(':starting < event.ending AND :ending > event.starting', { starting: checkStarting, ending: checkEnding })
                 .andWhere('event.id != :id', { id })
                 .andWhere('event.isDeleted = false')
                 .getMany();
-
+    
             if (conflictingEvents.length > 0) {
                 return "Conflicting event exists";
             }
-
+    
             if (starting) evenementFound.starting = starting;
             if (ending) evenementFound.ending = ending;
         }
-
+    
         if (params.location) {
-            const locationRepo = this.db.getRepository(Location);
             let locFound = await locationRepo.findOne({ where: { position: params.location } as FindOptionsWhere<Location> });
-
+    
             if (!locFound) {
                 locFound = locationRepo.create({ position: params.location });
                 await locationRepo.save(locFound);
             }
-
+    
             evenementFound.location = [locFound];
         }
-
+    
+        // Mettre à jour l'état en fonction des nouvelles dates
+        const currentDate = new Date();
+        if (currentDate > evenementFound.ending) {
+            evenementFound.state = 'ENDED';
+        } else if (currentDate > evenementFound.starting && currentDate < evenementFound.ending) {
+            evenementFound.state = 'RUNNING';
+        } else if (currentDate.toDateString() === evenementFound.starting.toDateString()) {
+            evenementFound.state = 'STARTED';
+        } else {
+            evenementFound.state = 'UNSTARTED';
+        }
+    
         const updatedEvenement = await repo.save(evenementFound);
         return updatedEvenement;
     }
+    
     async deleteEvenement(id: number): Promise<boolean | Evenement | string> {
         const repo = this.db.getRepository(Evenement);
         const evenementFound = await repo.findOne({ where: { id, isDeleted: false } });

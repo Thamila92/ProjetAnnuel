@@ -986,6 +986,18 @@ const initRoutes = (app, documentUsecase) => {
                 });
                 yield notificationRepo.save(notification);
             }
+            // Determine initial state based on current date
+            const currentDate = new Date();
+            let state = 'UNSTARTED';
+            if (currentDate > ev.ending) {
+                state = 'ENDED';
+            }
+            else if (currentDate > ev.starting && currentDate < ev.ending) {
+                state = 'RUNNING';
+            }
+            else if (currentDate.toDateString() === new Date(ev.starting).toDateString()) {
+                state = 'STARTED';
+            }
             // Create and save the new event
             const newEvent = evRepository.create({
                 typee: ev.type,
@@ -999,6 +1011,7 @@ const initRoutes = (app, documentUsecase) => {
                 user: userFound,
                 attendees: attFound.map(att => att.user),
                 location: [locFound],
+                state: state
             });
             yield evRepository.save(newEvent);
             res.status(201).json(newEvent);

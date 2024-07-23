@@ -1,7 +1,6 @@
 import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Step } from "./step";
 import { User } from "./user";
-import { Status } from "./status";
 
 @Entity({ name: "projet" })
 export class Projet {
@@ -20,9 +19,16 @@ export class Projet {
     @Column({ type: "datetime" })
     ending!: Date;
 
+    @Column()
+    state!: string;
+
     @OneToMany(() => Step, (step) => step.projet)
     steps!: Step[];
 
     @ManyToOne(() => User, user => user.projets)
-    user!:User;
+    user!: User;
+
+    constructor() {
+        this.state = 'UNSTARTED';
+    }
 }
