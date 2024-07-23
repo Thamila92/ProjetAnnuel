@@ -175,7 +175,8 @@ class MissionUsecase {
             const userRepo = this.db.getRepository(user_1.User);
             const resourceRepo = this.db.getRepository(ressource_1.Resource);
             const missionFound = yield repo.findOne({
-                where: { id }
+                where: { id },
+                relations: ['evenement', 'step', 'requiredSkills', 'assignedUsers', 'resources']
             });
             if (!missionFound)
                 return "Mission not found";
