@@ -290,6 +290,7 @@ export class MissionUsecase {
     }
     
     
+    
     async deleteMission(id: number): Promise<boolean | Mission> {
         const repo = this.db.getRepository(Mission);
         const missionFound = await repo.findOne({ where: { id } });
