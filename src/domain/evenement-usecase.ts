@@ -39,6 +39,8 @@ export class EvenementUsecase {
     async listEvenements(filter: ListEvenementFilter): Promise<{ evenements: Evenement[]; totalCount: number; }> {
         const query = this.db.createQueryBuilder(Evenement, 'evenement')
             .leftJoinAndSelect('evenement.location', 'location')  
+            .leftJoinAndSelect('evenement.mission', 'mission')   
+
             .where('evenement.isDeleted = :isDeleted', { isDeleted: false })
             .skip((filter.page - 1) * filter.limit)
             .take(filter.limit);
