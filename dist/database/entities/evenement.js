@@ -17,6 +17,7 @@ const program_1 = require("./program");
 const location_1 = require("./location");
 const evenement_attendee_1 = require("./evenement-attendee");
 const event_types_1 = require("../../types/event-types");
+const notification_1 = require("./notification");
 var repetitivity;
 (function (repetitivity) {
     repetitivity["NONE"] = "NONE";
@@ -97,6 +98,10 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], Evenement.prototype, "state", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => notification_1.Notification, vote => vote.event),
+    __metadata("design:type", Array)
+], Evenement.prototype, "notifications", void 0);
 exports.Evenement = Evenement = __decorate([
     (0, typeorm_1.Entity)({ name: "evenement" }),
     __metadata("design:paramtypes", [])

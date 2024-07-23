@@ -52,8 +52,7 @@ __decorate([
     __metadata("design:type", Array)
 ], User.prototype, "skills", void 0);
 __decorate([
-    (0, typeorm_1.ManyToMany)(() => notification_1.Notification, notification => notification.users),
-    (0, typeorm_1.JoinTable)(),
+    (0, typeorm_1.OneToMany)(() => notification_1.Notification, notification => notification.user),
     __metadata("design:type", Array)
 ], User.prototype, "notifications", void 0);
 __decorate([

@@ -891,7 +891,7 @@ const initRoutes = (app, documentUsecase) => {
     // });
     // >>>>>>> merge_fi
     app.post("/evenements", admin_middleware_1.adminMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        var _a, _b, _c;
+        var _a, _b, _c, _d, _e, _f;
         try {
             // Validate request body
             const validation = evenement_validator_1.evenementValidation.validate(req.body);
@@ -942,6 +942,66 @@ const initRoutes = (app, documentUsecase) => {
                         return res.status(500).json({ error: `User with ID ${attendee.userId} not found.` });
                     }
                 }
+                // Validate event configuration
+                if (ev.type === "AG" && (!ev.quorum || ev.quorum <= 0 || !ev.repetitivity || ev.repetitivity === evenement_2.repetitivity.NONE)) {
+                    return res.status(400).json({ message: "AG not well configured" });
+                }
+                else if (ev.type !== "AG") {
+                    ev.quorum = 0;
+                    ev.repetitivity = evenement_2.repetitivity.NONE;
+                }
+                if (ev.type === "AG" && attFound.length === 0) {
+                    return res.status(500).json({ error: "AG type event must have at least one attendee." });
+                }
+                const importantAttendeesCount = attFound.filter(attendee => attendee.role === evenement_attendee_1.AttendeeRole.IMPORTANT).length;
+                if (importantAttendeesCount > ((_a = ev.quorum) !== null && _a !== void 0 ? _a : 0)) {
+                    return res.status(500).json({ error: "Number of important attendees cannot exceed quorum." });
+                }
+                // Check for conflicting events
+                const evRepository = database_1.AppDataSource.getRepository(evenement_1.Evenement);
+                const conflictingEvents = yield evRepository
+                    .createQueryBuilder("event")
+                    .where(":starting < event.ending AND :ending > event.starting", {
+                    starting: ev.starting,
+                    ending: ev.ending,
+                })
+                    .getMany();
+                if (conflictingEvents.length > 0) {
+                    return res.status(409).json({ error: "Conflicting event exists" });
+                }
+                if (ev.isVirtual && !ev.virtualLink) {
+                    return res.status(409).json({ error: "Veuillez préciser le lien de réunion" });
+                }
+                else if (!ev.isVirtual) {
+                    ev.virtualLink = "";
+                }
+                // Create and save the new event
+                const newEvent = evRepository.create({
+                    typee: ev.type,
+                    description: ev.description,
+                    quorum: (_b = ev.quorum) !== null && _b !== void 0 ? _b : 0,
+                    isVirtual: ev.isVirtual,
+                    virtualLink: (_c = ev.virtualLink) !== null && _c !== void 0 ? _c : "",
+                    starting: new Date(ev.starting),
+                    ending: new Date(ev.ending),
+                    repetitivity: ev.repetitivity,
+                    user: userFound,
+                    attendees: attFound.map(att => att.user),
+                    location: [locFound],
+                });
+                // Create notifications for each attendee
+                const notificationRepo = database_1.AppDataSource.getRepository(notification_1.Notification);
+                for (const attendee of attFound) {
+                    const notification = notificationRepo.create({
+                        message: `Mr/Mme. ${attendee.user.name} est convié(e) à l'assemblée générale du ${ev.starting}`,
+                        user: attendee.user, // Passing an array of users
+                        title: "Invitation",
+                        event: newEvent
+                    });
+                    yield notificationRepo.save(notification);
+                }
+                yield evRepository.save(newEvent);
+                res.status(201).json(newEvent);
             }
             // Validate event configuration
             if (ev.type === "AG" && (!ev.quorum || ev.quorum <= 0 || !ev.repetitivity || ev.repetitivity === evenement_2.repetitivity.NONE)) {
@@ -955,7 +1015,7 @@ const initRoutes = (app, documentUsecase) => {
                 return res.status(500).json({ error: "AG type event must have at least one attendee." });
             }
             const importantAttendeesCount = attFound.filter(attendee => attendee.role === evenement_attendee_1.AttendeeRole.IMPORTANT).length;
-            if (importantAttendeesCount > ((_a = ev.quorum) !== null && _a !== void 0 ? _a : 0)) {
+            if (importantAttendeesCount > ((_d = ev.quorum) !== null && _d !== void 0 ? _d : 0)) {
                 return res.status(500).json({ error: "Number of important attendees cannot exceed quorum." });
             }
             // Check for conflicting events
@@ -981,7 +1041,7 @@ const initRoutes = (app, documentUsecase) => {
             for (const attendee of attFound) {
                 const notification = notificationRepo.create({
                     message: `Mr/Mme. ${attendee.user.name} est convié(e) à l'assemblée générale du ${ev.starting}`,
-                    users: [attendee.user], // Passing an array of users
+                    user: attendee.user, // Passing an array of users
                     title: "Invitation"
                 });
                 yield notificationRepo.save(notification);
@@ -1002,9 +1062,9 @@ const initRoutes = (app, documentUsecase) => {
             const newEvent = evRepository.create({
                 typee: ev.type,
                 description: ev.description,
-                quorum: (_b = ev.quorum) !== null && _b !== void 0 ? _b : 0,
+                quorum: (_e = ev.quorum) !== null && _e !== void 0 ? _e : 0,
                 isVirtual: ev.isVirtual,
-                virtualLink: (_c = ev.virtualLink) !== null && _c !== void 0 ? _c : "",
+                virtualLink: (_f = ev.virtualLink) !== null && _f !== void 0 ? _f : "",
                 starting: new Date(ev.starting),
                 ending: new Date(ev.ending),
                 repetitivity: ev.repetitivity,
@@ -2267,9 +2327,9 @@ const initRoutes = (app, documentUsecase) => {
     }));
     app.patch('/notifications/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { id } = req.params;
-        const { title, message, read } = req.body;
+        const { title, message, accepted } = req.body;
         try {
-            const result = yield notificationUsecase.updateNotification(Number(id), { title, message, read });
+            const result = yield notificationUsecase.updateNotification(Number(id), { title, message, accepted });
             if (!result) {
                 return res.status(404).json({ error: 'Notification not found' });
             }

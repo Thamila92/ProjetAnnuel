@@ -16,7 +16,7 @@ export interface CreateNotificationParams {
 export interface UpdateNotificationParams {
     title?: string;
     message?: string;
-    read?: boolean;
+    accepted?: boolean;
 }
 
 export class NotificationUsecase {
@@ -46,7 +46,7 @@ export class NotificationUsecase {
         const newNotification = notificationRepo.create({
             title: params.title,
             message: params.message,
-            users: [userFound],  // Change 'user' to 'users' to match the entity
+            user: userFound,  // Change 'user' to 'users' to match the entity
         });
     
         await notificationRepo.save(newNotification);
@@ -68,7 +68,7 @@ export class NotificationUsecase {
 
         if (params.title) notificationFound.title = params.title;
         if (params.message) notificationFound.message = params.message;
-        if (typeof params.read !== 'undefined') notificationFound.read = params.read;
+        if (typeof params.accepted !== 'undefined') notificationFound.accepted = params.accepted;
 
         const updatedNotification = await repo.save(notificationFound);
         return updatedNotification;
@@ -76,8 +76,8 @@ export class NotificationUsecase {
     async getNotificationsByUser(userId: number): Promise<Notification[]> {
         const notificationRepository = this.db.getRepository(Notification);
         const notifications = await notificationRepository.find({
-            where: { users: { id: userId } },  // Correct 'user' to 'users'
-            relations: ["users"]               // Correct 'user' to 'users'
+            where: { user: { id: userId } },  // Correct 'user' to 'users'
+            relations: ["user"]               // Correct 'user' to 'users'
         });
         return notifications;
     }

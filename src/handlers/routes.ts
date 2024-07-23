@@ -1092,7 +1092,77 @@ app.post("/evenements", adminMiddleware, async (req: Request, res: Response) => 
                     return res.status(500).json({ error: `User with ID ${attendee.userId} not found.` });
                 }
             }
-        }
+ 
+    
+            // Validate event configuration
+            if (ev.type === "AG" && (!ev.quorum || ev.quorum <= 0 || !ev.repetitivity || ev.repetitivity === repetitivity.NONE)) {
+                return res.status(400).json({ message: "AG not well configured" });
+            } else if (ev.type !== "AG") {
+                ev.quorum = 0;
+                ev.repetitivity = repetitivity.NONE;
+            }
+    
+            if (ev.type === "AG" && attFound.length === 0) {
+                return res.status(500).json({ error: "AG type event must have at least one attendee." });
+            }
+    
+            const importantAttendeesCount = attFound.filter(attendee => attendee.role === AttendeeRole.IMPORTANT).length;
+            if (importantAttendeesCount > (ev.quorum ?? 0)) {
+                return res.status(500).json({ error: "Number of important attendees cannot exceed quorum." });
+            }
+    
+            // Check for conflicting events
+            const evRepository = AppDataSource.getRepository(Evenement);
+            const conflictingEvents = await evRepository
+                .createQueryBuilder("event")
+                .where(":starting < event.ending AND :ending > event.starting", {
+                    starting: ev.starting,
+                    ending: ev.ending,
+                })
+                .getMany();
+    
+            if (conflictingEvents.length > 0) {
+                return res.status(409).json({ error: "Conflicting event exists" });
+
+            }
+    
+            if (ev.isVirtual && !ev.virtualLink) {
+                return res.status(409).json({ error: "Veuillez préciser le lien de réunion" });
+            } else if (!ev.isVirtual) {
+                ev.virtualLink = "";
+            }
+    
+              // Create and save the new event
+              const newEvent = evRepository.create({
+                typee: ev.type as unknown as eventtype,
+                description: ev.description,
+                quorum: ev.quorum ?? 0,
+                isVirtual: ev.isVirtual,
+                virtualLink: ev.virtualLink ?? "",
+                starting: new Date(ev.starting),
+                ending: new Date(ev.ending),
+                repetitivity: ev.repetitivity,
+                user: userFound,
+                attendees: attFound.map(att => att.user),
+                location: [locFound],
+            });
+
+            // Create notifications for each attendee
+            const notificationRepo = AppDataSource.getRepository(Notification);
+            for (const attendee of attFound) {
+                const notification = notificationRepo.create({
+                    message: `Mr/Mme. ${attendee.user.name} est convié(e) à l'assemblée générale du ${ev.starting}`,
+                    user: attendee.user, // Passing an array of users
+                    title: "Invitation",
+                    event:newEvent
+                });
+                await notificationRepo.save(notification);
+            }
+    
+            await evRepository.save(newEvent);
+    
+            res.status(201).json(newEvent);
+        } 
 
         // Validate event configuration
         if (ev.type === "AG" && (!ev.quorum || ev.quorum <= 0 || !ev.repetitivity || ev.repetitivity === repetitivity.NONE)) {
@@ -1136,7 +1206,7 @@ app.post("/evenements", adminMiddleware, async (req: Request, res: Response) => 
         for (const attendee of attFound) {
             const notification = notificationRepo.create({
                 message: `Mr/Mme. ${attendee.user.name} est convié(e) à l'assemblée générale du ${ev.starting}`,
-                users: [attendee.user], // Passing an array of users
+                user: attendee.user, // Passing an array of users
                 title: "Invitation"
             });
             await notificationRepo.save(notification);
@@ -2578,9 +2648,9 @@ app.post('/missions', adminMiddleware, async (req: Request, res: Response) => {
 
     app.patch('/notifications/:id', async (req: Request, res: Response) => {
         const { id } = req.params;
-        const { title, message, read } = req.body;
+        const { title, message, accepted } = req.body;
         try {
-            const result = await notificationUsecase.updateNotification(Number(id), { title, message, read });
+            const result = await notificationUsecase.updateNotification(Number(id), { title, message, accepted });
             if (!result) {
                 return res.status(404).json({ error: 'Notification not found' });
             }

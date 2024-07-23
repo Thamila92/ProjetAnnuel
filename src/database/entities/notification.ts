@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, CreateDateColumn, ManyToOne } from 'typeorm';
 import { User } from './user';
+import { Evenement } from './evenement';
 
 @Entity()
 export class Notification {
@@ -12,13 +13,15 @@ export class Notification {
     @Column()
     message!: string;
 
-    @ManyToMany(() => User, user => user.notifications)
-    @JoinTable()
-    users!: User[];  // Correctly represents many-to-many relationship
+    @Column({default:false})
+    accepted!: boolean;
+
+    @ManyToOne(() => User, user => user.notifications)
+    user!: User;   
 
     @CreateDateColumn({ type: "timestamp" })
     createdAt!: Date;
 
-    @Column({ default: false })
-    read!: boolean;
+    @ManyToOne(() => Evenement, event => event.notifications)
+    event!: Evenement;
 }

@@ -44,9 +44,9 @@ export class UserUsecase {
         if (!userFound) {
           return "User not Found !!!";
         }
-        if(userFound.status && userFound.status.description!="NORMAL"){
-          return "This is not a commonn user !!!"
-        }
+        // if(userFound.status && userFound.status.description!="NORMAL"){
+        //   return "This is not a commonn user !!!"
+        // }
       
         // Vérifier si le mot de passe actuel est correct
         const isValid =await compare(userToUpdate.actual_password,userFound.password)
