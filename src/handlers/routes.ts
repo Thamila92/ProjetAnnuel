@@ -70,6 +70,7 @@ import { EvenementRequest, evenementUpdateValidation, evenementValidation, ListE
 import { SkillUsecase } from "../domain/skill-usecase";
 import { VoteUsecase } from "../domain/vote-usecase";
 import { Document } from "../database/entities/document";
+import axios from "axios";
  // >>>>>>> dev-brad
 const upload = multer();
 
@@ -1150,14 +1151,23 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             // Create notifications for each attendee
             const notificationRepo = AppDataSource.getRepository(Notification);
             for (const attendee of attFound) {
-                const notification = notificationRepo.create({
+                let notification = notificationRepo.create({
                     message: `Mr/Mme. ${attendee.user.name} est convié(e) à l'assemblée générale du ${ev.starting}`,
                     user: attendee.user, // Passing an array of users
                     title: "Invitation",
                     event:newEvent
                 });
+                try {
+                    await axios.post('https://achatthamila.app.n8n.cloud/webhook/a5c27ba5-1636-4a42-a00d-8f81755fa0ba', {
+                        message: notification.message
+                    });
+                    console.log(`Message envoyé avec succès pour ${attendee.user.name}`);
+                } catch (error) {
+                    console.error(`Erreur lors de l'envoi du message pour ${attendee.user.name}:`, error);
+                }
                 await notificationRepo.save(notification);
             }
+    
     
             await evRepository.save(newEvent);
     
