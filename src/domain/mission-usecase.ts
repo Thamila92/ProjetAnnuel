@@ -111,6 +111,12 @@ export class MissionUsecase {
             return "Mission dates must be within the step's dates";
         }
     
+        // Log the existing missions and the new mission dates
+        const existingMissions = await missionRepo.find();
+        console.log("Existing missions: ", existingMissions);
+        console.log("New mission starting: ", starting);
+        console.log("New mission ending: ", ending);
+    
         const conflictingMissions = await missionRepo.createQueryBuilder('mission')
             .where((qb) => {
                 if (eventId) {
@@ -121,6 +127,8 @@ export class MissionUsecase {
             })
             .andWhere(':starting < mission.ending AND :ending > mission.starting', { starting, ending })
             .getMany();
+    
+        console.log("Conflicting missions: ", conflictingMissions);
     
         if (conflictingMissions.length > 0) {
             return "Conflicting mission exists within the same event or step";

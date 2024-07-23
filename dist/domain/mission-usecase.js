@@ -87,6 +87,11 @@ class MissionUsecase {
             if (stepFound && (starting < stepFound.starting || ending > stepFound.ending)) {
                 return "Mission dates must be within the step's dates";
             }
+            // Log the existing missions and the new mission dates
+            const existingMissions = yield missionRepo.find();
+            console.log("Existing missions: ", existingMissions);
+            console.log("New mission starting: ", starting);
+            console.log("New mission ending: ", ending);
             const conflictingMissions = yield missionRepo.createQueryBuilder('mission')
                 .where((qb) => {
                 if (eventId) {
@@ -98,6 +103,7 @@ class MissionUsecase {
             })
                 .andWhere(':starting < mission.ending AND :ending > mission.starting', { starting, ending })
                 .getMany();
+            console.log("Conflicting missions: ", conflictingMissions);
             if (conflictingMissions.length > 0) {
                 return "Conflicting mission exists within the same event or step";
             }
