@@ -1669,6 +1669,7 @@ app.post('/missions', adminMiddleware, async (req: Request, res: Response) => {
             res.status(500).send({ error: "Internal error" });
         }
     });
+    
     app.patch("/steps/:id", adminMiddleware, async (req: Request, res: Response) => {
         const id = parseInt(req.params.id);
         const validation = stepUpdateValidation.validate(req.body);

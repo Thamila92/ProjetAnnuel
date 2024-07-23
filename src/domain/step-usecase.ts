@@ -26,13 +26,29 @@ export class StepUsecase {
             .leftJoinAndSelect("step.missions", "missions")
             .skip((filter.page - 1) * filter.limit)
             .take(filter.limit);
-
+    
         const [steps, totalCount] = await query.getManyAndCount();
+        
+        const currentDate = new Date();
+    
+        steps.forEach(step => {
+            if (currentDate > step.ending) {
+                step.state = 'ENDED';
+            } else if (currentDate > step.starting && currentDate < step.ending) {
+                step.state = 'RUNNING';
+            } else if (currentDate.toDateString() === step.starting.toDateString()) {
+                step.state = 'STARTED';
+            }
+        });
+    
+         await this.db.getRepository(Step).save(steps);
+    
         return {
             steps,
             totalCount
         };
     }
+    
 
     async createStep(state: string, description: string, starting: Date, ending: Date, projetId: number): Promise<Step> {
         const projetRepo = this.db.getRepository(Projet);
@@ -66,9 +82,24 @@ export class StepUsecase {
     async getStep(id: number): Promise<Step | null> {
         const repo = this.db.getRepository(Step);
         const stepFound = await repo.findOne({ where: { id }, relations: ["projet", "missions"] });
-        return stepFound || null;
+        if (!stepFound) return null;
+    
+        const currentDate = new Date();
+    
+        if (currentDate > stepFound.ending) {
+            stepFound.state = 'ENDED';
+        } else if (currentDate > stepFound.starting && currentDate < stepFound.ending) {
+            stepFound.state = 'RUNNING';
+        } else if (currentDate.toDateString() === stepFound.starting.toDateString()) {
+            stepFound.state = 'STARTED';
+        }
+    
+        // Optionally, save the updated state back to the database
+        await repo.save(stepFound);
+    
+        return stepFound;
     }
-
+    
     async updateStep(id: number, params: UpdateStepParams): Promise<Step | null> {
         const repo = this.db.getRepository(Step);
         const stepFound = await repo.findOne({ where: { id }, relations: ["projet", "missions"] });

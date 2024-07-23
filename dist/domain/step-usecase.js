@@ -25,6 +25,19 @@ class StepUsecase {
                 .skip((filter.page - 1) * filter.limit)
                 .take(filter.limit);
             const [steps, totalCount] = yield query.getManyAndCount();
+            const currentDate = new Date();
+            steps.forEach(step => {
+                if (currentDate > step.ending) {
+                    step.state = 'ENDED';
+                }
+                else if (currentDate > step.starting && currentDate < step.ending) {
+                    step.state = 'RUNNING';
+                }
+                else if (currentDate.toDateString() === step.starting.toDateString()) {
+                    step.state = 'STARTED';
+                }
+            });
+            yield this.db.getRepository(step_1.Step).save(steps);
             return {
                 steps,
                 totalCount
@@ -60,7 +73,21 @@ class StepUsecase {
         return __awaiter(this, void 0, void 0, function* () {
             const repo = this.db.getRepository(step_1.Step);
             const stepFound = yield repo.findOne({ where: { id }, relations: ["projet", "missions"] });
-            return stepFound || null;
+            if (!stepFound)
+                return null;
+            const currentDate = new Date();
+            if (currentDate > stepFound.ending) {
+                stepFound.state = 'ENDED';
+            }
+            else if (currentDate > stepFound.starting && currentDate < stepFound.ending) {
+                stepFound.state = 'RUNNING';
+            }
+            else if (currentDate.toDateString() === stepFound.starting.toDateString()) {
+                stepFound.state = 'STARTED';
+            }
+            // Optionally, save the updated state back to the database
+            yield repo.save(stepFound);
+            return stepFound;
         });
     }
     updateStep(id, params) {
