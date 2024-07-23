@@ -200,9 +200,8 @@ export class MissionUsecase {
         const resourceRepo = this.db.getRepository(Resource);
     
         const missionFound = await repo.findOne({
-            where: { id },
-            relations: ['evenement', 'step', 'requiredSkills', 'assignedUsers', 'resources'],
-        });
+            where: { id }
+         });
         if (!missionFound) return "Mission not found";
     
         const evenement = missionFound.evenement;
