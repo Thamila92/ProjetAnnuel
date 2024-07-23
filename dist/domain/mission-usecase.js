@@ -72,7 +72,14 @@ class MissionUsecase {
                 return "Mission dates must be within the step's dates";
             }
             const conflictingMissions = yield missionRepo.createQueryBuilder('mission')
-                .where('(mission.evenement = :eventId OR mission.step = :stepId)', { eventId, stepId })
+                .where((qb) => {
+                if (eventId) {
+                    qb.where('mission.evenement = :eventId', { eventId });
+                }
+                else {
+                    qb.where('mission.step = :stepId', { stepId });
+                }
+            })
                 .andWhere(':starting < mission.ending AND :ending > mission.starting', { starting, ending })
                 .getMany();
             if (conflictingMissions.length > 0) {

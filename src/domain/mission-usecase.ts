@@ -94,7 +94,13 @@ export class MissionUsecase {
         }
     
         const conflictingMissions = await missionRepo.createQueryBuilder('mission')
-            .where('(mission.evenement = :eventId OR mission.step = :stepId)', { eventId, stepId })
+            .where((qb) => {
+                if (eventId) {
+                    qb.where('mission.evenement = :eventId', { eventId });
+                } else {
+                    qb.where('mission.step = :stepId', { stepId });
+                }
+            })
             .andWhere(':starting < mission.ending AND :ending > mission.starting', { starting, ending })
             .getMany();
     
@@ -139,6 +145,7 @@ export class MissionUsecase {
         await missionRepo.save(newMission);
         return newMission;
     }
+    
     
     
     async getMission(id: number): Promise<Mission | null> {
