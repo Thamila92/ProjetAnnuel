@@ -1037,63 +1037,63 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
     // });
 // >>>>>>> merge_fi
 
-    app.post("/evenements", adminMiddleware, async (req: Request, res: Response) => {
-        try {
-            // Validate request body
-            const validation = evenementValidation.validate(req.body);
-            if (validation.error) {
-                return res.status(400).send(generateValidationErrorMessage(validation.error.details));
-            }
-            const ev = validation.value as EvenementRequest;
-    
-            // Authorization check
-            const authHeader = req.headers["authorization"];
-            if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-    
-            const token = authHeader.split(" ")[1];
-            if (token === null) return res.status(401).json({ error: "Unauthorized" });
-    
-            const tokenRepo = AppDataSource.getRepository(Token);
-            const tokenFound = await tokenRepo.findOne({
-                where: { token },
-                relations: ["user"],
-            });
-    
-            if (!tokenFound || !tokenFound.user) {
-                return res.status(403).json({ error: "Access Forbidden" });
-            }
-    
-            const userRepo = AppDataSource.getRepository(User);
-            const userFound = await userRepo.findOne({ where: { id: tokenFound.user.id } });
-    
-            if (!userFound) {
-                return res.status(500).json({ error: "Internal server error" });
-            }
-    
-            const locRepo = AppDataSource.getRepository(Location);
-            let locFound = await locRepo.findOne({ where: { position: ev.location } });
-    
-            if (!locFound) {
-                locFound = locRepo.create({ position: ev.location });
-                await locRepo.save(locFound);
-            }
-    
-            // Collect all attendees
-            const attFound: { user: User; role: AttendeeRole }[] = [];
-            if (ev.attendees) {
-                for (const attendee of ev.attendees) {
-                    try {
-                        const user = await userRepo.findOne({ where: { id: attendee.userId, isDeleted: false } });
-                        if (user) {
-                            attFound.push({ user, role: attendee.role });
-                        } else {
-                            return res.status(500).json({ error: `User with ID ${attendee.userId} not found.` });
-                        }
-                    } catch (error) {
+app.post("/evenements", adminMiddleware, async (req: Request, res: Response) => {
+    try {
+        // Validate request body
+        const validation = evenementValidation.validate(req.body);
+        if (validation.error) {
+            return res.status(400).send(generateValidationErrorMessage(validation.error.details));
+        }
+        const ev = validation.value as EvenementRequest;
+
+        // Authorization check
+        const authHeader = req.headers["authorization"];
+        if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
+
+        const token = authHeader.split(" ")[1];
+        if (token === null) return res.status(401).json({ error: "Unauthorized" });
+
+        const tokenRepo = AppDataSource.getRepository(Token);
+        const tokenFound = await tokenRepo.findOne({
+            where: { token },
+            relations: ["user"],
+        });
+
+        if (!tokenFound || !tokenFound.user) {
+            return res.status(403).json({ error: "Access Forbidden" });
+        }
+
+        const userRepo = AppDataSource.getRepository(User);
+        const userFound = await userRepo.findOne({ where: { id: tokenFound.user.id } });
+
+        if (!userFound) {
+            return res.status(500).json({ error: "Internal server error" });
+        }
+
+        const locRepo = AppDataSource.getRepository(Location);
+        let locFound = await locRepo.findOne({ where: { position: ev.location } });
+
+        if (!locFound) {
+            locFound = locRepo.create({ position: ev.location });
+            await locRepo.save(locFound);
+        }
+
+        // Collect all attendees
+        const attFound: { user: User; role: AttendeeRole }[] = [];
+        if (ev.attendees) {
+            for (const attendee of ev.attendees) {
+                try {
+                    const user = await userRepo.findOne({ where: { id: attendee.userId, isDeleted: false } });
+                    if (user) {
+                        attFound.push({ user, role: attendee.role });
+                    } else {
                         return res.status(500).json({ error: `User with ID ${attendee.userId} not found.` });
                     }
+                } catch (error) {
+                    return res.status(500).json({ error: `User with ID ${attendee.userId} not found.` });
                 }
             }
+ 
     
             // Validate event configuration
             if (ev.type === "AG" && (!ev.quorum || ev.quorum <= 0 || !ev.repetitivity || ev.repetitivity === repetitivity.NONE)) {
@@ -1172,12 +1172,92 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             await evRepository.save(newEvent);
     
             res.status(201).json(newEvent);
-        } catch (error) {
-            console.log(error);
-            res.status(500).send({ error: "Internal error" });
+        } 
+
+        // Validate event configuration
+        if (ev.type === "AG" && (!ev.quorum || ev.quorum <= 0 || !ev.repetitivity || ev.repetitivity === repetitivity.NONE)) {
+            return res.status(400).json({ message: "AG not well configured" });
+        } else if (ev.type !== "AG") {
+            ev.quorum = 0;
+            ev.repetitivity = repetitivity.NONE;
         }
-    });
-    
+
+        if (ev.type === "AG" && attFound.length === 0) {
+            return res.status(500).json({ error: "AG type event must have at least one attendee." });
+        }
+
+        const importantAttendeesCount = attFound.filter(attendee => attendee.role === AttendeeRole.IMPORTANT).length;
+        if (importantAttendeesCount > (ev.quorum ?? 0)) {
+            return res.status(500).json({ error: "Number of important attendees cannot exceed quorum." });
+        }
+
+        // Check for conflicting events
+        const evRepository = AppDataSource.getRepository(Evenement);
+        const conflictingEvents = await evRepository
+            .createQueryBuilder("event")
+            .where(":starting < event.ending AND :ending > event.starting", {
+                starting: ev.starting,
+                ending: ev.ending,
+            })
+            .getMany();
+
+        if (conflictingEvents.length > 0) {
+            return res.status(409).json({ error: "Conflicting event exists" });
+        }
+
+        if (ev.isVirtual && !ev.virtualLink) {
+            return res.status(409).json({ error: "Veuillez préciser le lien de réunion" });
+        } else if (!ev.isVirtual) {
+            ev.virtualLink = "";
+        }
+
+        // Create notifications for each attendee
+        const notificationRepo = AppDataSource.getRepository(Notification);
+        for (const attendee of attFound) {
+            const notification = notificationRepo.create({
+                message: `Mr/Mme. ${attendee.user.name} est convié(e) à l'assemblée générale du ${ev.starting}`,
+                user: attendee.user, // Passing an array of users
+                title: "Invitation"
+            });
+            await notificationRepo.save(notification);
+        }
+
+        // Determine initial state based on current date
+        const currentDate = new Date();
+        let state = 'UNSTARTED';
+        if (currentDate > ev.ending) {
+            state = 'ENDED';
+        } else if (currentDate > ev.starting && currentDate < ev.ending) {
+            state = 'RUNNING';
+        } else if (currentDate.toDateString() === new Date(ev.starting).toDateString()) {
+            state = 'STARTED';
+        }
+
+        // Create and save the new event
+        const newEvent = evRepository.create({
+            typee: ev.type as unknown as eventtype,
+            description: ev.description,
+            quorum: ev.quorum ?? 0,
+            isVirtual: ev.isVirtual,
+            virtualLink: ev.virtualLink ?? "",
+            starting: new Date(ev.starting),
+            ending: new Date(ev.ending),
+            repetitivity: ev.repetitivity,
+            user: userFound,
+            attendees: attFound.map(att => att.user),
+            location: [locFound],
+            state: state
+        });
+
+        await evRepository.save(newEvent);
+
+        res.status(201).json(newEvent);
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({ error: "Internal error" });
+    }
+});
+
     
     
     app.get("/evenements", async (req: Request, res: Response) => {

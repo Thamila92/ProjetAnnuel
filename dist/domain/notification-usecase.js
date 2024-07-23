@@ -39,7 +39,7 @@ class NotificationUsecase {
             const newNotification = notificationRepo.create({
                 title: params.title,
                 message: params.message,
-                users: [userFound], // Change 'user' to 'users' to match the entity
+                user: userFound, // Change 'user' to 'users' to match the entity
             });
             yield notificationRepo.save(newNotification);
             return newNotification;
@@ -62,8 +62,8 @@ class NotificationUsecase {
                 notificationFound.title = params.title;
             if (params.message)
                 notificationFound.message = params.message;
-            if (typeof params.read !== 'undefined')
-                notificationFound.read = params.read;
+            if (typeof params.accepted !== 'undefined')
+                notificationFound.accepted = params.accepted;
             const updatedNotification = yield repo.save(notificationFound);
             return updatedNotification;
         });
@@ -72,8 +72,8 @@ class NotificationUsecase {
         return __awaiter(this, void 0, void 0, function* () {
             const notificationRepository = this.db.getRepository(notification_1.Notification);
             const notifications = yield notificationRepository.find({
-                where: { users: { id: userId } }, // Correct 'user' to 'users'
-                relations: ["users"] // Correct 'user' to 'users'
+                where: { user: { id: userId } }, // Correct 'user' to 'users'
+                relations: ["user"] // Correct 'user' to 'users'
             });
             return notifications;
         });

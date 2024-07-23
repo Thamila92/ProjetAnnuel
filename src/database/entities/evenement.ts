@@ -16,11 +16,6 @@ import { EvenementAttendee } from "./evenement-attendee";
 import { eventtype } from "../../types/event-types";
 import { Notification } from "./notification";
 
-// export enum eventtype {
-//     AG = "AG",
-//     SUIVI = "SUIVI",
-// }
-
 export enum repetitivity {
     NONE = "NONE",
     MONTHLY = "MONTHLY",
@@ -40,7 +35,6 @@ export class Evenement {
         enum: eventtype
     })
     typee!: eventtype;
-
 
     @Column()
     description!: string;
@@ -79,6 +73,14 @@ export class Evenement {
     @Column({ nullable: true })
     virtualLink?: string;
 
+ 
+    @Column()
+    state: string;
+
+    constructor() {
+        this.state = 'UNSTARTED';
+    }
+ 
     @OneToMany(() =>Notification, vote => vote.event)
     notifications!: Notification[];
-}
+ }

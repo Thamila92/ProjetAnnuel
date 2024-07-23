@@ -24,6 +24,22 @@ class ProjetUsecase {
                 .skip((filter.page - 1) * filter.limit)
                 .take(filter.limit);
             const [projets, totalCount] = yield query.getManyAndCount();
+            const currentDate = new Date();
+            projets.forEach((projet) => __awaiter(this, void 0, void 0, function* () {
+                if (currentDate > projet.ending) {
+                    projet.state = 'ENDED';
+                }
+                else if (currentDate > projet.starting && currentDate < projet.ending) {
+                    projet.state = 'RUNNING';
+                }
+                else if (currentDate.toDateString() === projet.starting.toDateString()) {
+                    projet.state = 'STARTED';
+                }
+                else {
+                    projet.state = 'UNSTARTED';
+                }
+                yield this.db.getRepository(projet_1.Projet).save(projet);
+            }));
             return {
                 projets,
                 totalCount
@@ -39,12 +55,25 @@ class ProjetUsecase {
             if (!userFound) {
                 return "User not found";
             }
+            // Déterminer l'état initial basé sur les dates
+            const currentDate = new Date();
+            let state = 'UNSTARTED';
+            if (currentDate > project.ending) {
+                state = 'ENDED';
+            }
+            else if (currentDate > project.starting && currentDate < project.ending) {
+                state = 'RUNNING';
+            }
+            else if (currentDate.toDateString() === new Date(project.starting).toDateString()) {
+                state = 'STARTED';
+            }
             // Créer le projet
             const newProjet = projetRepo.create({
                 description: project.description,
                 starting: project.starting,
                 ending: project.ending,
-                user: userFound
+                user: userFound,
+                state: state
             });
             // Sauvegarder le projet
             yield projetRepo.save(newProjet);
@@ -89,6 +118,20 @@ class ProjetUsecase {
                 projetFound.starting = params.starting;
             if (params.ending)
                 projetFound.ending = params.ending;
+            // Mettre à jour l'état en fonction des nouvelles dates
+            const currentDate = new Date();
+            if (currentDate > newEnding) {
+                projetFound.state = 'ENDED';
+            }
+            else if (currentDate > newStarting && currentDate < newEnding) {
+                projetFound.state = 'RUNNING';
+            }
+            else if (currentDate.toDateString() === new Date(newStarting).toDateString()) {
+                projetFound.state = 'STARTED';
+            }
+            else {
+                projetFound.state = 'UNSTARTED';
+            }
             const updatedProjet = yield repo.save(projetFound);
             return updatedProjet;
         });

@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Notification = void 0;
 const typeorm_1 = require("typeorm");
 const user_1 = require("./user");
+const evenement_1 = require("./evenement");
 let Notification = class Notification {
 };
 exports.Notification = Notification;
@@ -28,18 +29,21 @@ __decorate([
     __metadata("design:type", String)
 ], Notification.prototype, "message", void 0);
 __decorate([
-    (0, typeorm_1.ManyToMany)(() => user_1.User, user => user.notifications),
-    (0, typeorm_1.JoinTable)(),
-    __metadata("design:type", Array)
-], Notification.prototype, "users", void 0);
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], Notification.prototype, "accepted", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => user_1.User, user => user.notifications),
+    __metadata("design:type", user_1.User)
+], Notification.prototype, "user", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ type: "timestamp" }),
     __metadata("design:type", Date)
 ], Notification.prototype, "createdAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: false }),
-    __metadata("design:type", Boolean)
-], Notification.prototype, "read", void 0);
+    (0, typeorm_1.ManyToOne)(() => evenement_1.Evenement, event => event.notifications),
+    __metadata("design:type", evenement_1.Evenement)
+], Notification.prototype, "event", void 0);
 exports.Notification = Notification = __decorate([
     (0, typeorm_1.Entity)()
 ], Notification);

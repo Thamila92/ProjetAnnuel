@@ -17,7 +17,7 @@ export class Notification {
     accepted!: boolean;
 
     @ManyToOne(() => User, user => user.notifications)
-    user!: User;  // Correctly represents many-to-many relationship
+    user!: User;   
 
     @CreateDateColumn({ type: "timestamp" })
     createdAt!: Date;

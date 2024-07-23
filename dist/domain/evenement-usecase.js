@@ -25,35 +25,28 @@ class EvenementUsecase {
                 .skip((filter.page - 1) * filter.limit)
                 .take(filter.limit);
             const [evenements, totalCount] = yield query.getManyAndCount();
+            const currentDate = new Date();
+            for (const evenement of evenements) {
+                if (currentDate > evenement.ending) {
+                    evenement.state = 'ENDED';
+                }
+                else if (currentDate > evenement.starting && currentDate < evenement.ending) {
+                    evenement.state = 'RUNNING';
+                }
+                else if (currentDate.toDateString() === evenement.starting.toDateString()) {
+                    evenement.state = 'STARTED';
+                }
+                else {
+                    evenement.state = 'UNSTARTED';
+                }
+                yield this.db.getRepository(evenement_1.Evenement).save(evenement);
+            }
             return {
                 evenements,
                 totalCount
             };
         });
     }
-    // async createEvenement(ev: EventToCreate): Promise<Evenement | string | undefined> {
-    //     if (ev.type == "AG" && !ev.quorum) {
-    //         return "Veuillez preciser le Quorum !!!";
-    //     }
-    //     const evenementRepo = this.db.getRepository(Evenement);
-    //     // Vérification de l'existence d'un événement avec les mêmes dates de début et de fin
-    //     const existingEvenement = await evenementRepo.findOne({
-    //         where: { starting: ev.starting, ending: ev.ending }
-    //     });
-    //     if (existingEvenement) {
-    //         return "Un événement avec les mêmes dates de début et de fin existe déjà.";
-    //     }
-    //     const newEvenement = evenementRepo.create({
-    //         type: ev.type,
-    //         location: ev.location,
-    //         description: ev.description,
-    //         quorum: ev.quorum,
-    //         starting: ev.starting,
-    //         ending: ev.ending
-    //     });
-    //     await evenementRepo.save(newEvenement);
-    //     return newEvenement;
-    // }
     getEvenement(id) {
         return __awaiter(this, void 0, void 0, function* () {
             const repo = this.db.getRepository(evenement_1.Evenement);
@@ -67,6 +60,7 @@ class EvenementUsecase {
     updateEvenement(id, params) {
         return __awaiter(this, void 0, void 0, function* () {
             const repo = this.db.getRepository(evenement_1.Evenement);
+            const locationRepo = this.db.getRepository(location_1.Location);
             const evenementFound = yield repo.findOne({ where: { id, isDeleted: false }, relations: ["location"] });
             if (!evenementFound)
                 return null;
@@ -108,13 +102,26 @@ class EvenementUsecase {
                     evenementFound.ending = ending;
             }
             if (params.location) {
-                const locationRepo = this.db.getRepository(location_1.Location);
                 let locFound = yield locationRepo.findOne({ where: { position: params.location } });
                 if (!locFound) {
                     locFound = locationRepo.create({ position: params.location });
                     yield locationRepo.save(locFound);
                 }
                 evenementFound.location = [locFound];
+            }
+            // Mettre à jour l'état en fonction des nouvelles dates
+            const currentDate = new Date();
+            if (currentDate > evenementFound.ending) {
+                evenementFound.state = 'ENDED';
+            }
+            else if (currentDate > evenementFound.starting && currentDate < evenementFound.ending) {
+                evenementFound.state = 'RUNNING';
+            }
+            else if (currentDate.toDateString() === evenementFound.starting.toDateString()) {
+                evenementFound.state = 'STARTED';
+            }
+            else {
+                evenementFound.state = 'UNSTARTED';
             }
             const updatedEvenement = yield repo.save(evenementFound);
             return updatedEvenement;

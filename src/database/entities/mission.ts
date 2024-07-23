@@ -18,6 +18,9 @@ export class Mission {
     ending: Date;
 
     @Column()
+    state: string;
+
+    @Column()
     description: string;
 
     @ManyToOne(() => Evenement, (evenement) => evenement.mission, { nullable: true })
@@ -41,11 +44,12 @@ export class Mission {
     @JoinTable()
     resources!: Resource[];
     
-    constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step) {
+    constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step, state: string = 'UNSTARTED') {
         this.starting = starting;
         this.ending = ending;
         this.description = description;
         this.evenement = evenement;
         this.step = step;
+        this.state = state;
     }
 }
