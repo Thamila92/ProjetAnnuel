@@ -1132,19 +1132,8 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
                 ev.virtualLink = "";
             }
     
-            // Create notifications for each attendee
-            const notificationRepo = AppDataSource.getRepository(Notification);
-            for (const attendee of attFound) {
-                const notification = notificationRepo.create({
-                    message: `Mr/Mme. ${attendee.user.name} est convié(e) à l'assemblée générale du ${ev.starting}`,
-                    users: [attendee.user], // Passing an array of users
-                    title: "Invitation"
-                });
-                await notificationRepo.save(notification);
-            }
- 
-             // Create and save the new event
-            const newEvent = evRepository.create({
+              // Create and save the new event
+              const newEvent = evRepository.create({
                 typee: ev.type as unknown as eventtype,
                 description: ev.description,
                 quorum: ev.quorum ?? 0,
@@ -1157,6 +1146,18 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
                 attendees: attFound.map(att => att.user),
                 location: [locFound],
             });
+
+            // Create notifications for each attendee
+            const notificationRepo = AppDataSource.getRepository(Notification);
+            for (const attendee of attFound) {
+                const notification = notificationRepo.create({
+                    message: `Mr/Mme. ${attendee.user.name} est convié(e) à l'assemblée générale du ${ev.starting}`,
+                    user: attendee.user, // Passing an array of users
+                    title: "Invitation",
+                    event:newEvent
+                });
+                await notificationRepo.save(notification);
+            }
     
             await evRepository.save(newEvent);
     
@@ -2566,9 +2567,9 @@ app.post('/missions', adminMiddleware, async (req: Request, res: Response) => {
 
     app.patch('/notifications/:id', async (req: Request, res: Response) => {
         const { id } = req.params;
-        const { title, message, read } = req.body;
+        const { title, message, accepted } = req.body;
         try {
-            const result = await notificationUsecase.updateNotification(Number(id), { title, message, read });
+            const result = await notificationUsecase.updateNotification(Number(id), { title, message, accepted });
             if (!result) {
                 return res.status(404).json({ error: 'Notification not found' });
             }

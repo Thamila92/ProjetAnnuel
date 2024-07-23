@@ -14,6 +14,7 @@ import { Program } from "./program";
 import { Location } from "./location";
 import { EvenementAttendee } from "./evenement-attendee";
 import { eventtype } from "../../types/event-types";
+import { Notification } from "./notification";
 
 // export enum eventtype {
 //     AG = "AG",
@@ -77,4 +78,7 @@ export class Evenement {
 
     @Column({ nullable: true })
     virtualLink?: string;
+
+    @OneToMany(() =>Notification, vote => vote.event)
+    notifications!: Notification[];
 }

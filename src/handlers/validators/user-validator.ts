@@ -64,7 +64,6 @@ export interface UserIdRequest {
 
 export const updateUserValidation = Joi.object({
     id: Joi.number().required(),
-
     status: Joi.string().optional(),
     name: Joi.string().optional(),
     email: Joi.string().optional(),

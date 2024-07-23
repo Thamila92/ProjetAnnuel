@@ -45,8 +45,7 @@ export class User {
     @JoinTable()
     skills!: Skill[];
 
-    @ManyToMany(() => Notification, notification => notification.users)
-    @JoinTable()
+    @OneToMany(() => Notification, notification => notification.user)
     notifications!: Notification[];
 
 
