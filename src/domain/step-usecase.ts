@@ -23,7 +23,7 @@ export class StepUsecase {
     async listSteps(filter: ListStepFilter): Promise<{ steps: Step[]; totalCount: number; }> {
         const query = this.db.createQueryBuilder(Step, 'step')
             .leftJoinAndSelect("step.projet", "projet")
-            .leftJoinAndSelect("step.missions", "missions")
+            .leftJoinAndSelect("step.mission", "mission")
             .skip((filter.page - 1) * filter.limit)
             .take(filter.limit);
     

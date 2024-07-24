@@ -21,7 +21,7 @@ class StepUsecase {
         return __awaiter(this, void 0, void 0, function* () {
             const query = this.db.createQueryBuilder(step_1.Step, 'step')
                 .leftJoinAndSelect("step.projet", "projet")
-                .leftJoinAndSelect("step.missions", "missions")
+                .leftJoinAndSelect("step.mission", "mission")
                 .skip((filter.page - 1) * filter.limit)
                 .take(filter.limit);
             const [steps, totalCount] = yield query.getManyAndCount();
