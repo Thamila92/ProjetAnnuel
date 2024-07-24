@@ -6,6 +6,13 @@ import { Review } from "./review";
 import { Skill } from "./skill";
 import { Resource } from "./ressource";
 
+enum statustype {
+    unstarted = "UNSTARTED",
+    started = "STARTED",
+    running = "RUNNING",
+    ended = "ENDED"
+}
+
 @Entity({ name: "mission" })
 export class Mission {
     @PrimaryGeneratedColumn()
@@ -44,7 +51,7 @@ export class Mission {
     @JoinTable()
     resources!: Resource[];
     
-    constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step, state: string = 'UNSTARTED') {
+    constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step, state: statustype = statustype.unstarted) {
         this.starting = starting;
         this.ending = ending;
         this.description = description;
