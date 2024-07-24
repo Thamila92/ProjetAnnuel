@@ -5,33 +5,31 @@ import { Mission } from "./mission";
 @Entity({ name: "step" })
 export class Step {
     @PrimaryGeneratedColumn()
-    id: number;
+    id!: number;
 
     @Column()
-    state: string;
+    state!: string;
 
     @Column()
-    description: string;
+    description!: string;
 
     @Column({ type: "datetime" })
-    starting: Date;
+    starting!: Date;
 
     @Column({ type: "datetime" })
-    ending: Date;
+    ending!: Date;
 
     @ManyToOne(() => Projet, (projet) => projet.steps)
-    projet: Projet;
+    projet!: Projet;
 
-    @ManyToOne(() => Mission, (mission) => mission.step)
-    missions: Mission[];
+    @OneToMany(() => Mission, (mission) => mission.step)
+    missions!: Mission[];
 
-    constructor(id: number, state: string, description: string, starting: Date, ending: Date, projet: Projet, missions: Mission[]) {
-        this.id = id;
+    constructor(state: string, description: string, starting: Date, ending: Date, projet: Projet) {
         this.state = state;
         this.description = description;
         this.starting = starting;
         this.ending = ending;
         this.projet = projet;
-        this.missions = missions;
     }
 }

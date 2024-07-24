@@ -17,6 +17,13 @@ const step_1 = require("./step");
 const review_1 = require("./review");
 const skill_1 = require("./skill");
 const ressource_1 = require("./ressource");
+var statustype;
+(function (statustype) {
+    statustype["unstarted"] = "UNSTARTED";
+    statustype["started"] = "STARTED";
+    statustype["running"] = "RUNNING";
+    statustype["ended"] = "ENDED";
+})(statustype || (statustype = {}));
 let Mission = class Mission {
     constructor(starting, ending, description, evenement, step, state = 'UNSTARTED') {
         this.starting = starting;
@@ -49,7 +56,7 @@ __decorate([
     __metadata("design:type", String)
 ], Mission.prototype, "description", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => evenement_1.Evenement, (evenement) => evenement.mission, { nullable: true }),
+    (0, typeorm_1.ManyToOne)(() => evenement_1.Evenement, (evenement) => evenement.missions, { nullable: true }),
     __metadata("design:type", evenement_1.Evenement)
 ], Mission.prototype, "evenement", void 0);
 __decorate([

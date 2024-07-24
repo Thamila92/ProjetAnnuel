@@ -14,6 +14,7 @@ const user_1 = require("../database/entities/user");
 const status_1 = require("../database/entities/status");
 const bcrypt_1 = require("bcrypt");
 const skill_1 = require("../database/entities/skill");
+const mission_1 = require("../database/entities/mission");
 class UserUsecase {
     constructor(db) {
         this.db = db;
@@ -154,14 +155,27 @@ class UserUsecase {
     }
     getUsersByRole(role) {
         return __awaiter(this, void 0, void 0, function* () {
-            const users = yield this.db.getRepository(user_1.User)
-                .createQueryBuilder('user')
+            const userRepo = this.db.getRepository(user_1.User);
+            const users = yield userRepo.createQueryBuilder('user')
                 .leftJoinAndSelect('user.status', 'status')
-                .where('status.description = NORMAL')
+                .where('status.description = :role', { role })
                 .andWhere('user.isDeleted = false')
-                .select('user.email')
+                .select(['user.id', 'user.email'])
                 .getMany();
-            return users.map(user => user.email);
+            const currentDate = new Date();
+            const missions = yield this.db.getRepository(mission_1.Mission).find({ relations: ['assignedUsers'] });
+            for (const mission of missions) {
+                if (currentDate > mission.starting && currentDate < mission.ending) {
+                    for (const user of mission.assignedUsers) {
+                        const foundUser = users.find(u => u.id === user.id);
+                        if (foundUser) {
+                            foundUser.isAvailable = false;
+                        }
+                    }
+                }
+            }
+            const availableUsers = users.filter(user => user.isAvailable !== false);
+            return availableUsers.map(user => user.email);
         });
     }
     addSkillToUser(userId, skillName) {
@@ -198,6 +212,22 @@ class UserUsecase {
                 .andWhere('user.isDeleted = :isDeleted', { isDeleted: false })
                 .getMany();
             return users;
+        });
+    }
+    getAllUsers() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const userRepo = this.db.getRepository(user_1.User);
+            const missions = yield this.db.getRepository(mission_1.Mission).find({ relations: ['assignedUsers'] });
+            const currentDate = new Date();
+            for (const mission of missions) {
+                for (const user of mission.assignedUsers) {
+                    if (currentDate > mission.ending && user.isAvailable === false) {
+                        user.isAvailable = true;
+                        yield userRepo.save(user);
+                    }
+                }
+            }
+            return yield userRepo.find();
         });
     }
 }

@@ -1,5 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from "typeorm";
-import { Mission } from "./mission";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import { ResourceAvailability } from "./resourceAvailability";
 
 @Entity({ name: "resource" })
 export class Resource {
@@ -15,6 +15,6 @@ export class Resource {
     @Column({ default: true })
     isAvailable!: boolean;
 
-    // @ManyToMany(() => Mission, (mission) => mission.resources)
-    // missions!: Mission[];
+    @OneToMany(() => ResourceAvailability, (availability) => availability.resource)
+    availabilities!: ResourceAvailability[];
 }

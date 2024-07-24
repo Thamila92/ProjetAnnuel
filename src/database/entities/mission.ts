@@ -4,7 +4,14 @@ import { User } from "./user";
 import { Step } from "./step";
 import { Review } from "./review";
 import { Skill } from "./skill";
-import { Resource } from "./ressource";
+import { Resource } from "./ressource";  
+
+enum statustype {
+    unstarted = "UNSTARTED",
+    started = "STARTED",
+    running = "RUNNING",
+    ended = "ENDED"
+}
 
 @Entity({ name: "mission" })
 export class Mission {
@@ -12,18 +19,18 @@ export class Mission {
     id!: number;
 
     @Column()
-    starting: Date;
+    starting!: Date;
 
     @Column()
-    ending: Date;
+    ending!: Date;
 
     @Column()
-    state: string;
+    state!: string;
 
     @Column()
-    description: string;
+    description!: string;
 
-    @ManyToOne(() => Evenement, (evenement) => evenement.mission, { nullable: true })
+    @ManyToOne(() => Evenement, (evenement) => evenement.missions, { nullable: true })
     evenement?: Evenement;
 
     @ManyToOne(() => Step, (step) => step.missions, { nullable: true })
@@ -43,7 +50,7 @@ export class Mission {
     @ManyToMany(() => Resource, { eager: true })
     @JoinTable()
     resources!: Resource[];
-    
+
     constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step, state: string = 'UNSTARTED') {
         this.starting = starting;
         this.ending = ending;

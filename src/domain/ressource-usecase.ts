@@ -1,6 +1,7 @@
-import { DataSource } from "typeorm";
+import { DataSource, LessThanOrEqual } from "typeorm";
 import { Resource } from "../database/entities/ressource";
 import { Mission } from "../database/entities/mission";
+import { ResourceAvailability } from "../database/entities/resourceAvailability";
 
 export class ResourceUsecase {
     constructor(private readonly db: DataSource) { }
@@ -25,6 +26,7 @@ export class ResourceUsecase {
         return newResource;
     }
     
+  
 
     async assignResourcesToMission(missionId: number, resourceIds: number[]): Promise<Mission | string> {
         const missionRepo = this.db.getRepository(Mission);
@@ -40,7 +42,7 @@ export class ResourceUsecase {
             if (!resource.isAvailable) {
                 return `Resource ${resource.name} is not available`;
             }
-            resource.isAvailable = false; // Mark the resource as unavailable
+            resource.isAvailable = false;  
         }
 
         mission.resources.push(...resources);
@@ -79,10 +81,32 @@ export class ResourceUsecase {
         if (!mission) throw new Error('Mission not found');
         return mission.resources;
     }
-
+    async   cleanUpExpiredAvailabilities(): Promise<void> {
+        const resourceAvailabilityRepo = this.db.getRepository(ResourceAvailability);
+        const currentDate = new Date();
+    
+         await resourceAvailabilityRepo.delete({
+            end: LessThanOrEqual(currentDate),
+        });
+    }
+    
     async getAllResources(): Promise<Resource[]> {
         const resourceRepo = this.db.getRepository(Resource);
+    
+         const missions = await this.db.getRepository(Mission).find({ relations: ['resources'] });
+        const currentDate = new Date();
+    
+        for (const mission of missions) {
+            for (const resource of mission.resources) {
+                if (currentDate > mission.ending && resource.isAvailable === false) {
+                    resource.isAvailable = true;
+                    await resourceRepo.save(resource);
+                }
+            }
+        }
+    
         return await resourceRepo.find();
     }
+    
 
 }

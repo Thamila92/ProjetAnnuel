@@ -8,6 +8,7 @@ import { Step } from "../database/entities/step";
 import { Skill } from "../database/entities/skill";
 
 import { Resource } from "../database/entities/ressource";
+import { ResourceAvailability } from "../database/entities/resourceAvailability";
 
 export interface ListMissionFilter {
     limit: number;
@@ -62,17 +63,27 @@ export class MissionUsecase {
     }
     
 
+    async   isResourceAvailable(resourceId: number, start: Date, end: Date): Promise<boolean> {
+        const resourceAvailabilityRepository = this.db.getRepository(ResourceAvailability);
+    
+        const overlappingAvailabilities = await resourceAvailabilityRepository
+            .createQueryBuilder("availability")
+            .where("availability.resourceId = :resourceId", { resourceId })
+            .andWhere("(availability.start < :end AND availability.end > :start)", { start, end })
+            .getCount();
+    
+        return overlappingAvailabilities === 0;
+    }
     
     
-
     async createMission(
-        starting: Date, 
-        ending: Date, 
-        description: string, 
-        eventId: number | null, 
-        stepId: number | null, 
-        skills: string[] | null, 
-        userEmails: string[] | null, 
+        starting: Date,
+        ending: Date,
+        description: string,
+        eventId: number | null,
+        stepId: number | null,
+        skills: string[] | null,
+        userEmails: string[] | null,
         resourceIds: number[] | null
     ): Promise<Mission | string> {
         const missionRepo = this.db.getRepository(Mission);
@@ -140,26 +151,38 @@ export class MissionUsecase {
     
         let assignedUsers: User[] = [];
         if (userEmails) {
-            assignedUsers = await userRepo.createQueryBuilder('user')
-                .where('user.email IN (:...userEmails)', { userEmails })
-                .getMany();
+            for (const email of userEmails) {
+                const user = await userRepo.findOne({ where: { email } });
+                if (user) {
+                    user.isAvailable = false;
+                    await userRepo.save(user);
+                    assignedUsers.push(user);
+                }
+            }
         }
     
         let assignedResources: Resource[] = [];
         if (resourceIds) {
-            assignedResources = await resourceRepo.findByIds(resourceIds);
+            for (const resourceId of resourceIds) {
+                const resource = await resourceRepo.findOne({ where: { id: resourceId } });
+                if (resource) {
+                    resource.isAvailable = false;
+                    await resourceRepo.save(resource);
+                    assignedResources.push(resource);
+                }
+            }
         }
     
-        const newMission = missionRepo.create({ 
-            starting, 
-            ending, 
-            description, 
+        const newMission = missionRepo.create({
+            starting,
+            ending,
+            description,
             state: 'UNSTARTED',
-            evenement: eventFound || undefined, 
-            step: stepFound || undefined, 
-            requiredSkills, 
+            evenement: eventFound || undefined,
+            step: stepFound || undefined,
+            requiredSkills,
             assignedUsers,
-            resources: assignedResources 
+            resources: assignedResources
         });
         await missionRepo.save(newMission);
         return newMission;
@@ -190,7 +213,7 @@ export class MissionUsecase {
     
         return missionFound;
     }
-    
+ 
     async updateMission(id: number, params: UpdateMissionParams): Promise<Mission | null | string> {
         const repo = this.db.getRepository(Mission);
         const evenementRepo = this.db.getRepository(Evenement);
@@ -201,7 +224,7 @@ export class MissionUsecase {
     
         const missionFound = await repo.findOne({
             where: { id },
-            relations: ['evenement', 'step', 'requiredSkills', 'assignedUsers', 'resources'],
+            relations: ['evenement', 'step', 'requiredSkills', 'assignedUsers', 'resources']
         });
         if (!missionFound) return "Mission not found";
     
@@ -246,24 +269,74 @@ export class MissionUsecase {
             return "Il existe déjà une mission sur cette période.";
         }
     
+        // Libérer les anciennes ressources et utilisateurs
+        const oldResources = missionFound.resources;
+        if (oldResources) {
+            for (const resource of oldResources) {
+                resource.isAvailable = true;
+                await resourceRepo.save(resource);
+            }
+        }
+    
+        const oldUsers = missionFound.assignedUsers;
+        if (oldUsers) {
+            for (const user of oldUsers) {
+                user.isAvailable = true;
+                await userRepo.save(user);
+            }
+        }
+    
         // Mettre à jour la mission
         if (params.starting) missionFound.starting = params.starting;
         if (params.ending) missionFound.ending = params.ending;
         if (params.description) missionFound.description = params.description;
     
-        // Mettre à jour les compétences (skills)
-        if (params.skills) {
+        // Réinitialiser les compétences si un tableau vide est fourni
+        if (Array.isArray(params.skills)) {
+            missionFound.requiredSkills = [];
+        }
+    
+        // Mettre à jour les compétences (skills) si des valeurs sont fournies
+        if (params.skills && params.skills.length > 0) {
             missionFound.requiredSkills = await skillRepo.find({ where: { name: In(params.skills) } });
         }
     
-        // Mettre à jour les utilisateurs (users)
-        if (params.userEmails) {
-            missionFound.assignedUsers = await userRepo.find({ where: { email: In(params.userEmails) } });
+        // Réinitialiser les utilisateurs si un tableau vide est fourni
+        if (Array.isArray(params.userEmails)) {
+            missionFound.assignedUsers = [];
         }
     
-        // Mettre à jour les ressources (resources)
-        if (params.resources) {
-            missionFound.resources = await resourceRepo.find({ where: { id: In(params.resources) } });
+        // Mettre à jour les utilisateurs (users) si des valeurs sont fournies
+        if (params.userEmails && params.userEmails.length > 0) {
+            const assignedUsers: User[] = [];
+            for (const email of params.userEmails) {
+                const user = await userRepo.findOne({ where: { email } });
+                if (user) {
+                    user.isAvailable = false;
+                    await userRepo.save(user);
+                    assignedUsers.push(user);
+                }
+            }
+            missionFound.assignedUsers = assignedUsers;
+        }
+    
+        // Réinitialiser les ressources si un tableau vide est fourni
+        if (Array.isArray(params.resources)) {
+            missionFound.resources = [];
+        }
+    
+        // Assigner les nouvelles ressources
+        if (params.resources && params.resources.length > 0) {
+            const assignedResources: Resource[] = [];
+            for (const resourceId of params.resources) {
+                const resource = await resourceRepo.findOne({ where: { id: resourceId } });
+                if (resource) {
+                    resource.isAvailable = false;
+                    await resourceRepo.save(resource);
+                    assignedResources.push(resource);
+                }
+            }
+            missionFound.resources = assignedResources;
         }
     
         // Mettre à jour l'état en fonction des nouvelles dates
@@ -281,6 +354,9 @@ export class MissionUsecase {
         const updatedMission = await repo.save(missionFound);
         return updatedMission;
     }
+    
+    
+
     
     
     async deleteMission(id: number): Promise<boolean | Mission> {

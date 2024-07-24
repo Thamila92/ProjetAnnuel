@@ -38,7 +38,13 @@ export class EvenementUsecase {
 
     async listEvenements(filter: ListEvenementFilter): Promise<{ evenements: Evenement[]; totalCount: number; }> {
         const query = this.db.createQueryBuilder(Evenement, 'evenement')
+// <<<<<<< HEAD
             .leftJoinAndSelect('evenement.location', 'location')
+// =======
+//             .leftJoinAndSelect('evenement.location', 'location')  
+//             .leftJoinAndSelect('evenement.mission', 'mission')   
+
+// >>>>>>> e13ce5da6e3b4b9ede92d9419da8b573ce103965
             .where('evenement.isDeleted = :isDeleted', { isDeleted: false })
             .orderBy('evenement.starting', 'DESC')  // Order by starting date in descending order
             .skip((filter.page - 1) * filter.limit)

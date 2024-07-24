@@ -18,6 +18,7 @@ const user_1 = require("../database/entities/user");
 const step_1 = require("../database/entities/step");
 const skill_1 = require("../database/entities/skill");
 const ressource_1 = require("../database/entities/ressource");
+const resourceAvailability_1 = require("../database/entities/resourceAvailability");
 class MissionUsecase {
     constructor(db) {
         this.db = db;
@@ -54,6 +55,17 @@ class MissionUsecase {
                 missions,
                 totalCount
             };
+        });
+    }
+    isResourceAvailable(resourceId, start, end) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const resourceAvailabilityRepository = this.db.getRepository(resourceAvailability_1.ResourceAvailability);
+            const overlappingAvailabilities = yield resourceAvailabilityRepository
+                .createQueryBuilder("availability")
+                .where("availability.resourceId = :resourceId", { resourceId })
+                .andWhere("(availability.start < :end AND availability.end > :start)", { start, end })
+                .getCount();
+            return overlappingAvailabilities === 0;
         });
     }
     createMission(starting, ending, description, eventId, stepId, skills, userEmails, resourceIds) {
@@ -114,13 +126,25 @@ class MissionUsecase {
             }
             let assignedUsers = [];
             if (userEmails) {
-                assignedUsers = yield userRepo.createQueryBuilder('user')
-                    .where('user.email IN (:...userEmails)', { userEmails })
-                    .getMany();
+                for (const email of userEmails) {
+                    const user = yield userRepo.findOne({ where: { email } });
+                    if (user) {
+                        user.isAvailable = false;
+                        yield userRepo.save(user);
+                        assignedUsers.push(user);
+                    }
+                }
             }
             let assignedResources = [];
             if (resourceIds) {
-                assignedResources = yield resourceRepo.findByIds(resourceIds);
+                for (const resourceId of resourceIds) {
+                    const resource = yield resourceRepo.findOne({ where: { id: resourceId } });
+                    if (resource) {
+                        resource.isAvailable = false;
+                        yield resourceRepo.save(resource);
+                        assignedResources.push(resource);
+                    }
+                }
             }
             const newMission = missionRepo.create({
                 starting,
@@ -170,7 +194,7 @@ class MissionUsecase {
             const resourceRepo = this.db.getRepository(ressource_1.Resource);
             const missionFound = yield repo.findOne({
                 where: { id },
-                relations: ['evenement', 'step', 'requiredSkills', 'assignedUsers', 'resources'],
+                relations: ['evenement', 'step', 'requiredSkills', 'assignedUsers', 'resources']
             });
             if (!missionFound)
                 return "Mission not found";
@@ -209,6 +233,21 @@ class MissionUsecase {
             if (conflictingMissions.length > 0) {
                 return "Il existe déjà une mission sur cette période.";
             }
+            // Libérer les anciennes ressources et utilisateurs
+            const oldResources = missionFound.resources;
+            if (oldResources) {
+                for (const resource of oldResources) {
+                    resource.isAvailable = true;
+                    yield resourceRepo.save(resource);
+                }
+            }
+            const oldUsers = missionFound.assignedUsers;
+            if (oldUsers) {
+                for (const user of oldUsers) {
+                    user.isAvailable = true;
+                    yield userRepo.save(user);
+                }
+            }
             // Mettre à jour la mission
             if (params.starting)
                 missionFound.starting = params.starting;
@@ -216,17 +255,47 @@ class MissionUsecase {
                 missionFound.ending = params.ending;
             if (params.description)
                 missionFound.description = params.description;
-            // Mettre à jour les compétences (skills)
-            if (params.skills) {
+            // Réinitialiser les compétences si un tableau vide est fourni
+            if (Array.isArray(params.skills)) {
+                missionFound.requiredSkills = [];
+            }
+            // Mettre à jour les compétences (skills) si des valeurs sont fournies
+            if (params.skills && params.skills.length > 0) {
                 missionFound.requiredSkills = yield skillRepo.find({ where: { name: (0, typeorm_1.In)(params.skills) } });
             }
-            // Mettre à jour les utilisateurs (users)
-            if (params.userEmails) {
-                missionFound.assignedUsers = yield userRepo.find({ where: { email: (0, typeorm_1.In)(params.userEmails) } });
+            // Réinitialiser les utilisateurs si un tableau vide est fourni
+            if (Array.isArray(params.userEmails)) {
+                missionFound.assignedUsers = [];
             }
-            // Mettre à jour les ressources (resources)
-            if (params.resources) {
-                missionFound.resources = yield resourceRepo.find({ where: { id: (0, typeorm_1.In)(params.resources) } });
+            // Mettre à jour les utilisateurs (users) si des valeurs sont fournies
+            if (params.userEmails && params.userEmails.length > 0) {
+                const assignedUsers = [];
+                for (const email of params.userEmails) {
+                    const user = yield userRepo.findOne({ where: { email } });
+                    if (user) {
+                        user.isAvailable = false;
+                        yield userRepo.save(user);
+                        assignedUsers.push(user);
+                    }
+                }
+                missionFound.assignedUsers = assignedUsers;
+            }
+            // Réinitialiser les ressources si un tableau vide est fourni
+            if (Array.isArray(params.resources)) {
+                missionFound.resources = [];
+            }
+            // Assigner les nouvelles ressources
+            if (params.resources && params.resources.length > 0) {
+                const assignedResources = [];
+                for (const resourceId of params.resources) {
+                    const resource = yield resourceRepo.findOne({ where: { id: resourceId } });
+                    if (resource) {
+                        resource.isAvailable = false;
+                        yield resourceRepo.save(resource);
+                        assignedResources.push(resource);
+                    }
+                }
+                missionFound.resources = assignedResources;
             }
             // Mettre à jour l'état en fonction des nouvelles dates
             const currentDate = new Date();

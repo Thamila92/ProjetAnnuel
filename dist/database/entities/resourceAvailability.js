@@ -9,32 +9,28 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Resource = void 0;
+exports.ResourceAvailability = void 0;
 const typeorm_1 = require("typeorm");
-const resourceAvailability_1 = require("./resourceAvailability");
-let Resource = class Resource {
+const ressource_1 = require("./ressource");
+let ResourceAvailability = class ResourceAvailability {
 };
-exports.Resource = Resource;
+exports.ResourceAvailability = ResourceAvailability;
 __decorate([
     (0, typeorm_1.PrimaryGeneratedColumn)(),
     __metadata("design:type", Number)
-], Resource.prototype, "id", void 0);
+], ResourceAvailability.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], Resource.prototype, "name", void 0);
+    (0, typeorm_1.Column)({ type: "datetime" }),
+    __metadata("design:type", Date)
+], ResourceAvailability.prototype, "start", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], Resource.prototype, "type", void 0);
+    (0, typeorm_1.Column)({ type: "datetime" }),
+    __metadata("design:type", Date)
+], ResourceAvailability.prototype, "end", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: true }),
-    __metadata("design:type", Boolean)
-], Resource.prototype, "isAvailable", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => resourceAvailability_1.ResourceAvailability, (availability) => availability.resource),
-    __metadata("design:type", Array)
-], Resource.prototype, "availabilities", void 0);
-exports.Resource = Resource = __decorate([
-    (0, typeorm_1.Entity)({ name: "resource" })
-], Resource);
+    (0, typeorm_1.ManyToOne)(() => ressource_1.Resource, (resource) => resource.availabilities),
+    __metadata("design:type", ressource_1.Resource)
+], ResourceAvailability.prototype, "resource", void 0);
+exports.ResourceAvailability = ResourceAvailability = __decorate([
+    (0, typeorm_1.Entity)({ name: "resource_availability" })
+], ResourceAvailability);
