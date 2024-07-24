@@ -21,7 +21,7 @@ class EvenementUsecase {
         return __awaiter(this, void 0, void 0, function* () {
             const query = this.db.createQueryBuilder(evenement_1.Evenement, 'evenement')
                 .leftJoinAndSelect('evenement.location', 'location')
-                .leftJoinAndSelect('evenement.mission', 'mission')
+                .leftJoinAndSelect('evenement.missions', 'mission')
                 .where('evenement.isDeleted = :isDeleted', { isDeleted: false })
                 .skip((filter.page - 1) * filter.limit)
                 .take(filter.limit);
