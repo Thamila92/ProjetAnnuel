@@ -259,11 +259,9 @@ class MissionUsecase {
             if (Array.isArray(params.skills)) {
                 missionFound.requiredSkills = [];
             }
-            // Mettre à jour les compétences (skills) si des valeurs sont fournies
             if (params.skills && params.skills.length > 0) {
                 missionFound.requiredSkills = yield skillRepo.find({ where: { name: (0, typeorm_1.In)(params.skills) } });
             }
-            // Réinitialiser les utilisateurs si un tableau vide est fourni
             if (Array.isArray(params.userEmails)) {
                 missionFound.assignedUsers = [];
             }

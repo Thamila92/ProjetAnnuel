@@ -137,15 +137,24 @@ const initRoutes = (app, documentUsecase) => {
             limit = listUserRequest.limit;
         }
         let type = "";
-        if (listUserRequest.type) { // Utiliser 'type' au lieu de 'status'
+        if (listUserRequest.type) {
             type = listUserRequest.type;
         }
         const page = (_a = listUserRequest.page) !== null && _a !== void 0 ? _a : 1;
         const skills = (_b = listUserRequest.skills) !== null && _b !== void 0 ? _b : [];
         try {
             const userUsecase = new user_usecase_1.UserUsecase(database_1.AppDataSource);
-            const listusers = yield userUsecase.listUser(Object.assign(Object.assign({}, listUserRequest), { page, limit, type, skills }));
-            res.status(200).json(listusers);
+            // Libérer les utilisateurs avant de récupérer les utilisateurs disponibles
+            yield userUsecase.getAllUsers();
+            let listusers = [];
+            if (type === "NORMAL") {
+                listusers = yield userUsecase.getAvailableUsersByStatus("NORMAL");
+            }
+            else {
+                // Logic for other types if needed
+                // Exemple: listusers = await userUsecase.getAvailableUsersByStatus(type);
+            }
+            res.status(200).json({ users: listusers, totalCount: listusers.length });
         }
         catch (error) {
             console.log(error);

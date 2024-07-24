@@ -296,12 +296,10 @@ export class MissionUsecase {
             missionFound.requiredSkills = [];
         }
     
-        // Mettre à jour les compétences (skills) si des valeurs sont fournies
-        if (params.skills && params.skills.length > 0) {
+         if (params.skills && params.skills.length > 0) {
             missionFound.requiredSkills = await skillRepo.find({ where: { name: In(params.skills) } });
         }
     
-        // Réinitialiser les utilisateurs si un tableau vide est fourni
         if (Array.isArray(params.userEmails)) {
             missionFound.assignedUsers = [];
         }

@@ -238,7 +238,7 @@ async getUsersByRole(role: string): Promise<string[]> {
     await userRepo.save(userFound);
     return userFound;
 }
-async getUsersByStatus(statusDescription: string): Promise<User[]> {
+async getAvailableUsersByStatus(statusDescription: string): Promise<User[]> {
   const status = await this.db.getRepository(Status)
       .createQueryBuilder('status')
       .where('status.description = :description', { description: statusDescription })
@@ -253,10 +253,12 @@ async getUsersByStatus(statusDescription: string): Promise<User[]> {
       .leftJoinAndSelect('user.status', 'status')
       .where('user.status.id = :statusId', { statusId: status.id })
       .andWhere('user.isDeleted = :isDeleted', { isDeleted: false })
+      .andWhere('user.isAvailable = :isAvailable', { isAvailable: true })
       .getMany();
 
   return users;
 }
+
 async getAllUsers(): Promise<User[]> {
   const userRepo = this.db.getRepository(User);
 

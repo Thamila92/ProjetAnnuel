@@ -140,35 +140,48 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
 
     app.get('/users', adminMiddleware, async (req: Request, res: Response) => {
         const validation = listUsersValidation.validate(req.query);
-
+    
         if (validation.error) {
             res.status(400).json(generateValidationErrorMessage(validation.error.details));
             return;
         }
-
+    
         const listUserRequest = validation.value;
         let limit = 10;
         if (listUserRequest.limit) {
             limit = listUserRequest.limit;
         }
-
+    
         let type = "";
-        if (listUserRequest.type) { // Utiliser 'type' au lieu de 'status'
+        if (listUserRequest.type) {
             type = listUserRequest.type;
         }
-
+    
         const page = listUserRequest.page ?? 1;
         const skills = listUserRequest.skills ?? [];
-
+    
         try {
             const userUsecase = new UserUsecase(AppDataSource);
-            const listusers = await userUsecase.listUser({ ...listUserRequest, page, limit, type, skills });
-            res.status(200).json(listusers);
+    
+            // Libérer les utilisateurs avant de récupérer les utilisateurs disponibles
+            await userUsecase.getAllUsers();
+    
+            let listusers: User[] = [];
+    
+            if (type === "NORMAL") {
+                listusers = await userUsecase.getAvailableUsersByStatus("NORMAL");
+            } else {
+                // Logic for other types if needed
+                // Exemple: listusers = await userUsecase.getAvailableUsersByStatus(type);
+            }
+    
+            res.status(200).json({ users: listusers, totalCount: listusers.length });
         } catch (error) {
             console.log(error);
             res.status(500).json({ error: "Internal error" });
         }
     });
+    
   
     app.get("/users/:id", authMiddleware, async (req: Request, res: Response) => {
         try {

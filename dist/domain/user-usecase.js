@@ -196,7 +196,7 @@ class UserUsecase {
             return userFound;
         });
     }
-    getUsersByStatus(statusDescription) {
+    getAvailableUsersByStatus(statusDescription) {
         return __awaiter(this, void 0, void 0, function* () {
             const status = yield this.db.getRepository(status_1.Status)
                 .createQueryBuilder('status')
@@ -210,6 +210,7 @@ class UserUsecase {
                 .leftJoinAndSelect('user.status', 'status')
                 .where('user.status.id = :statusId', { statusId: status.id })
                 .andWhere('user.isDeleted = :isDeleted', { isDeleted: false })
+                .andWhere('user.isAvailable = :isAvailable', { isAvailable: true })
                 .getMany();
             return users;
         });
