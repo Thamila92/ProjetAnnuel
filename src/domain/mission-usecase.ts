@@ -267,45 +267,53 @@ export class MissionUsecase {
             return "Il existe déjà une mission sur cette période.";
         }
     
-         const oldResources = missionFound.resources;
+        // Libérer les anciennes disponibilités des ressources
+        const oldResources = missionFound.resources;
         if (oldResources) {
             for (const resource of oldResources) {
                 await resourceAvailabilityRepo.delete({ resource, start: missionFound.starting, end: missionFound.ending });
             }
         }
     
-         if (params.starting) missionFound.starting = params.starting;
+        // Mettre à jour la mission
+        if (params.starting) missionFound.starting = params.starting;
         if (params.ending) missionFound.ending = params.ending;
         if (params.description) missionFound.description = params.description;
     
-         if (Array.isArray(params.skills)) {
+        // Réinitialiser les compétences si un tableau vide est fourni
+        if (Array.isArray(params.skills)) {
             missionFound.requiredSkills = [];
         }
     
-         if (params.skills && params.skills.length > 0) {
+        // Mettre à jour les compétences (skills) si des valeurs sont fournies
+        if (params.skills && params.skills.length > 0) {
             missionFound.requiredSkills = await skillRepo.find({ where: { name: In(params.skills) } });
         }
     
-         if (Array.isArray(params.userEmails)) {
+        // Réinitialiser les utilisateurs si un tableau vide est fourni
+        if (Array.isArray(params.userEmails)) {
             missionFound.assignedUsers = [];
         }
     
-         if (params.userEmails && params.userEmails.length > 0) {
+        // Mettre à jour les utilisateurs (users) si des valeurs sont fournies
+        if (params.userEmails && params.userEmails.length > 0) {
             missionFound.assignedUsers = await userRepo.find({ where: { email: In(params.userEmails) } });
         }
     
-         if (Array.isArray(params.resources)) {
+        // Réinitialiser les ressources si un tableau vide est fourni
+        if (Array.isArray(params.resources)) {
             missionFound.resources = [];
         }
     
-         if (params.resources && params.resources.length > 0) {
+        // Vérifier la disponibilité des nouvelles ressources et les assigner si des valeurs sont fournies
+        if (params.resources && params.resources.length > 0) {
             let assignedResources: Resource[] = [];
             for (const resourceId of params.resources) {
                 const isAvailable = await this.isResourceAvailable(resourceId, newStarting, newEnding);
                 if (!isAvailable) {
                     return `Resource ${resourceId} is not available for the requested period`;
                 }
-                const resource = await resourceRepo.findOneBy({ id: resourceId });
+                const resource = await resourceRepo.findOne({ where: { id: resourceId } });
                 if (resource) {
                     assignedResources.push(resource);
                 }
@@ -313,19 +321,18 @@ export class MissionUsecase {
             missionFound.resources = assignedResources;
     
             // Marquer les nouvelles disponibilités des ressources
-            if (assignedResources.length > 0) {
-                for (const resource of assignedResources) {
-                    const availability = resourceAvailabilityRepo.create({
-                        resource,
-                        start: newStarting,
-                        end: newEnding,
-                    });
-                    await resourceAvailabilityRepo.save(availability);
-                }
+            for (const resource of assignedResources) {
+                const availability = resourceAvailabilityRepo.create({
+                    resource,
+                    start: newStarting,
+                    end: newEnding,
+                });
+                await resourceAvailabilityRepo.save(availability);
             }
         }
     
-         const currentDate = new Date();
+        // Mettre à jour l'état en fonction des nouvelles dates
+        const currentDate = new Date();
         if (currentDate > missionFound.ending) {
             missionFound.state = 'ENDED';
         } else if (currentDate > missionFound.starting && currentDate < missionFound.ending) {

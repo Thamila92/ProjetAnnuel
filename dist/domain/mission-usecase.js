@@ -231,33 +231,41 @@ class MissionUsecase {
             if (conflictingMissions.length > 0) {
                 return "Il existe déjà une mission sur cette période.";
             }
+            // Libérer les anciennes disponibilités des ressources
             const oldResources = missionFound.resources;
             if (oldResources) {
                 for (const resource of oldResources) {
                     yield resourceAvailabilityRepo.delete({ resource, start: missionFound.starting, end: missionFound.ending });
                 }
             }
+            // Mettre à jour la mission
             if (params.starting)
                 missionFound.starting = params.starting;
             if (params.ending)
                 missionFound.ending = params.ending;
             if (params.description)
                 missionFound.description = params.description;
+            // Réinitialiser les compétences si un tableau vide est fourni
             if (Array.isArray(params.skills)) {
                 missionFound.requiredSkills = [];
             }
+            // Mettre à jour les compétences (skills) si des valeurs sont fournies
             if (params.skills && params.skills.length > 0) {
                 missionFound.requiredSkills = yield skillRepo.find({ where: { name: (0, typeorm_1.In)(params.skills) } });
             }
+            // Réinitialiser les utilisateurs si un tableau vide est fourni
             if (Array.isArray(params.userEmails)) {
                 missionFound.assignedUsers = [];
             }
+            // Mettre à jour les utilisateurs (users) si des valeurs sont fournies
             if (params.userEmails && params.userEmails.length > 0) {
                 missionFound.assignedUsers = yield userRepo.find({ where: { email: (0, typeorm_1.In)(params.userEmails) } });
             }
+            // Réinitialiser les ressources si un tableau vide est fourni
             if (Array.isArray(params.resources)) {
                 missionFound.resources = [];
             }
+            // Vérifier la disponibilité des nouvelles ressources et les assigner si des valeurs sont fournies
             if (params.resources && params.resources.length > 0) {
                 let assignedResources = [];
                 for (const resourceId of params.resources) {
@@ -265,24 +273,23 @@ class MissionUsecase {
                     if (!isAvailable) {
                         return `Resource ${resourceId} is not available for the requested period`;
                     }
-                    const resource = yield resourceRepo.findOneBy({ id: resourceId });
+                    const resource = yield resourceRepo.findOne({ where: { id: resourceId } });
                     if (resource) {
                         assignedResources.push(resource);
                     }
                 }
                 missionFound.resources = assignedResources;
                 // Marquer les nouvelles disponibilités des ressources
-                if (assignedResources.length > 0) {
-                    for (const resource of assignedResources) {
-                        const availability = resourceAvailabilityRepo.create({
-                            resource,
-                            start: newStarting,
-                            end: newEnding,
-                        });
-                        yield resourceAvailabilityRepo.save(availability);
-                    }
+                for (const resource of assignedResources) {
+                    const availability = resourceAvailabilityRepo.create({
+                        resource,
+                        start: newStarting,
+                        end: newEnding,
+                    });
+                    yield resourceAvailabilityRepo.save(availability);
                 }
             }
+            // Mettre à jour l'état en fonction des nouvelles dates
             const currentDate = new Date();
             if (currentDate > missionFound.ending) {
                 missionFound.state = 'ENDED';
