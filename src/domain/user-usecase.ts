@@ -259,7 +259,7 @@ async getAvailableUsersByStatus(statusDescription: string): Promise<User[]> {
   return users;
 }
 
-async getAllUsers(): Promise<User[]> {
+async getAllUsers_available(): Promise<User[]> {
   const userRepo = this.db.getRepository(User);
 
    const missions = await this.db.getRepository(Mission).find({ relations: ['assignedUsers'] });
@@ -275,6 +275,9 @@ async getAllUsers(): Promise<User[]> {
   }
 
   return await userRepo.find();
+}
+async getAllUsers(): Promise<User[]> {
+  return await this.db.getRepository(User).find();
 }
 
     

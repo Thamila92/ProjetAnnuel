@@ -145,14 +145,13 @@ const initRoutes = (app, documentUsecase) => {
         try {
             const userUsecase = new user_usecase_1.UserUsecase(database_1.AppDataSource);
             // Libérer les utilisateurs avant de récupérer les utilisateurs disponibles
-            yield userUsecase.getAllUsers();
+            yield userUsecase.getAllUsers_available();
             let listusers = [];
             if (type === "NORMAL") {
                 listusers = yield userUsecase.getAvailableUsersByStatus("NORMAL");
             }
             else {
-                // Logic for other types if needed
-                // Exemple: listusers = await userUsecase.getAvailableUsersByStatus(type);
+                listusers = yield userUsecase.getAllUsers();
             }
             res.status(200).json({ users: listusers, totalCount: listusers.length });
         }

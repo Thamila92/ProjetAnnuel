@@ -215,7 +215,7 @@ class UserUsecase {
             return users;
         });
     }
-    getAllUsers() {
+    getAllUsers_available() {
         return __awaiter(this, void 0, void 0, function* () {
             const userRepo = this.db.getRepository(user_1.User);
             const missions = yield this.db.getRepository(mission_1.Mission).find({ relations: ['assignedUsers'] });
@@ -229,6 +229,11 @@ class UserUsecase {
                 }
             }
             return yield userRepo.find();
+        });
+    }
+    getAllUsers() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return yield this.db.getRepository(user_1.User).find();
         });
     }
 }

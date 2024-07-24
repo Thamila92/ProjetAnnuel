@@ -164,15 +164,15 @@ export const initRoutes = (app: express.Express, documentUsecase: DocumentUsecas
             const userUsecase = new UserUsecase(AppDataSource);
     
             // Libérer les utilisateurs avant de récupérer les utilisateurs disponibles
-            await userUsecase.getAllUsers();
+            await userUsecase.getAllUsers_available();
     
             let listusers: User[] = [];
     
             if (type === "NORMAL") {
                 listusers = await userUsecase.getAvailableUsersByStatus("NORMAL");
             } else {
-                // Logic for other types if needed
-                // Exemple: listusers = await userUsecase.getAvailableUsersByStatus(type);
+                listusers = await userUsecase.getAllUsers();
+
             }
     
             res.status(200).json({ users: listusers, totalCount: listusers.length });
