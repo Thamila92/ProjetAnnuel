@@ -17,10 +17,8 @@ enum statustype {
 export class Mission {
     @PrimaryGeneratedColumn()
     id!: number;
-
     @Column()
     starting: Date;
-
     @Column()
     ending: Date;
 
@@ -30,28 +28,23 @@ export class Mission {
     @Column()
     description: string;
 
-    @ManyToOne(() => Evenement, (evenement) => evenement.mission, { nullable: true })  // Corrected relation path
+    @ManyToOne(() => Evenement, (evenement) => evenement.mission, { nullable: true })
     evenement?: Evenement;
-
     @ManyToOne(() => Step, (step) => step.missions, { nullable: true })
     step?: Step;
-
     @ManyToMany(() => User, { eager: true })
     @JoinTable()
     assignedUsers!: User[];
-
     @ManyToMany(() => Skill, { eager: true })
     @JoinTable()
     requiredSkills!: Skill[];
-
     @OneToMany(() => Review, (review) => review.mission)
     reviews!: Review[];
-
     @ManyToMany(() => Resource, { eager: true })
     @JoinTable()
     resources!: Resource[];
-    
-    constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step, state: statustype = statustype.unstarted) {
+
+     constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step, state: string = 'UNSTARTED') {
         this.starting = starting;
         this.ending = ending;
         this.description = description;
@@ -59,4 +52,7 @@ export class Mission {
         this.step = step;
         this.state = state;
     }
+
+    
+   
 }

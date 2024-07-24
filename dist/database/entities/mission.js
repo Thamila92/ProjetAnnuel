@@ -25,7 +25,7 @@ var statustype;
     statustype["ended"] = "ENDED";
 })(statustype || (statustype = {}));
 let Mission = class Mission {
-    constructor(starting, ending, description, evenement, step, state = statustype.unstarted) {
+    constructor(starting, ending, description, evenement, step, state = 'UNSTARTED') {
         this.starting = starting;
         this.ending = ending;
         this.description = description;
@@ -56,8 +56,7 @@ __decorate([
     __metadata("design:type", String)
 ], Mission.prototype, "description", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => evenement_1.Evenement, (evenement) => evenement.mission, { nullable: true }) // Corrected relation path
-    ,
+    (0, typeorm_1.ManyToOne)(() => evenement_1.Evenement, (evenement) => evenement.mission, { nullable: true }),
     __metadata("design:type", evenement_1.Evenement)
 ], Mission.prototype, "evenement", void 0);
 __decorate([
