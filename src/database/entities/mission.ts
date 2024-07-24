@@ -4,7 +4,7 @@ import { User } from "./user";
 import { Step } from "./step";
 import { Review } from "./review";
 import { Skill } from "./skill";
-import { Resource } from "./ressource";
+import { Resource } from "./ressource";  
 
 enum statustype {
     unstarted = "UNSTARTED",
@@ -30,7 +30,7 @@ export class Mission {
     @Column()
     description: string;
 
-    @ManyToOne(() => Evenement, (evenement) => evenement.mission, { nullable: true })
+    @ManyToOne(() => Evenement, (evenement) => evenement.mission, { nullable: true })  // Corrected relation path
     evenement?: Evenement;
 
     @ManyToOne(() => Step, (step) => step.missions, { nullable: true })

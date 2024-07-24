@@ -56,7 +56,8 @@ __decorate([
     __metadata("design:type", String)
 ], Mission.prototype, "description", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => evenement_1.Evenement, (evenement) => evenement.mission, { nullable: true }),
+    (0, typeorm_1.ManyToOne)(() => evenement_1.Evenement, (evenement) => evenement.mission, { nullable: true }) // Corrected relation path
+    ,
     __metadata("design:type", evenement_1.Evenement)
 ], Mission.prototype, "evenement", void 0);
 __decorate([

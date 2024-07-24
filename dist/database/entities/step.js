@@ -50,7 +50,7 @@ __decorate([
     __metadata("design:type", projet_1.Projet)
 ], Step.prototype, "projet", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => mission_1.Mission, (mission) => mission.step),
+    (0, typeorm_1.OneToMany)(() => mission_1.Mission, (mission) => mission.step),
     __metadata("design:type", Array)
 ], Step.prototype, "missions", void 0);
 exports.Step = Step = __decorate([
