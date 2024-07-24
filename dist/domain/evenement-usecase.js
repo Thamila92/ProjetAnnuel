@@ -23,6 +23,7 @@ class EvenementUsecase {
                 .leftJoinAndSelect('evenement.location', 'location')
                 .leftJoinAndSelect('evenement.missions', 'mission')
                 .where('evenement.isDeleted = :isDeleted', { isDeleted: false })
+                .orderBy('evenement.starting', 'DESC') // Order by starting date in descending order
                 .skip((filter.page - 1) * filter.limit)
                 .take(filter.limit);
             const [evenements, totalCount] = yield query.getManyAndCount();

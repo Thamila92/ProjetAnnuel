@@ -38,13 +38,17 @@ export class EvenementUsecase {
 
     async listEvenements(filter: ListEvenementFilter): Promise<{ evenements: Evenement[]; totalCount: number; }> {
         const query = this.db.createQueryBuilder(Evenement, 'evenement')
+ 
             .leftJoinAndSelect('evenement.location', 'location')  
             .leftJoinAndSelect('evenement.missions', 'mission')   
-
-            .where('evenement.isDeleted = :isDeleted', { isDeleted: false })
+ 
+ 
+ 
+             .where('evenement.isDeleted = :isDeleted', { isDeleted: false })
+            .orderBy('evenement.starting', 'DESC')  // Order by starting date in descending order
             .skip((filter.page - 1) * filter.limit)
             .take(filter.limit);
-        
+    
         const [evenements, totalCount] = await query.getManyAndCount();
     
         const currentDate = new Date();
@@ -68,6 +72,7 @@ export class EvenementUsecase {
             totalCount
         };
     }
+    
     
     
     
