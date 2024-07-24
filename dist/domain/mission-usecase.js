@@ -234,7 +234,7 @@ class MissionUsecase {
             const oldResources = missionFound.resources;
             if (oldResources) {
                 for (const resource of oldResources) {
-                    yield resourceAvailabilityRepo.delete({ resource: resource, start: missionFound.starting, end: missionFound.ending });
+                    yield resourceAvailabilityRepo.delete({ resource, start: missionFound.starting, end: missionFound.ending });
                 }
             }
             if (params.starting)
@@ -243,16 +243,23 @@ class MissionUsecase {
                 missionFound.ending = params.ending;
             if (params.description)
                 missionFound.description = params.description;
-            // Mettre à jour les compétences (skills)
-            if (params.skills) {
+            if (Array.isArray(params.skills)) {
+                missionFound.requiredSkills = [];
+            }
+            if (params.skills && params.skills.length > 0) {
                 missionFound.requiredSkills = yield skillRepo.find({ where: { name: (0, typeorm_1.In)(params.skills) } });
             }
-            // Mettre à jour les utilisateurs (users)
-            if (params.userEmails) {
+            if (Array.isArray(params.userEmails)) {
+                missionFound.assignedUsers = [];
+            }
+            if (params.userEmails && params.userEmails.length > 0) {
                 missionFound.assignedUsers = yield userRepo.find({ where: { email: (0, typeorm_1.In)(params.userEmails) } });
             }
-            let assignedResources = [];
-            if (params.resources) {
+            if (Array.isArray(params.resources)) {
+                missionFound.resources = [];
+            }
+            if (params.resources && params.resources.length > 0) {
+                let assignedResources = [];
                 for (const resourceId of params.resources) {
                     const isAvailable = yield this.isResourceAvailable(resourceId, newStarting, newEnding);
                     if (!isAvailable) {
@@ -264,16 +271,16 @@ class MissionUsecase {
                     }
                 }
                 missionFound.resources = assignedResources;
-            }
-            // Marquer les nouvelles disponibilités des ressources
-            if (assignedResources.length > 0) {
-                for (const resource of assignedResources) {
-                    const availability = resourceAvailabilityRepo.create({
-                        resource,
-                        start: newStarting,
-                        end: newEnding,
-                    });
-                    yield resourceAvailabilityRepo.save(availability);
+                // Marquer les nouvelles disponibilités des ressources
+                if (assignedResources.length > 0) {
+                    for (const resource of assignedResources) {
+                        const availability = resourceAvailabilityRepo.create({
+                            resource,
+                            start: newStarting,
+                            end: newEnding,
+                        });
+                        yield resourceAvailabilityRepo.save(availability);
+                    }
                 }
             }
             const currentDate = new Date();

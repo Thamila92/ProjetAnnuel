@@ -211,124 +211,135 @@ export class MissionUsecase {
         return missionFound;
     }
  
- async updateMission(id: number, params: UpdateMissionParams): Promise<Mission | null | string> {
-    const repo = this.db.getRepository(Mission);
-    const evenementRepo = this.db.getRepository(Evenement);
-    const stepRepo = this.db.getRepository(Step);
-    const skillRepo = this.db.getRepository(Skill);
-    const userRepo = this.db.getRepository(User);
-    const resourceRepo = this.db.getRepository(Resource);
-    const resourceAvailabilityRepo = this.db.getRepository(ResourceAvailability);
-
-    const missionFound = await repo.findOne({
-        where: { id },
-        relations: ['evenement', 'step', 'requiredSkills', 'assignedUsers', 'resources']
-    });
-    if (!missionFound) return "Mission not found";
-
-    const evenement = missionFound.evenement;
-    const step = missionFound.step;
-
-    if (!evenement && !step) return "Mission must be associated with either an event or a step";
-
-    const newStarting = params.starting || missionFound.starting;
-    const newEnding = params.ending || missionFound.ending;
-
-    if (evenement) {
-        if (newStarting < evenement.starting || newEnding > evenement.ending) {
-            return "La période de la mission doit être comprise dans celle de l'événement.";
-        }
-    }
-
-    if (step) {
-        if (newStarting < step.starting || newEnding > step.ending) {
-            return "La période de la mission doit être comprise dans celle de l'étape.";
-        }
-    }
-
-    const conflictingMissions = await repo.find({
-        where: [
-            {
-                evenement: evenement,
-                id: Not(id),
-                starting: LessThanOrEqual(newEnding),
-                ending: MoreThanOrEqual(newStarting),
-            },
-            {
-                step: step,
-                id: Not(id),
-                starting: LessThanOrEqual(newEnding),
-                ending: MoreThanOrEqual(newStarting),
-            }
-        ],
-    });
-
-    if (conflictingMissions.length > 0) {
-        return "Il existe déjà une mission sur cette période.";
-    }
-
-     const oldResources = missionFound.resources;
-    if (oldResources) {
-        for (const resource of oldResources) {
-            await resourceAvailabilityRepo.delete({ resource: resource, start: missionFound.starting, end: missionFound.ending });
-        }
-    }
-
-     if (params.starting) missionFound.starting = params.starting;
-    if (params.ending) missionFound.ending = params.ending;
-    if (params.description) missionFound.description = params.description;
-
-    // Mettre à jour les compétences (skills)
-    if (params.skills) {
-        missionFound.requiredSkills = await skillRepo.find({ where: { name: In(params.skills) } });
-    }
-
-    // Mettre à jour les utilisateurs (users)
-    if (params.userEmails) {
-        missionFound.assignedUsers = await userRepo.find({ where: { email: In(params.userEmails) } });
-    }
-
-     let assignedResources: Resource[] = [];
-    if (params.resources) {
-        for (const resourceId of params.resources) {
-            const isAvailable = await this.isResourceAvailable(resourceId, newStarting, newEnding);
-            if (!isAvailable) {
-                return `Resource ${resourceId} is not available for the requested period`;
-            }
-            const resource = await resourceRepo.findOneBy({ id: resourceId });  
-            if (resource) {
-                assignedResources.push(resource);
+    async updateMission(id: number, params: UpdateMissionParams): Promise<Mission | null | string> {
+        const repo = this.db.getRepository(Mission);
+        const evenementRepo = this.db.getRepository(Evenement);
+        const stepRepo = this.db.getRepository(Step);
+        const skillRepo = this.db.getRepository(Skill);
+        const userRepo = this.db.getRepository(User);
+        const resourceRepo = this.db.getRepository(Resource);
+        const resourceAvailabilityRepo = this.db.getRepository(ResourceAvailability);
+    
+        const missionFound = await repo.findOne({
+            where: { id },
+            relations: ['evenement', 'step', 'requiredSkills', 'assignedUsers', 'resources']
+        });
+        if (!missionFound) return "Mission not found";
+    
+        const evenement = missionFound.evenement;
+        const step = missionFound.step;
+    
+        if (!evenement && !step) return "Mission must be associated with either an event or a step";
+    
+        const newStarting = params.starting || missionFound.starting;
+        const newEnding = params.ending || missionFound.ending;
+    
+        if (evenement) {
+            if (newStarting < evenement.starting || newEnding > evenement.ending) {
+                return "La période de la mission doit être comprise dans celle de l'événement.";
             }
         }
-        missionFound.resources = assignedResources;
-    }
-
-    // Marquer les nouvelles disponibilités des ressources
-    if (assignedResources.length > 0) {
-        for (const resource of assignedResources) {
-            const availability = resourceAvailabilityRepo.create({
-                resource,
-                start: newStarting,
-                end: newEnding,
-            });
-            await resourceAvailabilityRepo.save(availability);
+    
+        if (step) {
+            if (newStarting < step.starting || newEnding > step.ending) {
+                return "La période de la mission doit être comprise dans celle de l'étape.";
+            }
         }
+    
+        const conflictingMissions = await repo.find({
+            where: [
+                {
+                    evenement: evenement,
+                    id: Not(id),
+                    starting: LessThanOrEqual(newEnding),
+                    ending: MoreThanOrEqual(newStarting),
+                },
+                {
+                    step: step,
+                    id: Not(id),
+                    starting: LessThanOrEqual(newEnding),
+                    ending: MoreThanOrEqual(newStarting),
+                }
+            ],
+        });
+    
+        if (conflictingMissions.length > 0) {
+            return "Il existe déjà une mission sur cette période.";
+        }
+    
+         const oldResources = missionFound.resources;
+        if (oldResources) {
+            for (const resource of oldResources) {
+                await resourceAvailabilityRepo.delete({ resource, start: missionFound.starting, end: missionFound.ending });
+            }
+        }
+    
+         if (params.starting) missionFound.starting = params.starting;
+        if (params.ending) missionFound.ending = params.ending;
+        if (params.description) missionFound.description = params.description;
+    
+         if (Array.isArray(params.skills)) {
+            missionFound.requiredSkills = [];
+        }
+    
+         if (params.skills && params.skills.length > 0) {
+            missionFound.requiredSkills = await skillRepo.find({ where: { name: In(params.skills) } });
+        }
+    
+         if (Array.isArray(params.userEmails)) {
+            missionFound.assignedUsers = [];
+        }
+    
+         if (params.userEmails && params.userEmails.length > 0) {
+            missionFound.assignedUsers = await userRepo.find({ where: { email: In(params.userEmails) } });
+        }
+    
+         if (Array.isArray(params.resources)) {
+            missionFound.resources = [];
+        }
+    
+         if (params.resources && params.resources.length > 0) {
+            let assignedResources: Resource[] = [];
+            for (const resourceId of params.resources) {
+                const isAvailable = await this.isResourceAvailable(resourceId, newStarting, newEnding);
+                if (!isAvailable) {
+                    return `Resource ${resourceId} is not available for the requested period`;
+                }
+                const resource = await resourceRepo.findOneBy({ id: resourceId });
+                if (resource) {
+                    assignedResources.push(resource);
+                }
+            }
+            missionFound.resources = assignedResources;
+    
+            // Marquer les nouvelles disponibilités des ressources
+            if (assignedResources.length > 0) {
+                for (const resource of assignedResources) {
+                    const availability = resourceAvailabilityRepo.create({
+                        resource,
+                        start: newStarting,
+                        end: newEnding,
+                    });
+                    await resourceAvailabilityRepo.save(availability);
+                }
+            }
+        }
+    
+         const currentDate = new Date();
+        if (currentDate > missionFound.ending) {
+            missionFound.state = 'ENDED';
+        } else if (currentDate > missionFound.starting && currentDate < missionFound.ending) {
+            missionFound.state = 'RUNNING';
+        } else if (currentDate.toDateString() === missionFound.starting.toDateString()) {
+            missionFound.state = 'STARTED';
+        } else {
+            missionFound.state = 'UNSTARTED';
+        }
+    
+        const updatedMission = await repo.save(missionFound);
+        return updatedMission;
     }
-
-     const currentDate = new Date();
-    if (currentDate > missionFound.ending) {
-        missionFound.state = 'ENDED';
-    } else if (currentDate > missionFound.starting && currentDate < missionFound.ending) {
-        missionFound.state = 'RUNNING';
-    } else if (currentDate.toDateString() === missionFound.starting.toDateString()) {
-        missionFound.state = 'STARTED';
-    } else {
-        missionFound.state = 'UNSTARTED';
-    }
-
-    const updatedMission = await repo.save(missionFound);
-    return updatedMission;
-}
+    
 
     
     
