@@ -7,7 +7,6 @@ import {
     OneToMany,
     PrimaryGeneratedColumn,
 } from "typeorm";
-
 import { Mission } from "./mission";
 import { User } from "./user";
 import { Program } from "./program";
@@ -58,7 +57,7 @@ export class Evenement {
     user!: User;
 
     @OneToMany(() => Mission, (mission) => mission.evenement)
-    mission!: Mission[];
+    missions!: Mission[];
 
     @OneToMany(() => EvenementAttendee, (attendee) => attendee.evenement)
     attendees!: EvenementAttendee[];
@@ -73,14 +72,9 @@ export class Evenement {
     @Column({ nullable: true })
     virtualLink?: string;
 
- 
     @Column()
-    state: string;
+    state: string = 'UNSTARTED';
 
-    constructor() {
-        this.state = 'UNSTARTED';
-    }
- 
-    @OneToMany(() =>Notification, vote => vote.event)
+    @OneToMany(() => Notification, (notification) => notification.event)
     notifications!: Notification[];
- }
+}

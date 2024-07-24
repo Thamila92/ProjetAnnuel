@@ -76,7 +76,7 @@ __decorate([
 __decorate([
     (0, typeorm_1.OneToMany)(() => mission_1.Mission, (mission) => mission.evenement),
     __metadata("design:type", Array)
-], Evenement.prototype, "mission", void 0);
+], Evenement.prototype, "missions", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => evenement_attendee_1.EvenementAttendee, (attendee) => attendee.evenement),
     __metadata("design:type", Array)
@@ -99,10 +99,9 @@ __decorate([
     __metadata("design:type", String)
 ], Evenement.prototype, "state", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => notification_1.Notification, vote => vote.event),
+    (0, typeorm_1.OneToMany)(() => notification_1.Notification, (notification) => notification.event),
     __metadata("design:type", Array)
 ], Evenement.prototype, "notifications", void 0);
 exports.Evenement = Evenement = __decorate([
-    (0, typeorm_1.Entity)({ name: "evenement" }),
-    __metadata("design:paramtypes", [])
+    (0, typeorm_1.Entity)({ name: "evenement" })
 ], Evenement);

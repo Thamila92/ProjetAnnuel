@@ -80,7 +80,7 @@ __decorate([
     __metadata("design:type", Array)
 ], User.prototype, "projets", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => mission_1.Mission, mission => mission.assignedUsers),
+    (0, typeorm_1.ManyToMany)(() => mission_1.Mission, mission => mission.assignedUsers),
     __metadata("design:type", Array)
 ], User.prototype, "missions", void 0);
 __decorate([
@@ -115,6 +115,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => evenement_attendee_1.EvenementAttendee, (attendee) => attendee.user),
     __metadata("design:type", Array)
 ], User.prototype, "evenementAttendees", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: true }),
+    __metadata("design:type", Boolean)
+], User.prototype, "isAvailable", void 0);
 exports.User = User = __decorate([
     (0, typeorm_1.Entity)()
 ], User);

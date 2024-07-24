@@ -126,19 +126,22 @@ class MissionUsecase {
             }
             let assignedUsers = [];
             if (userEmails) {
-                assignedUsers = yield userRepo.createQueryBuilder('user')
-                    .where('user.email IN (:...userEmails)', { userEmails })
-                    .getMany();
+                for (const email of userEmails) {
+                    const user = yield userRepo.findOne({ where: { email } });
+                    if (user) {
+                        user.isAvailable = false;
+                        yield userRepo.save(user);
+                        assignedUsers.push(user);
+                    }
+                }
             }
             let assignedResources = [];
             if (resourceIds) {
                 for (const resourceId of resourceIds) {
-                    const isAvailable = yield this.isResourceAvailable(resourceId, starting, ending);
-                    if (!isAvailable) {
-                        return `Resource ${resourceId} is not available for the requested period`;
-                    }
-                    const resource = yield resourceRepo.findOneBy({ id: resourceId }); // Utiliser findOneBy
+                    const resource = yield resourceRepo.findOne({ where: { id: resourceId } });
                     if (resource) {
+                        resource.isAvailable = false;
+                        yield resourceRepo.save(resource);
                         assignedResources.push(resource);
                     }
                 }
@@ -189,7 +192,6 @@ class MissionUsecase {
             const skillRepo = this.db.getRepository(skill_1.Skill);
             const userRepo = this.db.getRepository(user_1.User);
             const resourceRepo = this.db.getRepository(ressource_1.Resource);
-            const resourceAvailabilityRepo = this.db.getRepository(resourceAvailability_1.ResourceAvailability);
             const missionFound = yield repo.findOne({
                 where: { id },
                 relations: ['evenement', 'step', 'requiredSkills', 'assignedUsers', 'resources']
@@ -231,11 +233,19 @@ class MissionUsecase {
             if (conflictingMissions.length > 0) {
                 return "Il existe déjà une mission sur cette période.";
             }
-            // Libérer les anciennes disponibilités des ressources
+            // Libérer les anciennes ressources et utilisateurs
             const oldResources = missionFound.resources;
             if (oldResources) {
                 for (const resource of oldResources) {
-                    yield resourceAvailabilityRepo.delete({ resource, start: missionFound.starting, end: missionFound.ending });
+                    resource.isAvailable = true;
+                    yield resourceRepo.save(resource);
+                }
+            }
+            const oldUsers = missionFound.assignedUsers;
+            if (oldUsers) {
+                for (const user of oldUsers) {
+                    user.isAvailable = true;
+                    yield userRepo.save(user);
                 }
             }
             // Mettre à jour la mission
@@ -259,35 +269,33 @@ class MissionUsecase {
             }
             // Mettre à jour les utilisateurs (users) si des valeurs sont fournies
             if (params.userEmails && params.userEmails.length > 0) {
-                missionFound.assignedUsers = yield userRepo.find({ where: { email: (0, typeorm_1.In)(params.userEmails) } });
+                const assignedUsers = [];
+                for (const email of params.userEmails) {
+                    const user = yield userRepo.findOne({ where: { email } });
+                    if (user) {
+                        user.isAvailable = false;
+                        yield userRepo.save(user);
+                        assignedUsers.push(user);
+                    }
+                }
+                missionFound.assignedUsers = assignedUsers;
             }
             // Réinitialiser les ressources si un tableau vide est fourni
             if (Array.isArray(params.resources)) {
                 missionFound.resources = [];
             }
-            // Vérifier la disponibilité des nouvelles ressources et les assigner si des valeurs sont fournies
+            // Assigner les nouvelles ressources
             if (params.resources && params.resources.length > 0) {
-                let assignedResources = [];
+                const assignedResources = [];
                 for (const resourceId of params.resources) {
-                    const isAvailable = yield this.isResourceAvailable(resourceId, newStarting, newEnding);
-                    if (!isAvailable) {
-                        return `Resource ${resourceId} is not available for the requested period`;
-                    }
                     const resource = yield resourceRepo.findOne({ where: { id: resourceId } });
                     if (resource) {
+                        resource.isAvailable = false;
+                        yield resourceRepo.save(resource);
                         assignedResources.push(resource);
                     }
                 }
                 missionFound.resources = assignedResources;
-                // Marquer les nouvelles disponibilités des ressources
-                for (const resource of assignedResources) {
-                    const availability = resourceAvailabilityRepo.create({
-                        resource,
-                        start: newStarting,
-                        end: newEnding,
-                    });
-                    yield resourceAvailabilityRepo.save(availability);
-                }
             }
             // Mettre à jour l'état en fonction des nouvelles dates
             const currentDate = new Date();

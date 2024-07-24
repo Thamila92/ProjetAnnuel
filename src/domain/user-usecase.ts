@@ -7,6 +7,7 @@ import { compare, hash } from "bcrypt";
 import { createOtherValidation } from "../handlers/validators/user-validator";
 import { generateValidationErrorMessage } from "../handlers/validators/generate-validation-message";
 import { Skill } from "../database/entities/skill";
+import { Mission } from "../database/entities/mission";
 
 export interface ListUserFilter {
     limit: number
@@ -187,17 +188,35 @@ export class UserUsecase {
     };
 }
 
-    async getUsersByRole(role: string): Promise<string[]> {
-      const users = await this.db.getRepository(User)
-          .createQueryBuilder('user')
-          .leftJoinAndSelect('user.status', 'status')
-          .where('status.description = NORMAL')
-          .andWhere('user.isDeleted = false')
-          .select('user.email')
-          .getMany();
+async getUsersByRole(role: string): Promise<string[]> {
+  const userRepo = this.db.getRepository(User);
 
-      return users.map(user => user.email);
+   const users = await userRepo.createQueryBuilder('user')
+      .leftJoinAndSelect('user.status', 'status')
+      .where('status.description = :role', { role })
+      .andWhere('user.isDeleted = false')
+      .select(['user.id', 'user.email'])
+      .getMany();
+
+   const currentDate = new Date();
+  const missions = await this.db.getRepository(Mission).find({ relations: ['assignedUsers'] });
+
+   for (const mission of missions) {
+      if (currentDate > mission.starting && currentDate < mission.ending) {
+          for (const user of mission.assignedUsers) {
+              const foundUser = users.find(u => u.id === user.id);
+              if (foundUser) {
+                  foundUser.isAvailable = false;
+              }
+          }
+      }
   }
+
+   const availableUsers = users.filter(user => user.isAvailable !== false);
+
+  return availableUsers.map(user => user.email);
+}
+
 
 
   async addSkillToUser(userId: number, skillName: string): Promise<User | string> {
@@ -237,6 +256,23 @@ async getUsersByStatus(statusDescription: string): Promise<User[]> {
       .getMany();
 
   return users;
+}
+async getAllUsers(): Promise<User[]> {
+  const userRepo = this.db.getRepository(User);
+
+   const missions = await this.db.getRepository(Mission).find({ relations: ['assignedUsers'] });
+  const currentDate = new Date();
+
+  for (const mission of missions) {
+      for (const user of mission.assignedUsers) {
+          if (currentDate > mission.ending && user.isAvailable === false) {
+              user.isAvailable = true;
+              await userRepo.save(user);
+          }
+      }
+  }
+
+  return await userRepo.find();
 }
 
     

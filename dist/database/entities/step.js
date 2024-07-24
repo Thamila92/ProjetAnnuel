@@ -14,14 +14,12 @@ const typeorm_1 = require("typeorm");
 const projet_1 = require("./projet");
 const mission_1 = require("./mission");
 let Step = class Step {
-    constructor(id, state, description, starting, ending, projet, missions) {
-        this.id = id;
+    constructor(state, description, starting, ending, projet) {
         this.state = state;
         this.description = description;
         this.starting = starting;
         this.ending = ending;
         this.projet = projet;
-        this.missions = missions;
     }
 };
 exports.Step = Step;
@@ -55,5 +53,5 @@ __decorate([
 ], Step.prototype, "missions", void 0);
 exports.Step = Step = __decorate([
     (0, typeorm_1.Entity)({ name: "step" }),
-    __metadata("design:paramtypes", [Number, String, String, Date, Date, projet_1.Projet, Array])
+    __metadata("design:paramtypes", [String, String, Date, Date, projet_1.Projet])
 ], Step);

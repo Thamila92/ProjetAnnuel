@@ -90,35 +90,23 @@ export class ResourceUsecase {
         });
     }
     
-    async   getAllResources(): Promise<Resource[]> {
+    async getAllResources(): Promise<Resource[]> {
         const resourceRepo = this.db.getRepository(Resource);
-        const resourceAvailabilityRepo = this.db.getRepository(ResourceAvailability);
+    
+         const missions = await this.db.getRepository(Mission).find({ relations: ['resources'] });
         const currentDate = new Date();
-        await this.cleanUpExpiredAvailabilities();
-
-         const resources = await resourceRepo.find();
     
-         for (const resource of resources) {
-            const availabilities = await resourceAvailabilityRepo.find({
-                where: { resource: { id: resource.id } },  
-            });
-    
-            let isAvailable = true;
-    
-            for (const availability of availabilities) {
-                if (currentDate >= availability.start && currentDate <= availability.end) {
-                    isAvailable = false;
-                    break;
+        for (const mission of missions) {
+            for (const resource of mission.resources) {
+                if (currentDate > mission.ending && resource.isAvailable === false) {
+                    resource.isAvailable = true;
+                    await resourceRepo.save(resource);
                 }
-            }
-    
-             if (resource.isAvailable !== isAvailable) {
-                resource.isAvailable = isAvailable;
-                await resourceRepo.save(resource);
             }
         }
     
-        return resources;
+        return await resourceRepo.find();
     }
+    
 
 }

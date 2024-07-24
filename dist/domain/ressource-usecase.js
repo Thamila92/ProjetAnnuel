@@ -103,27 +103,17 @@ class ResourceUsecase {
     getAllResources() {
         return __awaiter(this, void 0, void 0, function* () {
             const resourceRepo = this.db.getRepository(ressource_1.Resource);
-            const resourceAvailabilityRepo = this.db.getRepository(resourceAvailability_1.ResourceAvailability);
+            const missions = yield this.db.getRepository(mission_1.Mission).find({ relations: ['resources'] });
             const currentDate = new Date();
-            yield this.cleanUpExpiredAvailabilities();
-            const resources = yield resourceRepo.find();
-            for (const resource of resources) {
-                const availabilities = yield resourceAvailabilityRepo.find({
-                    where: { resource: { id: resource.id } },
-                });
-                let isAvailable = true;
-                for (const availability of availabilities) {
-                    if (currentDate >= availability.start && currentDate <= availability.end) {
-                        isAvailable = false;
-                        break;
+            for (const mission of missions) {
+                for (const resource of mission.resources) {
+                    if (currentDate > mission.ending && resource.isAvailable === false) {
+                        resource.isAvailable = true;
+                        yield resourceRepo.save(resource);
                     }
                 }
-                if (resource.isAvailable !== isAvailable) {
-                    resource.isAvailable = isAvailable;
-                    yield resourceRepo.save(resource);
-                }
             }
-            return resources;
+            return yield resourceRepo.find();
         });
     }
 }

@@ -76,7 +76,6 @@ export class MissionUsecase {
     }
     
     
-
     async createMission(
         starting: Date,
         ending: Date,
@@ -152,20 +151,23 @@ export class MissionUsecase {
     
         let assignedUsers: User[] = [];
         if (userEmails) {
-            assignedUsers = await userRepo.createQueryBuilder('user')
-                .where('user.email IN (:...userEmails)', { userEmails })
-                .getMany();
+            for (const email of userEmails) {
+                const user = await userRepo.findOne({ where: { email } });
+                if (user) {
+                    user.isAvailable = false;
+                    await userRepo.save(user);
+                    assignedUsers.push(user);
+                }
+            }
         }
     
         let assignedResources: Resource[] = [];
         if (resourceIds) {
             for (const resourceId of resourceIds) {
-                const isAvailable = await this.isResourceAvailable(resourceId, starting, ending);
-                if (!isAvailable) {
-                    return `Resource ${resourceId} is not available for the requested period`;
-                }
-                const resource = await resourceRepo.findOneBy({ id: resourceId }); // Utiliser findOneBy
+                const resource = await resourceRepo.findOne({ where: { id: resourceId } });
                 if (resource) {
+                    resource.isAvailable = false;
+                    await resourceRepo.save(resource);
                     assignedResources.push(resource);
                 }
             }
@@ -185,6 +187,7 @@ export class MissionUsecase {
         await missionRepo.save(newMission);
         return newMission;
     }
+    
     
     
     
@@ -218,7 +221,6 @@ export class MissionUsecase {
         const skillRepo = this.db.getRepository(Skill);
         const userRepo = this.db.getRepository(User);
         const resourceRepo = this.db.getRepository(Resource);
-        const resourceAvailabilityRepo = this.db.getRepository(ResourceAvailability);
     
         const missionFound = await repo.findOne({
             where: { id },
@@ -267,11 +269,20 @@ export class MissionUsecase {
             return "Il existe déjà une mission sur cette période.";
         }
     
-        // Libérer les anciennes disponibilités des ressources
+        // Libérer les anciennes ressources et utilisateurs
         const oldResources = missionFound.resources;
         if (oldResources) {
             for (const resource of oldResources) {
-                await resourceAvailabilityRepo.delete({ resource, start: missionFound.starting, end: missionFound.ending });
+                resource.isAvailable = true;
+                await resourceRepo.save(resource);
+            }
+        }
+    
+        const oldUsers = missionFound.assignedUsers;
+        if (oldUsers) {
+            for (const user of oldUsers) {
+                user.isAvailable = true;
+                await userRepo.save(user);
             }
         }
     
@@ -297,7 +308,16 @@ export class MissionUsecase {
     
         // Mettre à jour les utilisateurs (users) si des valeurs sont fournies
         if (params.userEmails && params.userEmails.length > 0) {
-            missionFound.assignedUsers = await userRepo.find({ where: { email: In(params.userEmails) } });
+            const assignedUsers: User[] = [];
+            for (const email of params.userEmails) {
+                const user = await userRepo.findOne({ where: { email } });
+                if (user) {
+                    user.isAvailable = false;
+                    await userRepo.save(user);
+                    assignedUsers.push(user);
+                }
+            }
+            missionFound.assignedUsers = assignedUsers;
         }
     
         // Réinitialiser les ressources si un tableau vide est fourni
@@ -305,30 +325,18 @@ export class MissionUsecase {
             missionFound.resources = [];
         }
     
-        // Vérifier la disponibilité des nouvelles ressources et les assigner si des valeurs sont fournies
+        // Assigner les nouvelles ressources
         if (params.resources && params.resources.length > 0) {
-            let assignedResources: Resource[] = [];
+            const assignedResources: Resource[] = [];
             for (const resourceId of params.resources) {
-                const isAvailable = await this.isResourceAvailable(resourceId, newStarting, newEnding);
-                if (!isAvailable) {
-                    return `Resource ${resourceId} is not available for the requested period`;
-                }
                 const resource = await resourceRepo.findOne({ where: { id: resourceId } });
                 if (resource) {
+                    resource.isAvailable = false;
+                    await resourceRepo.save(resource);
                     assignedResources.push(resource);
                 }
             }
             missionFound.resources = assignedResources;
-    
-            // Marquer les nouvelles disponibilités des ressources
-            for (const resource of assignedResources) {
-                const availability = resourceAvailabilityRepo.create({
-                    resource,
-                    start: newStarting,
-                    end: newEnding,
-                });
-                await resourceAvailabilityRepo.save(availability);
-            }
         }
     
         // Mettre à jour l'état en fonction des nouvelles dates
@@ -346,6 +354,7 @@ export class MissionUsecase {
         const updatedMission = await repo.save(missionFound);
         return updatedMission;
     }
+    
     
 
     

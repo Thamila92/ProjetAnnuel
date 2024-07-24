@@ -8,20 +8,13 @@ import { Evenement } from "./evenement";
 import { Mission } from "./mission";
 import { Step } from "./step";
 import { Projet } from "./projet";
-
 import { Document } from "./document";
 import { Vote } from "./vote";
 import { Location } from "./location";
 import { EvenementAttendee } from "./evenement-attendee";
 import { Notification } from "./notification";
-// import { Vote } from "./vote";
-// import { Location } from "./location";
-// import { EvenementAttendee } from "./evenement-attendee";
-// import { Document } from "./document";
-// import { Response } from "./response";
 import { Note } from "./note";
 import { Skill } from "./skill";
-
 
 @Entity()
 export class User {
@@ -48,12 +41,11 @@ export class User {
     @OneToMany(() => Notification, notification => notification.user)
     notifications!: Notification[];
 
-
-    @CreateDateColumn({type: "datetime"})
+    @CreateDateColumn({ type: "datetime" })
     createdAt!: Date
 
     @ManyToOne(() => Status, status => status.users)
-    status!:Status;
+    status!: Status;
 
     @Column({ default: false })
     isDeleted!: boolean;
@@ -67,8 +59,8 @@ export class User {
     @OneToMany(() => Projet, projet => projet.user)
     projets!: []
 
-    @OneToMany(() => Mission, mission=>mission.assignedUsers)
-    missions!:Mission[];
+    @ManyToMany(() => Mission, mission => mission.assignedUsers)
+    missions!: Mission[];
 
     @OneToMany(() => Review, review => review.user)
     reviews!: Review[]
@@ -85,16 +77,15 @@ export class User {
     @OneToMany(() => Document, document => document.user)
     documents!: Document[];
 
-    @OneToMany(() =>Vote, vote => vote.user)
+    @OneToMany(() => Vote, vote => vote.user)
     votes!: Vote[];
 
-    @OneToMany(() =>Vote, note => note.user)
+    @OneToMany(() => Vote, note => note.user)
     notes!: Vote[];
-
 
     @OneToMany(() => EvenementAttendee, (attendee) => attendee.user)
     evenementAttendees!: EvenementAttendee[];
 
-    // @ManyToOne(() => Notification, notification => notification.users)
-    // notifications!: User;
+    @Column({ default: true })
+    isAvailable!: boolean;
 }

@@ -17,34 +17,41 @@ enum statustype {
 export class Mission {
     @PrimaryGeneratedColumn()
     id!: number;
-    @Column()
-    starting: Date;
-    @Column()
-    ending: Date;
 
     @Column()
-    state: string;
+    starting!: Date;
 
     @Column()
-    description: string;
+    ending!: Date;
 
-    @ManyToOne(() => Evenement, (evenement) => evenement.mission, { nullable: true })
+    @Column()
+    state!: string;
+
+    @Column()
+    description!: string;
+
+    @ManyToOne(() => Evenement, (evenement) => evenement.missions, { nullable: true })
     evenement?: Evenement;
+
     @ManyToOne(() => Step, (step) => step.missions, { nullable: true })
     step?: Step;
+
     @ManyToMany(() => User, { eager: true })
     @JoinTable()
     assignedUsers!: User[];
+
     @ManyToMany(() => Skill, { eager: true })
     @JoinTable()
     requiredSkills!: Skill[];
+
     @OneToMany(() => Review, (review) => review.mission)
     reviews!: Review[];
+
     @ManyToMany(() => Resource, { eager: true })
     @JoinTable()
     resources!: Resource[];
 
-     constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step, state: string = 'UNSTARTED') {
+    constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step, state: string = 'UNSTARTED') {
         this.starting = starting;
         this.ending = ending;
         this.description = description;
@@ -52,7 +59,4 @@ export class Mission {
         this.step = step;
         this.state = state;
     }
-
-    
-   
 }
