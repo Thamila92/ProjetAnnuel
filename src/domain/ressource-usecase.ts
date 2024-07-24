@@ -1,6 +1,7 @@
-import { DataSource } from "typeorm";
+import { DataSource, LessThanOrEqual } from "typeorm";
 import { Resource } from "../database/entities/ressource";
 import { Mission } from "../database/entities/mission";
+import { ResourceAvailability } from "../database/entities/resourceAvailability";
 
 export class ResourceUsecase {
     constructor(private readonly db: DataSource) { }
@@ -25,6 +26,7 @@ export class ResourceUsecase {
         return newResource;
     }
     
+  
 
     async assignResourcesToMission(missionId: number, resourceIds: number[]): Promise<Mission | string> {
         const missionRepo = this.db.getRepository(Mission);
@@ -40,7 +42,7 @@ export class ResourceUsecase {
             if (!resource.isAvailable) {
                 return `Resource ${resource.name} is not available`;
             }
-            resource.isAvailable = false; // Mark the resource as unavailable
+            resource.isAvailable = false;  
         }
 
         mission.resources.push(...resources);
@@ -79,10 +81,44 @@ export class ResourceUsecase {
         if (!mission) throw new Error('Mission not found');
         return mission.resources;
     }
-
-    async getAllResources(): Promise<Resource[]> {
+    async   cleanUpExpiredAvailabilities(): Promise<void> {
+        const resourceAvailabilityRepo = this.db.getRepository(ResourceAvailability);
+        const currentDate = new Date();
+    
+         await resourceAvailabilityRepo.delete({
+            end: LessThanOrEqual(currentDate),
+        });
+    }
+    
+    async   getAllResources(): Promise<Resource[]> {
         const resourceRepo = this.db.getRepository(Resource);
-        return await resourceRepo.find();
+        const resourceAvailabilityRepo = this.db.getRepository(ResourceAvailability);
+        const currentDate = new Date();
+        await this.cleanUpExpiredAvailabilities();
+
+         const resources = await resourceRepo.find();
+    
+         for (const resource of resources) {
+            const availabilities = await resourceAvailabilityRepo.find({
+                where: { resource: { id: resource.id } },  
+            });
+    
+            let isAvailable = true;
+    
+            for (const availability of availabilities) {
+                if (currentDate >= availability.start && currentDate <= availability.end) {
+                    isAvailable = false;
+                    break;
+                }
+            }
+    
+             if (resource.isAvailable !== isAvailable) {
+                resource.isAvailable = isAvailable;
+                await resourceRepo.save(resource);
+            }
+        }
+    
+        return resources;
     }
 
 }

@@ -18,6 +18,7 @@ const user_1 = require("../database/entities/user");
 const step_1 = require("../database/entities/step");
 const skill_1 = require("../database/entities/skill");
 const ressource_1 = require("../database/entities/ressource");
+const resourceAvailability_1 = require("../database/entities/resourceAvailability");
 class MissionUsecase {
     constructor(db) {
         this.db = db;
@@ -56,6 +57,17 @@ class MissionUsecase {
             };
         });
     }
+    isResourceAvailable(resourceId, start, end) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const resourceAvailabilityRepository = this.db.getRepository(resourceAvailability_1.ResourceAvailability);
+            const overlappingAvailabilities = yield resourceAvailabilityRepository
+                .createQueryBuilder("availability")
+                .where("availability.resourceId = :resourceId", { resourceId })
+                .andWhere("(availability.start < :end AND availability.end > :start)", { start, end })
+                .getCount();
+            return overlappingAvailabilities === 0;
+        });
+    }
     createMission(starting, ending, description, eventId, stepId, skills, userEmails, resourceIds) {
         return __awaiter(this, void 0, void 0, function* () {
             const missionRepo = this.db.getRepository(mission_1.Mission);
@@ -87,11 +99,6 @@ class MissionUsecase {
             if (stepFound && (starting < stepFound.starting || ending > stepFound.ending)) {
                 return "Mission dates must be within the step's dates";
             }
-            // Log the existing missions and the new mission dates
-            const existingMissions = yield missionRepo.find();
-            console.log("Existing missions: ", existingMissions);
-            console.log("New mission starting: ", starting);
-            console.log("New mission ending: ", ending);
             const conflictingMissions = yield missionRepo.createQueryBuilder('mission')
                 .where((qb) => {
                 if (eventId) {
@@ -103,7 +110,6 @@ class MissionUsecase {
             })
                 .andWhere(':starting < mission.ending AND :ending > mission.starting', { starting, ending })
                 .getMany();
-            console.log("Conflicting missions: ", conflictingMissions);
             if (conflictingMissions.length > 0) {
                 return "Conflicting mission exists within the same event or step";
             }
@@ -126,7 +132,16 @@ class MissionUsecase {
             }
             let assignedResources = [];
             if (resourceIds) {
-                assignedResources = yield resourceRepo.findByIds(resourceIds);
+                for (const resourceId of resourceIds) {
+                    const isAvailable = yield this.isResourceAvailable(resourceId, starting, ending);
+                    if (!isAvailable) {
+                        return `Resource ${resourceId} is not available for the requested period`;
+                    }
+                    const resource = yield resourceRepo.findOneBy({ id: resourceId }); // Utiliser findOneBy
+                    if (resource) {
+                        assignedResources.push(resource);
+                    }
+                }
             }
             const newMission = missionRepo.create({
                 starting,
@@ -174,6 +189,7 @@ class MissionUsecase {
             const skillRepo = this.db.getRepository(skill_1.Skill);
             const userRepo = this.db.getRepository(user_1.User);
             const resourceRepo = this.db.getRepository(ressource_1.Resource);
+            const resourceAvailabilityRepo = this.db.getRepository(resourceAvailability_1.ResourceAvailability);
             const missionFound = yield repo.findOne({
                 where: { id },
                 relations: ['evenement', 'step', 'requiredSkills', 'assignedUsers', 'resources']
@@ -215,7 +231,12 @@ class MissionUsecase {
             if (conflictingMissions.length > 0) {
                 return "Il existe déjà une mission sur cette période.";
             }
-            // Mettre à jour la mission
+            const oldResources = missionFound.resources;
+            if (oldResources) {
+                for (const resource of oldResources) {
+                    yield resourceAvailabilityRepo.delete({ resource: resource, start: missionFound.starting, end: missionFound.ending });
+                }
+            }
             if (params.starting)
                 missionFound.starting = params.starting;
             if (params.ending)
@@ -230,11 +251,31 @@ class MissionUsecase {
             if (params.userEmails) {
                 missionFound.assignedUsers = yield userRepo.find({ where: { email: (0, typeorm_1.In)(params.userEmails) } });
             }
-            // Mettre à jour les ressources (resources)
+            let assignedResources = [];
             if (params.resources) {
-                missionFound.resources = yield resourceRepo.find({ where: { id: (0, typeorm_1.In)(params.resources) } });
+                for (const resourceId of params.resources) {
+                    const isAvailable = yield this.isResourceAvailable(resourceId, newStarting, newEnding);
+                    if (!isAvailable) {
+                        return `Resource ${resourceId} is not available for the requested period`;
+                    }
+                    const resource = yield resourceRepo.findOneBy({ id: resourceId });
+                    if (resource) {
+                        assignedResources.push(resource);
+                    }
+                }
+                missionFound.resources = assignedResources;
             }
-            // Mettre à jour l'état en fonction des nouvelles dates
+            // Marquer les nouvelles disponibilités des ressources
+            if (assignedResources.length > 0) {
+                for (const resource of assignedResources) {
+                    const availability = resourceAvailabilityRepo.create({
+                        resource,
+                        start: newStarting,
+                        end: newEnding,
+                    });
+                    yield resourceAvailabilityRepo.save(availability);
+                }
+            }
             const currentDate = new Date();
             if (currentDate > missionFound.ending) {
                 missionFound.state = 'ENDED';

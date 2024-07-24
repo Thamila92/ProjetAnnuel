@@ -8,6 +8,7 @@ import { Step } from "../database/entities/step";
 import { Skill } from "../database/entities/skill";
 
 import { Resource } from "../database/entities/ressource";
+import { ResourceAvailability } from "../database/entities/resourceAvailability";
 
 export interface ListMissionFilter {
     limit: number;
@@ -62,17 +63,28 @@ export class MissionUsecase {
     }
     
 
+    async   isResourceAvailable(resourceId: number, start: Date, end: Date): Promise<boolean> {
+        const resourceAvailabilityRepository = this.db.getRepository(ResourceAvailability);
+    
+        const overlappingAvailabilities = await resourceAvailabilityRepository
+            .createQueryBuilder("availability")
+            .where("availability.resourceId = :resourceId", { resourceId })
+            .andWhere("(availability.start < :end AND availability.end > :start)", { start, end })
+            .getCount();
+    
+        return overlappingAvailabilities === 0;
+    }
     
     
 
     async createMission(
-        starting: Date, 
-        ending: Date, 
-        description: string, 
-        eventId: number | null, 
-        stepId: number | null, 
-        skills: string[] | null, 
-        userEmails: string[] | null, 
+        starting: Date,
+        ending: Date,
+        description: string,
+        eventId: number | null,
+        stepId: number | null,
+        skills: string[] | null,
+        userEmails: string[] | null,
         resourceIds: number[] | null
     ): Promise<Mission | string> {
         const missionRepo = this.db.getRepository(Mission);
@@ -111,12 +123,6 @@ export class MissionUsecase {
             return "Mission dates must be within the step's dates";
         }
     
-        // Log the existing missions and the new mission dates
-        const existingMissions = await missionRepo.find();
-        console.log("Existing missions: ", existingMissions);
-        console.log("New mission starting: ", starting);
-        console.log("New mission ending: ", ending);
-    
         const conflictingMissions = await missionRepo.createQueryBuilder('mission')
             .where((qb) => {
                 if (eventId) {
@@ -127,8 +133,6 @@ export class MissionUsecase {
             })
             .andWhere(':starting < mission.ending AND :ending > mission.starting', { starting, ending })
             .getMany();
-    
-        console.log("Conflicting missions: ", conflictingMissions);
     
         if (conflictingMissions.length > 0) {
             return "Conflicting mission exists within the same event or step";
@@ -155,24 +159,32 @@ export class MissionUsecase {
     
         let assignedResources: Resource[] = [];
         if (resourceIds) {
-            assignedResources = await resourceRepo.findByIds(resourceIds);
+            for (const resourceId of resourceIds) {
+                const isAvailable = await this.isResourceAvailable(resourceId, starting, ending);
+                if (!isAvailable) {
+                    return `Resource ${resourceId} is not available for the requested period`;
+                }
+                const resource = await resourceRepo.findOneBy({ id: resourceId }); // Utiliser findOneBy
+                if (resource) {
+                    assignedResources.push(resource);
+                }
+            }
         }
     
-        const newMission = missionRepo.create({ 
-            starting, 
-            ending, 
-            description, 
+        const newMission = missionRepo.create({
+            starting,
+            ending,
+            description,
             state: 'UNSTARTED',
-            evenement: eventFound || undefined, 
-            step: stepFound || undefined, 
-            requiredSkills, 
+            evenement: eventFound || undefined,
+            step: stepFound || undefined,
+            requiredSkills,
             assignedUsers,
-            resources: assignedResources 
+            resources: assignedResources
         });
         await missionRepo.save(newMission);
         return newMission;
     }
-    
     
     
     
@@ -198,98 +210,126 @@ export class MissionUsecase {
     
         return missionFound;
     }
-    
-    async updateMission(id: number, params: UpdateMissionParams): Promise<Mission | null | string> {
-        const repo = this.db.getRepository(Mission);
-        const evenementRepo = this.db.getRepository(Evenement);
-        const stepRepo = this.db.getRepository(Step);
-        const skillRepo = this.db.getRepository(Skill);
-        const userRepo = this.db.getRepository(User);
-        const resourceRepo = this.db.getRepository(Resource);
-    
-        const missionFound = await repo.findOne({
-            where: { id },
-            relations: ['evenement', 'step', 'requiredSkills', 'assignedUsers', 'resources']  
-        });
-        if (!missionFound) return "Mission not found";
-    
-        const evenement = missionFound.evenement;
-        const step = missionFound.step;
-    
-        if (!evenement && !step) return "Mission must be associated with either an event or a step";
-    
-        const newStarting = params.starting || missionFound.starting;
-        const newEnding = params.ending || missionFound.ending;
-    
-        if (evenement) {
-            if (newStarting < evenement.starting || newEnding > evenement.ending) {
-                return "La période de la mission doit être comprise dans celle de l'événement.";
-            }
+ 
+ async updateMission(id: number, params: UpdateMissionParams): Promise<Mission | null | string> {
+    const repo = this.db.getRepository(Mission);
+    const evenementRepo = this.db.getRepository(Evenement);
+    const stepRepo = this.db.getRepository(Step);
+    const skillRepo = this.db.getRepository(Skill);
+    const userRepo = this.db.getRepository(User);
+    const resourceRepo = this.db.getRepository(Resource);
+    const resourceAvailabilityRepo = this.db.getRepository(ResourceAvailability);
+
+    const missionFound = await repo.findOne({
+        where: { id },
+        relations: ['evenement', 'step', 'requiredSkills', 'assignedUsers', 'resources']
+    });
+    if (!missionFound) return "Mission not found";
+
+    const evenement = missionFound.evenement;
+    const step = missionFound.step;
+
+    if (!evenement && !step) return "Mission must be associated with either an event or a step";
+
+    const newStarting = params.starting || missionFound.starting;
+    const newEnding = params.ending || missionFound.ending;
+
+    if (evenement) {
+        if (newStarting < evenement.starting || newEnding > evenement.ending) {
+            return "La période de la mission doit être comprise dans celle de l'événement.";
         }
-    
-        if (step) {
-            if (newStarting < step.starting || newEnding > step.ending) {
-                return "La période de la mission doit être comprise dans celle de l'étape.";
-            }
-        }
-    
-        const conflictingMissions = await repo.find({
-            where: [
-                {
-                    evenement: evenement,
-                    id: Not(id),
-                    starting: LessThanOrEqual(newEnding),
-                    ending: MoreThanOrEqual(newStarting),
-                },
-                {
-                    step: step,
-                    id: Not(id),
-                    starting: LessThanOrEqual(newEnding),
-                    ending: MoreThanOrEqual(newStarting),
-                }
-            ],
-        });
-    
-        if (conflictingMissions.length > 0) {
-            return "Il existe déjà une mission sur cette période.";
-        }
-    
-        // Mettre à jour la mission
-        if (params.starting) missionFound.starting = params.starting;
-        if (params.ending) missionFound.ending = params.ending;
-        if (params.description) missionFound.description = params.description;
-    
-        // Mettre à jour les compétences (skills)
-        if (params.skills) {
-            missionFound.requiredSkills = await skillRepo.find({ where: { name: In(params.skills) } });
-        }
-    
-        // Mettre à jour les utilisateurs (users)
-        if (params.userEmails) {
-            missionFound.assignedUsers = await userRepo.find({ where: { email: In(params.userEmails) } });
-        }
-    
-        // Mettre à jour les ressources (resources)
-        if (params.resources) {
-            missionFound.resources = await resourceRepo.find({ where: { id: In(params.resources) } });
-        }
-    
-        // Mettre à jour l'état en fonction des nouvelles dates
-        const currentDate = new Date();
-        if (currentDate > missionFound.ending) {
-            missionFound.state = 'ENDED';
-        } else if (currentDate > missionFound.starting && currentDate < missionFound.ending) {
-            missionFound.state = 'RUNNING';
-        } else if (currentDate.toDateString() === missionFound.starting.toDateString()) {
-            missionFound.state = 'STARTED';
-        } else {
-            missionFound.state = 'UNSTARTED';
-        }
-    
-        const updatedMission = await repo.save(missionFound);
-        return updatedMission;
     }
-    
+
+    if (step) {
+        if (newStarting < step.starting || newEnding > step.ending) {
+            return "La période de la mission doit être comprise dans celle de l'étape.";
+        }
+    }
+
+    const conflictingMissions = await repo.find({
+        where: [
+            {
+                evenement: evenement,
+                id: Not(id),
+                starting: LessThanOrEqual(newEnding),
+                ending: MoreThanOrEqual(newStarting),
+            },
+            {
+                step: step,
+                id: Not(id),
+                starting: LessThanOrEqual(newEnding),
+                ending: MoreThanOrEqual(newStarting),
+            }
+        ],
+    });
+
+    if (conflictingMissions.length > 0) {
+        return "Il existe déjà une mission sur cette période.";
+    }
+
+     const oldResources = missionFound.resources;
+    if (oldResources) {
+        for (const resource of oldResources) {
+            await resourceAvailabilityRepo.delete({ resource: resource, start: missionFound.starting, end: missionFound.ending });
+        }
+    }
+
+     if (params.starting) missionFound.starting = params.starting;
+    if (params.ending) missionFound.ending = params.ending;
+    if (params.description) missionFound.description = params.description;
+
+    // Mettre à jour les compétences (skills)
+    if (params.skills) {
+        missionFound.requiredSkills = await skillRepo.find({ where: { name: In(params.skills) } });
+    }
+
+    // Mettre à jour les utilisateurs (users)
+    if (params.userEmails) {
+        missionFound.assignedUsers = await userRepo.find({ where: { email: In(params.userEmails) } });
+    }
+
+     let assignedResources: Resource[] = [];
+    if (params.resources) {
+        for (const resourceId of params.resources) {
+            const isAvailable = await this.isResourceAvailable(resourceId, newStarting, newEnding);
+            if (!isAvailable) {
+                return `Resource ${resourceId} is not available for the requested period`;
+            }
+            const resource = await resourceRepo.findOneBy({ id: resourceId });  
+            if (resource) {
+                assignedResources.push(resource);
+            }
+        }
+        missionFound.resources = assignedResources;
+    }
+
+    // Marquer les nouvelles disponibilités des ressources
+    if (assignedResources.length > 0) {
+        for (const resource of assignedResources) {
+            const availability = resourceAvailabilityRepo.create({
+                resource,
+                start: newStarting,
+                end: newEnding,
+            });
+            await resourceAvailabilityRepo.save(availability);
+        }
+    }
+
+     const currentDate = new Date();
+    if (currentDate > missionFound.ending) {
+        missionFound.state = 'ENDED';
+    } else if (currentDate > missionFound.starting && currentDate < missionFound.ending) {
+        missionFound.state = 'RUNNING';
+    } else if (currentDate.toDateString() === missionFound.starting.toDateString()) {
+        missionFound.state = 'STARTED';
+    } else {
+        missionFound.state = 'UNSTARTED';
+    }
+
+    const updatedMission = await repo.save(missionFound);
+    return updatedMission;
+}
+
     
     
     async deleteMission(id: number): Promise<boolean | Mission> {

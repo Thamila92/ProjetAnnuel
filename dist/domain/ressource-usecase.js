@@ -10,8 +10,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ResourceUsecase = void 0;
+const typeorm_1 = require("typeorm");
 const ressource_1 = require("../database/entities/ressource");
 const mission_1 = require("../database/entities/mission");
+const resourceAvailability_1 = require("../database/entities/resourceAvailability");
 class ResourceUsecase {
     constructor(db) {
         this.db = db;
@@ -50,7 +52,7 @@ class ResourceUsecase {
                 if (!resource.isAvailable) {
                     return `Resource ${resource.name} is not available`;
                 }
-                resource.isAvailable = false; // Mark the resource as unavailable
+                resource.isAvailable = false;
             }
             mission.resources.push(...resources);
             yield resourceRepo.save(resources);
@@ -89,10 +91,39 @@ class ResourceUsecase {
             return mission.resources;
         });
     }
+    cleanUpExpiredAvailabilities() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const resourceAvailabilityRepo = this.db.getRepository(resourceAvailability_1.ResourceAvailability);
+            const currentDate = new Date();
+            yield resourceAvailabilityRepo.delete({
+                end: (0, typeorm_1.LessThanOrEqual)(currentDate),
+            });
+        });
+    }
     getAllResources() {
         return __awaiter(this, void 0, void 0, function* () {
             const resourceRepo = this.db.getRepository(ressource_1.Resource);
-            return yield resourceRepo.find();
+            const resourceAvailabilityRepo = this.db.getRepository(resourceAvailability_1.ResourceAvailability);
+            const currentDate = new Date();
+            yield this.cleanUpExpiredAvailabilities();
+            const resources = yield resourceRepo.find();
+            for (const resource of resources) {
+                const availabilities = yield resourceAvailabilityRepo.find({
+                    where: { resource: { id: resource.id } },
+                });
+                let isAvailable = true;
+                for (const availability of availabilities) {
+                    if (currentDate >= availability.start && currentDate <= availability.end) {
+                        isAvailable = false;
+                        break;
+                    }
+                }
+                if (resource.isAvailable !== isAvailable) {
+                    resource.isAvailable = isAvailable;
+                    yield resourceRepo.save(resource);
+                }
+            }
+            return resources;
         });
     }
 }
