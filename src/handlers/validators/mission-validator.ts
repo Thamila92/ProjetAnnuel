@@ -1,67 +1,32 @@
-import Joi from "joi";
+import Joi from 'joi';
 
+ 
 
-
-
-enum statustype {
-    unstarted="UNSTARTED",
-    started= "STARTED",
-    running = "RUNNING",
-    ended="ENDED"
-}
-
-export const missionValidation = Joi.object<MissionRequest>({
-    starting: Joi.date().iso().min('now').required(), 
+export const missionCreateValidation = Joi.object({
+    starting: Joi.date().iso().min('now').required(),
     ending: Joi.date().iso().greater(Joi.ref('starting')).required(),
     description: Joi.string().required(),
-    eventId:Joi.number().required()
+    skills: Joi.array().items(Joi.string()).optional(),
+    userEmails: Joi.array().items(Joi.string().email()).optional(),
+    resourceIds: Joi.array().items(Joi.number().required()).optional(),  
 }).options({ abortEarly: false });
 
-export interface MissionRequest {
-    eventId:number,
-    starting: Date;
-    ending: Date;
-    description: string;
-}
- 
- 
-export interface MissionRequest {
-    eventId: number;
-    starting: Date;
-    ending: Date;
-    description: string;
-    skills?: string[];
-    userEmails?: string[];
-    resources?: number[];
-}
-
-export const listMissionValidation = Joi.object<ListMissionRequest>({
-    page: Joi.number().min(1).optional(),
-    limit: Joi.number().min(1).optional(),
-});
-
-export interface ListMissionRequest {
-    page?: number;
-    limit?: number;
-}
-
-export interface UpdateMissionParams {
-    eventId?: number,
-    starting?: Date;
-    ending?: Date;
-    description?: string;
-    skills?: string[];
-    userEmails?: string[];
-    resources?: number[];
-}
-
-export const missionUpdateValidation = Joi.object<MissionRequest>({
+export const missionUpdateValidation = Joi.object({
     starting: Joi.date().iso().min('now').optional(),
     ending: Joi.date().iso().greater(Joi.ref('starting')).optional(),
     description: Joi.string().optional(),
-    eventId: Joi.number().optional(),
     skills: Joi.array().items(Joi.string()).optional(),
     userEmails: Joi.array().items(Joi.string().email()).optional(),
-    resources: Joi.array().items(Joi.number().integer()).optional()
+    resources: Joi.array().items(Joi.number().required()).optional(),
 }).options({ abortEarly: false });
 
+
+
+export const missionIdValidation = Joi.object({
+    id: Joi.number().required(),
+}).options({ abortEarly: false });
+
+export const listMissionsValidation = Joi.object({
+    limit: Joi.number().integer().min(1).default(10),
+    page: Joi.number().integer().min(1).default(1),
+}).options({ abortEarly: false });

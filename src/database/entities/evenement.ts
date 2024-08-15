@@ -1,25 +1,12 @@
 import {
-    Column,
-    Entity,
-    JoinTable,
-    ManyToMany,
-    ManyToOne,
-    OneToMany,
-    PrimaryGeneratedColumn,
+    Column, Entity, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn,
 } from "typeorm";
-import { Mission } from "./mission";
 import { User } from "./user";
 import { Program } from "./program";
 import { Location } from "./location";
 import { EvenementAttendee } from "./evenement-attendee";
-import { eventtype } from "../../types/event-types";
+import { eventtype, repetitivity } from "../../types/event-types";   
 import { Notification } from "./notification";
-
-export enum repetitivity {
-    NONE = "NONE",
-    MONTHLY = "MONTHLY",
-    ANNUAL = "ANNUAL",
-}
 
 @Entity({ name: "evenement" })
 export class Evenement {
@@ -33,7 +20,7 @@ export class Evenement {
         type: "enum",
         enum: eventtype
     })
-    typee!: eventtype;
+    type!: eventtype;  // Assurez-vous que ce champ est nommé `type`
 
     @Column()
     description!: string;
@@ -56,9 +43,6 @@ export class Evenement {
     @ManyToOne(() => User, (user) => user.evenements)
     user!: User;
 
-    @OneToMany(() => Mission, (mission) => mission.evenement)
-    missions!: Mission[];
-
     @OneToMany(() => EvenementAttendee, (attendee) => attendee.evenement)
     attendees!: EvenementAttendee[];
 
@@ -77,4 +61,13 @@ export class Evenement {
 
     @OneToMany(() => Notification, (notification) => notification.event)
     notifications!: Notification[];
+
+    @Column({ default: 100 })   
+    maxParticipants!: number;
+
+    @Column({ default: 0 })   
+    currentParticipants!: number;
+
+    @Column({ default: false })  
+    membersOnly!: boolean;
 }

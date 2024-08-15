@@ -1,284 +1,320 @@
 import { DataSource } from "typeorm";
 import { User } from "../database/entities/user";
 import { Status } from "../database/entities/status";
-import { AppDataSource } from "../database/database";
 import { compare, hash } from "bcrypt";
-// import { Skill } from "../database/entities/skill";
-import { createOtherValidation } from "../handlers/validators/user-validator";
-import { generateValidationErrorMessage } from "../handlers/validators/generate-validation-message";
 import { Skill } from "../database/entities/skill";
 import { Mission } from "../database/entities/mission";
+import { sign } from "jsonwebtoken";
 
-export interface ListUserFilter {
-    limit: number
-    page: number
-    type:string
+export interface CreateAdherentRequest {
+    name: string;
+    email: string;
+    password: string;
     skills?: string[];
 }
 
-export interface UpdateMovieParams {
-    name?: string
-    duration?: number
+export interface CreateAdminRequest {
+    name: string;
+    email: string;
+    password: string;
+    key: string;
 }
 
-export interface UserToUpdate {
-    email?: string
-    // iban?: string'
-    name?:string
-    password?:string
-    actual_password:string
+export interface UpdateUserParams {
+    name?: string;
+    email?: string;
+    password?: string;
+    actual_password: string;
 }
 
-
+export interface ListUserFilter {
+    limit: number;
+    page: number;
+    type: string;
+    skills?: string[];
+}
 
 export class UserUsecase {
     constructor(private readonly db: DataSource) { }
 
-    async updateUser(id: number, userToUpdate: UserToUpdate): Promise<User | string> {
-        const userRepo = this.db.getRepository(User);
-        const userFound = await userRepo.findOne({
-          where: { id, isDeleted: false },
-          relations: ['status']
-        });
-        
-      
-        if (!userFound) {
-          return "User not Found !!!";
-        }
-        // if(userFound.status && userFound.status.description!="NORMAL"){
-        //   return "This is not a commonn user !!!"
-        // }
-      
-        // Vérifier si le mot de passe actuel est correct
-        const isValid =await compare(userToUpdate.actual_password,userFound.password)
-        if (!isValid) {
-          return "Actual password incorrect !!!";
-        }
-      
-        // Si le mot de passe actuel est correct, effectuer les modifications
-        if (userToUpdate.email) {
-          userFound.email = userToUpdate.email;
-        }
-      
-        if (userToUpdate.name) {
-          userFound.name = userToUpdate.name;
-        }
-        // if (userToUpdate.iban) {
-        //   userFound.iban = userToUpdate.iban;
-        // }
-      
-        if (userToUpdate.password) {
-          userFound.password = await hash(userToUpdate.password, 10);
-        }
-      
-        const uUpdated = await userRepo.save(userFound);
-        return uUpdated;
-    }
+    // Créer un Adhérent
+    async createAdherent(createAdherentRequest: CreateAdherentRequest): Promise<User | string> {
+        try {
+            const userRepository = this.db.getRepository(User);
+            const status = await this.db.getRepository(Status)
+                .createQueryBuilder("status")
+                .where("status.type = :status", { status: "MEMBER" })
+                .getOne();
 
-    async updateAdmin(id: number, userToUpdate: UserToUpdate): Promise<User | string> {
-        const userRepo = this.db.getRepository(User);
-        const userFound = await userRepo.findOne({
-          where: { id, isDeleted: false },
-          relations: ['status']
-        });
-        
-      
-        if (!userFound) {
-          return "User not Found !!!";
+            if (!status) {
+                return "Status MEMBER not found";
+            }
+
+            const hashedPassword = await hash(createAdherentRequest.password, 10);
+
+            let skills: Skill[] = [];
+            if (createAdherentRequest.skills && createAdherentRequest.skills.length > 0) {
+                const skillRepo = this.db.getRepository(Skill);
+                skills = await Promise.all(createAdherentRequest.skills.map(async (skillName: string) => {
+                    let skill = await skillRepo.findOne({ where: { name: skillName } });
+                    if (!skill) {
+                        skill = skillRepo.create({ name: skillName });
+                        await skillRepo.save(skill);
+                    }
+                    return skill;
+                }));
+            }
+
+            const newUser = userRepository.create({
+                name: createAdherentRequest.name,
+                email: createAdherentRequest.email,
+                password: hashedPassword,
+                status: status,
+                skills: skills
+            });
+
+            const savedUser = await userRepository.save(newUser);
+            return savedUser;
+        } catch (error) {
+            console.error(error);
+            return "Internal error, please try again later";
         }
-        if(userFound.status && userFound.status.description!="ADMIN"){
-          return "This is not an admin !!!"
-        }
-      
-        // Vérifier si le mot de passe actuel est correct
-        const isValid =await compare(userToUpdate.actual_password,userFound.password)
-        if (!isValid) {
-          return "Actual password incorrect !!!";
-        }
-      
-        // Si le mot de passe actuel est correct, effectuer les modifications
-        if (userToUpdate.email) {
-          userFound.email = userToUpdate.email;
-        }
-      
-        //if (userToUpdate.iban) {
-          //userFound.iban = userToUpdate.iban;
-        //}
-      
-        if (userToUpdate.password) {
-          userFound.password = await hash(userToUpdate.password, 10);
-        }
-      
-        const uUpdated = await userRepo.save(userFound);
-        return uUpdated;
     }
-    async updateBenefactor(id: number, userToUpdate: UserToUpdate): Promise<User | string> {
+    async loginUser(email: string, password: string): Promise<{ user: User; token: string } | string> {
       const userRepo = this.db.getRepository(User);
-      const userFound = await userRepo.findOne({
-        where: { id, isDeleted: false },
-        relations: ['status']
-      });
-      
-    
-      if (!userFound) {
-        return "User not Found !!!";
+      const user = await userRepo.findOne({ where: { email, isDeleted: false }, relations: ['status'] });
+
+      if (!user) {
+          return "User not found";
       }
-      if(userFound.status && userFound.status.description!="BENEFACTOR"){
-        return "This is not a benefactor !!!"
-      }
-    
-      // Vérifier si le mot de passe actuel est correct
-      const isValid =await compare(userToUpdate.actual_password,userFound.password)
+
+      const isValid = await compare(password, user.password);
       if (!isValid) {
-        return "Actual password incorrect !!!";
+          return "Invalid email or password";
       }
-    
-      // Si le mot de passe actuel est correct, effectuer les modifications
-      if (userToUpdate.email) {
-        userFound.email = userToUpdate.email;
-      }
-    
-      if (userToUpdate.name) {
-        userFound.name = userToUpdate.name;
-      }
-      // if (userToUpdate.iban) {
-      //   userFound.iban = userToUpdate.iban;
-      // }
-    
-      if (userToUpdate.password) {
-        userFound.password = await hash(userToUpdate.password, 10);
-      }
-    
-      const uUpdated = await userRepo.save(userFound);
-      return uUpdated;
+
+      const secret = process.env.JWT_SECRET ?? "NoNotThis";
+      const token = sign({ userId: user.id, email: user.email }, secret, { expiresIn: '1d' });
+
+      return { user, token };
   }
 
-  async listUser(filter: ListUserFilter): Promise<{ users: User[]; totalCount: number; } | string> {
-    console.log(filter);
-    const query = this.db.getRepository(User)
-        .createQueryBuilder('user')
-        .leftJoinAndSelect('user.status', 'status')
-        .leftJoinAndSelect('user.skills', 'skill')
-        .where('user.isDeleted = :isDeleted', { isDeleted: false });
+    // Créer un Administrateur
+    async createAdmin(createAdminRequest: CreateAdminRequest): Promise<User | string> {
+        try {
+            const userRepository = this.db.getRepository(User);
+            const status = await this.db.getRepository(Status)
+                .createQueryBuilder("status")
+                .where("status.type = :status", { status: "ADMIN" })
+                .getOne();
 
-    if (filter.type) {
+            if (!status) {
+                return "Status ADMIN not found";
+            }
+
+            const hashedPassword = await hash(createAdminRequest.password, 10);
+
+            const newUser = userRepository.create({
+                name: createAdminRequest.name,
+                email: createAdminRequest.email,
+                password: hashedPassword,
+                status: status
+            });
+
+            const savedUser = await userRepository.save(newUser);
+            return savedUser;
+        } catch (error) {
+            console.error(error);
+            return "Internal error, please try again later";
+        }
+    }
+
+    // Mettre à jour un utilisateur (Adhérent, Admin, Bienfaiteur)
+    async updateUser(id: number, userToUpdate: UpdateUserParams): Promise<User | string> {
+        const userRepo = this.db.getRepository(User);
+        const userFound = await userRepo.findOne({ where: { id, isDeleted: false }, relations: ['status'] });
+
+        if (!userFound) {
+            return "User not found!";
+        }
+
+        const isValid = await compare(userToUpdate.actual_password, userFound.password);
+        if (!isValid) {
+            return "Actual password incorrect!";
+        }
+
+        if (userToUpdate.email) {
+            userFound.email = userToUpdate.email;
+        }
+
+        if (userToUpdate.name) {
+            userFound.name = userToUpdate.name;
+        }
+
+        if (userToUpdate.password) {
+            userFound.password = await hash(userToUpdate.password, 10);
+        }
+
+        const updatedUser = await userRepo.save(userFound);
+        return updatedUser;
+    }
+
+    // Bannir un utilisateur (définir isDeleted à true)
+    async banUser(id: number): Promise<string> {
+        const userRepo = this.db.getRepository(User);
+        const userFound = await userRepo.findOne({ where: { id, isDeleted: false } });
+
+        if (!userFound) {
+            return "User not found";
+        }
+
+        userFound.isDeleted = true;
+        await userRepo.save(userFound);
+        return `User ${userFound.name} has been banned successfully.`;
+    }
+
+    // Lister les utilisateurs avec des filtres
+    async listUser(filter: ListUserFilter): Promise<{ users: User[]; totalCount: number; } | string> {
+        const query = this.db.getRepository(User)
+            .createQueryBuilder('user')
+            .leftJoinAndSelect('user.status', 'status')
+            .leftJoinAndSelect('user.skills', 'skill')
+            .where('user.isDeleted = :isDeleted', { isDeleted: false });
+
+        if (filter.type) {
+            const status = await this.db.getRepository(Status)
+                .createQueryBuilder('status')
+                .where('status.type = :type', { type: filter.type })
+                .getOne();
+
+            if (status) {
+                query.andWhere('user.status.id = :statusId', { statusId: status.id });
+            } else {
+                return `Nothing Found for type: ${filter.type}`;
+            }
+        }
+
+        if (filter.skills && filter.skills.length > 0) {
+            query.andWhere('skill.name IN (:...skills)', { skills: filter.skills });
+        }
+
+        query.skip((filter.page - 1) * filter.limit).take(filter.limit);
+
+        const [users, totalCount] = await query.getManyAndCount();
+        return { users, totalCount };
+    }
+
+    // Récupérer un utilisateur par ID
+    async getUserById(id: number): Promise<User | string> {
+        const userRepo = this.db.getRepository(User);
+        const userFound = await userRepo.findOne({ where: { id, isDeleted: false }, relations: ['status', 'skills'] });
+
+        if (!userFound) {
+            return "User not found";
+        }
+
+        return userFound;
+    }
+
+    // Ajouter une compétence à un utilisateur
+    async addSkillToUser(userId: number, skillName: string): Promise<User | string> {
+        const userRepo = this.db.getRepository(User);
+        const skillRepo = this.db.getRepository(Skill);
+
+        const userFound = await userRepo.findOne({ where: { id: userId, isDeleted: false }, relations: ['skills'] });
+        if (!userFound) {
+            return "User not found";
+        }
+
+        let skillFound = await skillRepo.findOne({ where: { name: skillName } });
+        if (!skillFound) {
+            skillFound = skillRepo.create({ name: skillName });
+            await skillRepo.save(skillFound);
+        }
+
+        userFound.skills.push(skillFound);
+        await userRepo.save(userFound);
+        return userFound;
+    }
+
+    // Récupérer les utilisateurs par rôle
+    async getUsersByRole(role: string): Promise<User[]> {
+        const userRepo = this.db.getRepository(User);
         const status = await this.db.getRepository(Status)
             .createQueryBuilder('status')
-            .where('status.description = :description', { description: filter.type })
+            .where('status.type = :role', { role })
             .getOne();
 
-        if (status) {
-            query.andWhere('user.status.id = :statusId', { statusId: status.id });
-        } else {
-            return `Nothing Found !!! from type: ${filter.type}`;
+        if (!status) {
+            throw new Error(`Role ${role} not found`);
         }
+
+        const users = await userRepo.find({
+            where: { status: status, isDeleted: false },
+            relations: ['status', 'skills'],
+        });
+
+        return users;
     }
 
-    if (filter.skills && filter.skills.length > 0) {
-        query.andWhere('skill.name IN (:...skills)', { skills: filter.skills });
+    // Récupérer les utilisateurs disponibles par statut
+    async getAvailableUsersByStatus(statusDescription: string): Promise<User[]> {
+        const status = await this.db.getRepository(Status)
+            .createQueryBuilder('status')
+            .where('status.type = :type', { type: statusDescription })
+            .getOne();
+
+        if (!status) {
+            throw new Error(`Status with description ${statusDescription} not found`);
+        }
+
+        const users = await this.db.getRepository(User)
+            .createQueryBuilder('user')
+            .leftJoinAndSelect('user.status', 'status')
+            .where('user.status.id = :statusId', { statusId: status.id })
+            .andWhere('user.isDeleted = :isDeleted', { isDeleted: false })
+            .andWhere('user.isAvailable = :isAvailable', { isAvailable: true })
+            .getMany();
+
+        return users;
     }
 
-    query.skip((filter.page - 1) * filter.limit)
-        .take(filter.limit);
+    // Récupérer tous les utilisateurs disponibles
+    async getAllUsersAvailable(): Promise<User[]> {
+        const userRepo = this.db.getRepository(User);
 
-    const [users, totalCount] = await query.getManyAndCount();
-    return {
-        users,
-        totalCount
-    };
-}
+        const missions = await this.db.getRepository(Mission).find({ relations: ['assignedUsers'] });
+        const currentDate = new Date();
 
-async getUsersByRole(role: string): Promise<string[]> {
-  const userRepo = this.db.getRepository(User);
+        for (const mission of missions) {
+            for (const user of mission.assignedUsers) {
+                if (currentDate > mission.ending && user.isAvailable === false) {
+                    user.isAvailable = true;
+                    await userRepo.save(user);
+                }
+            }
+        }
 
-   const users = await userRepo.createQueryBuilder('user')
-      .leftJoinAndSelect('user.status', 'status')
-      .where('status.description = :role', { role })
-      .andWhere('user.isDeleted = false')
-      .select(['user.id', 'user.email'])
-      .getMany();
+        return await userRepo.find({ where: { isDeleted: false } });
+    }
 
-   const currentDate = new Date();
-  const missions = await this.db.getRepository(Mission).find({ relations: ['assignedUsers'] });
+ 
+    // Récupérer tous les utilisateurs
+    async getAllUsers(): Promise<User[]> {
+        return await this.db.getRepository(User).find({ where: { isDeleted: false } });
+    }
+    async getCurrentUser(userId: number): Promise<User | string> {
+      const userRepo = this.db.getRepository(User);
+      const user = await userRepo.findOne({
+          where: { id: userId, isDeleted: false },
+          select: ['id', 'name', 'email', 'status'],
+          relations: ['status']
+      });
 
-   for (const mission of missions) {
-      if (currentDate > mission.starting && currentDate < mission.ending) {
-          for (const user of mission.assignedUsers) {
-              const foundUser = users.find(u => u.id === user.id);
-              if (foundUser) {
-                  foundUser.isAvailable = false;
-              }
-          }
+      if (!user) {
+          return "User not found";
       }
+
+      return user;
   }
-
-   const availableUsers = users.filter(user => user.isAvailable !== false);
-
-  return availableUsers.map(user => user.email);
-}
-
-
-
-  async addSkillToUser(userId: number, skillName: string): Promise<User | string> {
-    const userRepo = this.db.getRepository(User);
-    const skillRepo = this.db.getRepository(Skill);
-
-    const userFound = await userRepo.findOne({ where: { id: userId, isDeleted: false }, relations: ['skills'] });
-    if (!userFound) {
-        return "User not found";
-    }
-
-    let skillFound = await skillRepo.findOne({ where: { name: skillName } });
-    if (!skillFound) {
-        skillFound = skillRepo.create({ name: skillName });
-        await skillRepo.save(skillFound);
-    }
-
-    userFound.skills.push(skillFound);
-    await userRepo.save(userFound);
-    return userFound;
-}
-async getAvailableUsersByStatus(statusDescription: string): Promise<User[]> {
-  const status = await this.db.getRepository(Status)
-      .createQueryBuilder('status')
-      .where('status.description = :description', { description: statusDescription })
-      .getOne();
-
-  if (!status) {
-      throw new Error(`Status with description ${statusDescription} not found`);
-  }
-
-  const users = await this.db.getRepository(User)
-      .createQueryBuilder('user')
-      .leftJoinAndSelect('user.status', 'status')
-      .where('user.status.id = :statusId', { statusId: status.id })
-      .andWhere('user.isDeleted = :isDeleted', { isDeleted: false })
-      .andWhere('user.isAvailable = :isAvailable', { isAvailable: true })
-      .getMany();
-
-  return users;
-}
-
-async getAllUsers_available(): Promise<User[]> {
-  const userRepo = this.db.getRepository(User);
-
-   const missions = await this.db.getRepository(Mission).find({ relations: ['assignedUsers'] });
-  const currentDate = new Date();
-
-  for (const mission of missions) {
-      for (const user of mission.assignedUsers) {
-          if (currentDate > mission.ending && user.isAvailable === false) {
-              user.isAvailable = true;
-              await userRepo.save(user);
-          }
-      }
-  }
-
-  return await userRepo.find();
-}
-async getAllUsers(): Promise<User[]> {
-  return await this.db.getRepository(User).find();
-}
-
-    
 }

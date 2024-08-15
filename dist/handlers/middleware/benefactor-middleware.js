@@ -14,6 +14,7 @@ const database_1 = require("../../database/database");
 const token_1 = require("../../database/entities/token");
 const jsonwebtoken_1 = require("jsonwebtoken");
 const user_1 = require("../../database/entities/user");
+const status_1 = require("../../database/entities/status");
 const benefactorMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const authHeader = req.headers['authorization'];
@@ -35,7 +36,7 @@ const benefactorMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 
     if (userFound && !userFound.status) {
         return res.status(500).json({ "error": "Internal server error stat " });
     }
-    if (userFound && userFound.status.description != "BENEFACTOR") {
+    if (userFound && userFound.status.type !== status_1.statustype.BENEFACTOR) {
         return res.status(403).json({ "error": "Access Forbidden" });
     }
     const secret = (_a = process.env.JWT_SECRET) !== null && _a !== void 0 ? _a : "NoNotThisss";

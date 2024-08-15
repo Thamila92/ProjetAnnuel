@@ -1,14 +1,14 @@
 
 import { DataSource } from "typeorm";
-import 'dotenv/config';
+
 
 
 export const AppDataSource = new DataSource({
     type: "mysql",
-    host: 'ensembleautrement-companion-e56d.g.aivencloud.com',
+    host: 'mysql-annuel-companion-e56d.l.aivencloud.com',
     port: 26768,
-    username:  process.env.USERNAME ,  
-    password: process.env.PASSWORD,             
+    username: 'avnadmin',  
+    password: 'AVNS_7XxfzzZyd2UvTdF3hu6',             
     database: 'ensemble_autrement',
     logging: true,
     synchronize: true,
@@ -27,3 +27,5 @@ export const AppDataSource = new DataSource({
       },
     "driver": require('mysql2')
 })
+
+

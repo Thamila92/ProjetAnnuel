@@ -100,6 +100,17 @@ class ResourceUsecase {
             });
         });
     }
+    deleteResource(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const resourceRepo = this.db.getRepository(ressource_1.Resource);
+            const resource = yield resourceRepo.findOne({ where: { id } });
+            if (!resource) {
+                return false;
+            }
+            yield resourceRepo.remove(resource);
+            return true;
+        });
+    }
     getAllResources() {
         return __awaiter(this, void 0, void 0, function* () {
             const resourceRepo = this.db.getRepository(ressource_1.Resource);

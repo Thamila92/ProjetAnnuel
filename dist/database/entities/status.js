@@ -9,15 +9,15 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Status = void 0;
+exports.Status = exports.statustype = void 0;
 const typeorm_1 = require("typeorm");
 const user_1 = require("./user");
 var statustype;
 (function (statustype) {
-    statustype["admin"] = "ADMIN";
-    statustype["other"] = "NORMAL";
-    statustype["benefactor"] = "BENEFACTOR";
-})(statustype || (statustype = {}));
+    statustype["ADMIN"] = "ADMIN";
+    statustype["MEMBER"] = "MEMBER";
+    statustype["BENEFACTOR"] = "NORMAL";
+})(statustype || (exports.statustype = statustype = {}));
 let Status = class Status {
 };
 exports.Status = Status;
@@ -28,10 +28,10 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ type: 'enum', enum: statustype }),
     __metadata("design:type", String)
-], Status.prototype, "description", void 0);
+], Status.prototype, "type", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: null }),
-    __metadata("design:type", String)
+    (0, typeorm_1.Column)({ type: 'varchar', length: 255, nullable: true }),
+    __metadata("design:type", Object)
 ], Status.prototype, "key", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ type: "datetime" }),

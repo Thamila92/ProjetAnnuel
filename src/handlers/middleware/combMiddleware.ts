@@ -46,9 +46,9 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       (req as any).user = decoded;
 
       // Vérifier si l'utilisateur est un administrateur
-      if (userFound && userFound.status.description === "ADMIN") {
+      if (userFound && userFound.status.type === "ADMIN") {
         next();
-      } else if (userFound && userFound.status.description === "NORMAL") {
+      } else if (userFound && userFound.status.type === "NORMAL") {
         // Vérifier si l'utilisateur est un utilisateur normal
         next();
       } else {

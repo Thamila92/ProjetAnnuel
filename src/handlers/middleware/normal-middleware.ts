@@ -29,7 +29,7 @@ export const normalMiddleware = async (req: Request, res: Response, next: NextFu
     return res.status(500).json({ "error": "Internal server error stat "});
   }
   
-  if (userFound && userFound.status.description != "NORMAL") {
+  if (userFound && userFound.status.type != "NORMAL") {
     return res.status(403).json({ "error": "Access Forbidden" });
   }
 

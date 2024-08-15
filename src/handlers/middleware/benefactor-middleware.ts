@@ -3,6 +3,7 @@ import { AppDataSource } from "../../database/database";
 import { Token } from "../../database/entities/token";
 import { JwtPayload, verify } from 'jsonwebtoken';
 import { User } from "../../database/entities/user";
+import { statustype } from "../../database/entities/status";
 
 export const benefactorMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
@@ -29,7 +30,7 @@ export const benefactorMiddleware = async (req: Request, res: Response, next: Ne
     return res.status(500).json({ "error": "Internal server error stat "});
   }
   
-  if (userFound && userFound.status.description != "BENEFACTOR") {
+  if (userFound && userFound.status.type !== statustype.BENEFACTOR) {
     return res.status(403).json({ "error": "Access Forbidden" });
   }
 

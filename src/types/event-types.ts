@@ -1,4 +1,19 @@
 export enum eventtype {
     AG = "AG",
-    SUIVI = "SUIVI"
+    porteOuverte = "PORTE_OUVERTE",
+    conference = "CONFERENCE",
+    atelier = "ATELIER",
+    seminaire = "SEMINAIRE",
+    reunion ="REUNION"
+}
+
+export enum repetitivity {
+    MONTHLY = "MONTHLY",
+    ANNUAL = "ANNUAL",
+    NONE = "NONE",
+}
+
+export enum AttendeeRole {
+    IMPORTANT = "IMPORTANT",
+    NORMAL = "NORMAL",
 }

@@ -1,10 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, JoinTable, OneToMany } from "typeorm";
-import { Evenement } from "./evenement";
+import {
+    Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, OneToMany
+} from "typeorm";
 import { User } from "./user";
-import { Step } from "./step";
 import { Review } from "./review";
 import { Skill } from "./skill";
-import { Resource } from "./ressource";  
+import { Resource } from "./ressource";   
 
 enum statustype {
     unstarted = "UNSTARTED",
@@ -30,12 +30,6 @@ export class Mission {
     @Column()
     description!: string;
 
-    @ManyToOne(() => Evenement, (evenement) => evenement.missions, { nullable: true })
-    evenement?: Evenement;
-
-    @ManyToOne(() => Step, (step) => step.missions, { nullable: true })
-    step?: Step;
-
     @ManyToMany(() => User, { eager: true })
     @JoinTable()
     assignedUsers!: User[];
@@ -51,12 +45,10 @@ export class Mission {
     @JoinTable()
     resources!: Resource[];
 
-    constructor(starting: Date, ending: Date, description: string, evenement?: Evenement, step?: Step, state: string = 'UNSTARTED') {
+    constructor(starting: Date, ending: Date, description: string, state: string = 'UNSTARTED') {
         this.starting = starting;
         this.ending = ending;
         this.description = description;
-        this.evenement = evenement;
-        this.step = step;
         this.state = state;
     }
 }

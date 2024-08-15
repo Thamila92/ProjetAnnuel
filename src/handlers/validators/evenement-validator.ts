@@ -1,40 +1,7 @@
-import Joi from "joi";
+import Joi from 'joi';
+import { eventtype, repetitivity, AttendeeRole } from '../../types/event-types';
 
-enum eventtype {
-    AG = "AG",
-    suivi = "SUIVI"
-}
-
-enum repetitivity {
-    MONTHLY = "MONTHLY",
-    ANNUAL = "ANNUAL",
-    NONE = "NONE",
-}
-
-enum AttendeeRole {
-    IMPORTANT = "IMPORTANT",
-    NORMAL = "NORMAL",
-}
-
-export interface Attendee {
-    userId: number;
-    role: AttendeeRole;
-}
-
-export interface EvenementRequest {
-    type: eventtype;
-    virtualLink?: string;
-    isVirtual: boolean;
-    attendees?: Attendee[];
-    repetitivity: repetitivity;
-    description: string;
-    quorum?: number;
-    starting: Date;
-    ending: Date;
-    location: string;
-}
-
-export const evenementValidation = Joi.object<EvenementRequest>({
+export const evenementValidation = Joi.object({
     type: Joi.string().valid(...Object.values(eventtype)).required(),
     attendees: Joi.array().items(
         Joi.object({
@@ -50,8 +17,10 @@ export const evenementValidation = Joi.object<EvenementRequest>({
     starting: Joi.date().iso().min('now').required(),
     ending: Joi.date().iso().greater(Joi.ref('starting')).required(),
     repetitivity: Joi.string().valid(...Object.values(repetitivity)).default(repetitivity.NONE),
-}).options({ abortEarly: false });
-
+    maxParticipants: Joi.number().integer().positive().required(),
+    currentParticipants: Joi.number().integer().min(0).default(0).optional(),
+    membersOnly: Joi.boolean().default(false)  
+}).options({ abortEarly: false })
 export const evenementUpdateValidation = Joi.object({
     type: Joi.string().valid(...Object.values(eventtype)).optional(),
     location: Joi.string().optional(),
@@ -62,25 +31,18 @@ export const evenementUpdateValidation = Joi.object({
     starting: Joi.date().iso().min('now').optional(),
     ending: Joi.date().iso().greater(Joi.ref('starting')).optional(),
     repetitivity: Joi.string().valid(...Object.values(repetitivity)).optional(),
+    maxParticipants: Joi.number().integer().positive().optional(),
+    currentParticipants: Joi.number().integer().positive().optional(),  // Ajoutez ceci
+    membersOnly: Joi.boolean().optional()  // Ajoutez ceci
 }).options({ abortEarly: false });
 
-// export interface EvenementRequest {
-//     type: eventtype;
-//     location: string;
-//     description: string;
-//     quorum: number;
-//     starting: Date;
-//     ending: Date;
-//     // missionId: number;
-// }
 
 
-export const listEvenementValidation = Joi.object<ListEvenementRequest>({
-    page: Joi.number().min(1).optional(),
+export const evenementIdValidation = Joi.object({
+    id: Joi.number().required(),
+}).options({ abortEarly: false });
+
+export const listEvenementsValidation = Joi.object({
     limit: Joi.number().min(1).optional(),
-});
-
-export interface ListEvenementRequest {
-    page?: number;
-    limit?: number;
-}
+    page: Joi.number().min(1).optional(),
+}).options({ abortEarly: false });

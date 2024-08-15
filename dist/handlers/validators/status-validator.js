@@ -3,15 +3,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createStatusValidation = void 0;
+exports.statusIdValidation = exports.updateStatusValidation = exports.createStatusValidation = void 0;
 const joi_1 = __importDefault(require("joi"));
-var statustype;
-(function (statustype) {
-    statustype["admin"] = "ADMIN";
-    statustype["other"] = "NORMAL";
-    statustype["benefactor"] = "BENEFACTOR";
-})(statustype || (statustype = {}));
+const status_1 = require("../../database/entities/status");
 exports.createStatusValidation = joi_1.default.object({
-    description: joi_1.default.string().valid(...Object.values(statustype)).required(),
+    type: joi_1.default.string().valid(...Object.values(status_1.statustype)).required(),
     key: joi_1.default.string().optional()
+}).options({ abortEarly: false });
+exports.updateStatusValidation = joi_1.default.object({
+    type: joi_1.default.string().valid(...Object.values(status_1.statustype)).optional(),
+    key: joi_1.default.string().optional()
+}).options({ abortEarly: false });
+exports.statusIdValidation = joi_1.default.object({
+    id: joi_1.default.number().integer().required()
 }).options({ abortEarly: false });

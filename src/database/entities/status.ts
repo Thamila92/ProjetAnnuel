@@ -1,25 +1,25 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany } from "typeorm";
 import { User } from "./user";
 
-enum statustype{
-    admin="ADMIN",
-    other="NORMAL",
-    benefactor="BENEFACTOR"
+export enum statustype {
+  ADMIN = "ADMIN",
+  MEMBER = "MEMBER",
+  BENEFACTOR = "NORMAL"
 }
 
 @Entity()
 export class Status {
     @PrimaryGeneratedColumn()
-    id!: number
+    id!: number;
 
-    @Column({ type: 'enum', enum: statustype})
-    description!: statustype;
+    @Column({ type: 'enum', enum: statustype })
+    type!: statustype;
 
-    @Column({default:null})
-    key!: string;
+    @Column({ type: 'varchar', length: 255, nullable: true })  
+    key!: string | null;
 
-    @CreateDateColumn({type: "datetime"})
-    createdAt!: Date
+    @CreateDateColumn({ type: "datetime" })
+    createdAt!: Date;
 
     @OneToMany(() => User, user => user.status)
     users!: User[];

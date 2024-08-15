@@ -35,7 +35,7 @@ const normalMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, f
     if (userFound && !userFound.status) {
         return res.status(500).json({ "error": "Internal server error stat " });
     }
-    if (userFound && userFound.status.description != "NORMAL") {
+    if (userFound && userFound.status.type != "NORMAL") {
         return res.status(403).json({ "error": "Access Forbidden" });
     }
     const secret = (_a = process.env.JWT_SECRET) !== null && _a !== void 0 ? _a : "NoNotThis";

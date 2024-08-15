@@ -3,38 +3,33 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUserValidation = exports.userIdValidation = exports.listUsersValidation = exports.loginOtherValidation = exports.createOtherValidation = exports.createAdminValidation = void 0;
+exports.listUsersValidation = exports.updateUserValidation = exports.loginOtherValidation = exports.createAdminValidation = exports.createAdherentValidation = void 0;
 const joi_1 = __importDefault(require("joi"));
+exports.createAdherentValidation = joi_1.default.object({
+    name: joi_1.default.string().required(),
+    email: joi_1.default.string().email().required(),
+    password: joi_1.default.string().min(8).required(),
+    skills: joi_1.default.array().items(joi_1.default.string()).optional(),
+}).options({ abortEarly: false });
 exports.createAdminValidation = joi_1.default.object({
     name: joi_1.default.string().required(),
     email: joi_1.default.string().email().required(),
     password: joi_1.default.string().min(8).required(),
     key: joi_1.default.string().min(8).required(),
 }).options({ abortEarly: false });
-exports.createOtherValidation = joi_1.default.object({
-    name: joi_1.default.string().required(),
-    email: joi_1.default.string().email().required(),
-    password: joi_1.default.string().min(8).required(),
-    skills: joi_1.default.array().items(joi_1.default.string()).optional()
-}).options({ abortEarly: false });
 exports.loginOtherValidation = joi_1.default.object({
     email: joi_1.default.string().email().required(),
-    password: joi_1.default.string().min(8).required()
+    password: joi_1.default.string().required()
+}).options({ abortEarly: false });
+exports.updateUserValidation = joi_1.default.object({
+    name: joi_1.default.string().optional(),
+    email: joi_1.default.string().optional(),
+    password: joi_1.default.string().optional(),
+    actual_password: joi_1.default.string().required()
 }).options({ abortEarly: false });
 exports.listUsersValidation = joi_1.default.object({
     type: joi_1.default.string().optional(),
     page: joi_1.default.number().min(1).optional(),
     limit: joi_1.default.number().min(1).optional(),
     skills: joi_1.default.array().items(joi_1.default.string()).optional()
-}).options({ abortEarly: false });
-exports.userIdValidation = joi_1.default.object({
-    id: joi_1.default.number().required(),
-}).options({ abortEarly: false });
-exports.updateUserValidation = joi_1.default.object({
-    id: joi_1.default.number().required(),
-    status: joi_1.default.string().optional(),
-    name: joi_1.default.string().optional(),
-    email: joi_1.default.string().optional(),
-    password: joi_1.default.string().optional(),
-    actual_password: joi_1.default.string().required()
 }).options({ abortEarly: false });

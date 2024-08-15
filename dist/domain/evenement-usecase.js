@@ -17,15 +17,32 @@ class EvenementUsecase {
     constructor(db) {
         this.db = db;
     }
+    createEvenement(params) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const repo = this.db.getRepository(evenement_1.Evenement);
+            const locationRepo = this.db.getRepository(location_1.Location);
+            let locationFound = yield locationRepo.findOne({ where: { position: params.location } });
+            if (!locationFound) {
+                locationFound = locationRepo.create({ position: params.location });
+                yield locationRepo.save(locationFound);
+            }
+            const newEvenement = repo.create(Object.assign(Object.assign({}, params), { type: params.type, location: [locationFound], currentParticipants: params.currentParticipants || 0, membersOnly: params.membersOnly || false }));
+            return yield repo.save(newEvenement);
+        });
+    }
     listEvenements(filter) {
         return __awaiter(this, void 0, void 0, function* () {
+            const page = filter.page || 1;
+            const limit = filter.limit || 10;
+            if (isNaN(page) || isNaN(limit)) {
+                throw new Error('Page and limit should be numbers');
+            }
             const query = this.db.createQueryBuilder(evenement_1.Evenement, 'evenement')
                 .leftJoinAndSelect('evenement.location', 'location')
-                .leftJoinAndSelect('evenement.missions', 'mission')
                 .where('evenement.isDeleted = :isDeleted', { isDeleted: false })
-                .orderBy('evenement.starting', 'DESC') // Order by starting date in descending order
-                .skip((filter.page - 1) * filter.limit)
-                .take(filter.limit);
+                .orderBy('evenement.starting', 'DESC')
+                .skip((page - 1) * limit)
+                .take(limit);
             const [evenements, totalCount] = yield query.getManyAndCount();
             const currentDate = new Date();
             for (const evenement of evenements) {
@@ -54,7 +71,7 @@ class EvenementUsecase {
             const repo = this.db.getRepository(evenement_1.Evenement);
             const evenementFound = yield repo.findOne({
                 where: { id, isDeleted: false },
-                relations: ['location'] // Inclure la relation location
+                relations: ['location']
             });
             return evenementFound || null;
         });
@@ -74,7 +91,7 @@ class EvenementUsecase {
                 if (!isValidEventType) {
                     return "Invalid event type";
                 }
-                evenementFound.typee = params.type;
+                evenementFound.type = params.type;
             }
             if (params.description)
                 evenementFound.description = params.description;
@@ -86,23 +103,13 @@ class EvenementUsecase {
                 evenementFound.isVirtual = params.isVirtual;
             if (params.virtualLink !== undefined)
                 evenementFound.virtualLink = params.virtualLink;
+            if (params.maxParticipants !== undefined)
+                evenementFound.maxParticipants = params.maxParticipants;
             const { starting, ending } = params;
-            if (starting || ending) {
-                const checkStarting = starting || evenementFound.starting;
-                const checkEnding = ending || evenementFound.ending;
-                const conflictingEvents = yield repo.createQueryBuilder('event')
-                    .where(':starting < event.ending AND :ending > event.starting', { starting: checkStarting, ending: checkEnding })
-                    .andWhere('event.id != :id', { id })
-                    .andWhere('event.isDeleted = false')
-                    .getMany();
-                if (conflictingEvents.length > 0) {
-                    return "Conflicting event exists";
-                }
-                if (starting)
-                    evenementFound.starting = starting;
-                if (ending)
-                    evenementFound.ending = ending;
-            }
+            if (starting)
+                evenementFound.starting = starting;
+            if (ending)
+                evenementFound.ending = ending;
             if (params.location) {
                 let locFound = yield locationRepo.findOne({ where: { position: params.location } });
                 if (!locFound) {
@@ -111,7 +118,6 @@ class EvenementUsecase {
                 }
                 evenementFound.location = [locFound];
             }
-            // Mettre à jour l'état en fonction des nouvelles dates
             const currentDate = new Date();
             if (currentDate > evenementFound.ending) {
                 evenementFound.state = 'ENDED';
@@ -132,11 +138,10 @@ class EvenementUsecase {
     deleteEvenement(id) {
         return __awaiter(this, void 0, void 0, function* () {
             const repo = this.db.getRepository(evenement_1.Evenement);
-            const evenementFound = yield repo.findOne({ where: { id, isDeleted: false } });
+            const evenementFound = yield repo.findOne({ where: { id } });
             if (!evenementFound)
                 return "Event not found";
-            evenementFound.isDeleted = true;
-            yield repo.save(evenementFound);
+            yield repo.remove(evenementFound);
             return evenementFound;
         });
     }

@@ -89,6 +89,16 @@ export class ResourceUsecase {
             end: LessThanOrEqual(currentDate),
         });
     }
+
+    async deleteResource(id: number): Promise<boolean> {
+        const resourceRepo = this.db.getRepository(Resource);
+        const resource = await resourceRepo.findOne({ where: { id } });
+        if (!resource) {
+            return false;
+        }
+        await resourceRepo.remove(resource);
+        return true;
+    }
     
     async getAllResources(): Promise<Resource[]> {
         const resourceRepo = this.db.getRepository(Resource);

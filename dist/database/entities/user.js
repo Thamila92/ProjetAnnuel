@@ -33,9 +33,7 @@ __decorate([
     __metadata("design:type", Number)
 ], User.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)({
-        unique: true
-    }),
+    (0, typeorm_1.Column)({ unique: true }),
     __metadata("design:type", String)
 ], User.prototype, "email", void 0);
 __decorate([
@@ -107,10 +105,6 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => vote_1.Vote, vote => vote.user),
     __metadata("design:type", Array)
 ], User.prototype, "votes", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => vote_1.Vote, note => note.user),
-    __metadata("design:type", Array)
-], User.prototype, "notes", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => evenement_attendee_1.EvenementAttendee, (attendee) => attendee.user),
     __metadata("design:type", Array)

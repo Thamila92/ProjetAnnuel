@@ -38,7 +38,7 @@ export const adminMiddleware = async (req: Request, res: Response, next: NextFun
     return res.status(500).json({ "error": "Internal server error stat "});
   }
   
-  if (userFound && userFound.status.description != "ADMIN") {
+  if (userFound && userFound.status.type != "ADMIN") {
     console.log("User is not an admin");
     return res.status(403).json({ "error": "Access Forbidden" });
   }

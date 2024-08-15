@@ -50,10 +50,10 @@ const authMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         if (decoded) {
             req.user = decoded;
             // Vérifier si l'utilisateur est un administrateur
-            if (userFound && userFound.status.description === "ADMIN") {
+            if (userFound && userFound.status.type === "ADMIN") {
                 next();
             }
-            else if (userFound && userFound.status.description === "NORMAL") {
+            else if (userFound && userFound.status.type === "NORMAL") {
                 // Vérifier si l'utilisateur est un utilisateur normal
                 next();
             }

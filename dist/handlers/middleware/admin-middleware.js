@@ -42,7 +42,7 @@ const adminMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, fu
         console.log("User found but no status associated with user");
         return res.status(500).json({ "error": "Internal server error stat " });
     }
-    if (userFound && userFound.status.description != "ADMIN") {
+    if (userFound && userFound.status.type != "ADMIN") {
         console.log("User is not an admin");
         return res.status(403).json({ "error": "Access Forbidden" });
     }

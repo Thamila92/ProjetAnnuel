@@ -16,10 +16,10 @@ services:
   mysql-db:
     image: mysql:latest
     environment:
-      MYSQL_ROOT_PASSWORD: ${PASSWORD}
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: ensemble_autrement
-      MYSQL_USER: ${USERNAME}
-      MYSQL_PASSWORD: ${PASSWORD}
+      MYSQL_USER: ensemble_autrement
+      MYSQL_PASSWORD: root
     ports:
       - "3306:3306"
     volumes:

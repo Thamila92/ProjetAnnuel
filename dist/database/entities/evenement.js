@@ -9,21 +9,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Evenement = exports.repetitivity = void 0;
+exports.Evenement = void 0;
 const typeorm_1 = require("typeorm");
-const mission_1 = require("./mission");
 const user_1 = require("./user");
 const program_1 = require("./program");
 const location_1 = require("./location");
 const evenement_attendee_1 = require("./evenement-attendee");
 const event_types_1 = require("../../types/event-types");
 const notification_1 = require("./notification");
-var repetitivity;
-(function (repetitivity) {
-    repetitivity["NONE"] = "NONE";
-    repetitivity["MONTHLY"] = "MONTHLY";
-    repetitivity["ANNUAL"] = "ANNUAL";
-})(repetitivity || (exports.repetitivity = repetitivity = {}));
 let Evenement = class Evenement {
     constructor() {
         this.state = 'UNSTARTED';
@@ -44,7 +37,7 @@ __decorate([
         enum: event_types_1.eventtype
     }),
     __metadata("design:type", String)
-], Evenement.prototype, "typee", void 0);
+], Evenement.prototype, "type", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
@@ -62,7 +55,7 @@ __decorate([
     __metadata("design:type", Date)
 ], Evenement.prototype, "starting", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: "enum", enum: repetitivity }),
+    (0, typeorm_1.Column)({ type: "enum", enum: event_types_1.repetitivity }),
     __metadata("design:type", String)
 ], Evenement.prototype, "repetitivity", void 0);
 __decorate([
@@ -73,10 +66,6 @@ __decorate([
     (0, typeorm_1.ManyToOne)(() => user_1.User, (user) => user.evenements),
     __metadata("design:type", user_1.User)
 ], Evenement.prototype, "user", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => mission_1.Mission, (mission) => mission.evenement),
-    __metadata("design:type", Array)
-], Evenement.prototype, "missions", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => evenement_attendee_1.EvenementAttendee, (attendee) => attendee.evenement),
     __metadata("design:type", Array)
@@ -102,6 +91,18 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => notification_1.Notification, (notification) => notification.event),
     __metadata("design:type", Array)
 ], Evenement.prototype, "notifications", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 100 }),
+    __metadata("design:type", Number)
+], Evenement.prototype, "maxParticipants", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], Evenement.prototype, "currentParticipants", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], Evenement.prototype, "membersOnly", void 0);
 exports.Evenement = Evenement = __decorate([
     (0, typeorm_1.Entity)({ name: "evenement" })
 ], Evenement);

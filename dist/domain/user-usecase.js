@@ -15,115 +15,138 @@ const status_1 = require("../database/entities/status");
 const bcrypt_1 = require("bcrypt");
 const skill_1 = require("../database/entities/skill");
 const mission_1 = require("../database/entities/mission");
+const jsonwebtoken_1 = require("jsonwebtoken");
 class UserUsecase {
     constructor(db) {
         this.db = db;
     }
+    // Créer un Adhérent
+    createAdherent(createAdherentRequest) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const userRepository = this.db.getRepository(user_1.User);
+                const status = yield this.db.getRepository(status_1.Status)
+                    .createQueryBuilder("status")
+                    .where("status.type = :status", { status: "MEMBER" })
+                    .getOne();
+                if (!status) {
+                    return "Status MEMBER not found";
+                }
+                const hashedPassword = yield (0, bcrypt_1.hash)(createAdherentRequest.password, 10);
+                let skills = [];
+                if (createAdherentRequest.skills && createAdherentRequest.skills.length > 0) {
+                    const skillRepo = this.db.getRepository(skill_1.Skill);
+                    skills = yield Promise.all(createAdherentRequest.skills.map((skillName) => __awaiter(this, void 0, void 0, function* () {
+                        let skill = yield skillRepo.findOne({ where: { name: skillName } });
+                        if (!skill) {
+                            skill = skillRepo.create({ name: skillName });
+                            yield skillRepo.save(skill);
+                        }
+                        return skill;
+                    })));
+                }
+                const newUser = userRepository.create({
+                    name: createAdherentRequest.name,
+                    email: createAdherentRequest.email,
+                    password: hashedPassword,
+                    status: status,
+                    skills: skills
+                });
+                const savedUser = yield userRepository.save(newUser);
+                return savedUser;
+            }
+            catch (error) {
+                console.error(error);
+                return "Internal error, please try again later";
+            }
+        });
+    }
+    loginUser(email, password) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const userRepo = this.db.getRepository(user_1.User);
+            const user = yield userRepo.findOne({ where: { email, isDeleted: false }, relations: ['status'] });
+            if (!user) {
+                return "User not found";
+            }
+            const isValid = yield (0, bcrypt_1.compare)(password, user.password);
+            if (!isValid) {
+                return "Invalid email or password";
+            }
+            const secret = (_a = process.env.JWT_SECRET) !== null && _a !== void 0 ? _a : "NoNotThis";
+            const token = (0, jsonwebtoken_1.sign)({ userId: user.id, email: user.email }, secret, { expiresIn: '1d' });
+            return { user, token };
+        });
+    }
+    // Créer un Administrateur
+    createAdmin(createAdminRequest) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const userRepository = this.db.getRepository(user_1.User);
+                const status = yield this.db.getRepository(status_1.Status)
+                    .createQueryBuilder("status")
+                    .where("status.type = :status", { status: "ADMIN" })
+                    .getOne();
+                if (!status) {
+                    return "Status ADMIN not found";
+                }
+                const hashedPassword = yield (0, bcrypt_1.hash)(createAdminRequest.password, 10);
+                const newUser = userRepository.create({
+                    name: createAdminRequest.name,
+                    email: createAdminRequest.email,
+                    password: hashedPassword,
+                    status: status
+                });
+                const savedUser = yield userRepository.save(newUser);
+                return savedUser;
+            }
+            catch (error) {
+                console.error(error);
+                return "Internal error, please try again later";
+            }
+        });
+    }
+    // Mettre à jour un utilisateur (Adhérent, Admin, Bienfaiteur)
     updateUser(id, userToUpdate) {
         return __awaiter(this, void 0, void 0, function* () {
             const userRepo = this.db.getRepository(user_1.User);
-            const userFound = yield userRepo.findOne({
-                where: { id, isDeleted: false },
-                relations: ['status']
-            });
+            const userFound = yield userRepo.findOne({ where: { id, isDeleted: false }, relations: ['status'] });
             if (!userFound) {
-                return "User not Found !!!";
+                return "User not found!";
             }
-            // if(userFound.status && userFound.status.description!="NORMAL"){
-            //   return "This is not a commonn user !!!"
-            // }
-            // Vérifier si le mot de passe actuel est correct
             const isValid = yield (0, bcrypt_1.compare)(userToUpdate.actual_password, userFound.password);
             if (!isValid) {
-                return "Actual password incorrect !!!";
+                return "Actual password incorrect!";
             }
-            // Si le mot de passe actuel est correct, effectuer les modifications
             if (userToUpdate.email) {
                 userFound.email = userToUpdate.email;
             }
             if (userToUpdate.name) {
                 userFound.name = userToUpdate.name;
             }
-            // if (userToUpdate.iban) {
-            //   userFound.iban = userToUpdate.iban;
-            // }
             if (userToUpdate.password) {
                 userFound.password = yield (0, bcrypt_1.hash)(userToUpdate.password, 10);
             }
-            const uUpdated = yield userRepo.save(userFound);
-            return uUpdated;
+            const updatedUser = yield userRepo.save(userFound);
+            return updatedUser;
         });
     }
-    updateAdmin(id, userToUpdate) {
+    // Bannir un utilisateur (définir isDeleted à true)
+    banUser(id) {
         return __awaiter(this, void 0, void 0, function* () {
             const userRepo = this.db.getRepository(user_1.User);
-            const userFound = yield userRepo.findOne({
-                where: { id, isDeleted: false },
-                relations: ['status']
-            });
+            const userFound = yield userRepo.findOne({ where: { id, isDeleted: false } });
             if (!userFound) {
-                return "User not Found !!!";
+                return "User not found";
             }
-            if (userFound.status && userFound.status.description != "ADMIN") {
-                return "This is not an admin !!!";
-            }
-            // Vérifier si le mot de passe actuel est correct
-            const isValid = yield (0, bcrypt_1.compare)(userToUpdate.actual_password, userFound.password);
-            if (!isValid) {
-                return "Actual password incorrect !!!";
-            }
-            // Si le mot de passe actuel est correct, effectuer les modifications
-            if (userToUpdate.email) {
-                userFound.email = userToUpdate.email;
-            }
-            //if (userToUpdate.iban) {
-            //userFound.iban = userToUpdate.iban;
-            //}
-            if (userToUpdate.password) {
-                userFound.password = yield (0, bcrypt_1.hash)(userToUpdate.password, 10);
-            }
-            const uUpdated = yield userRepo.save(userFound);
-            return uUpdated;
+            userFound.isDeleted = true;
+            yield userRepo.save(userFound);
+            return `User ${userFound.name} has been banned successfully.`;
         });
     }
-    updateBenefactor(id, userToUpdate) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const userRepo = this.db.getRepository(user_1.User);
-            const userFound = yield userRepo.findOne({
-                where: { id, isDeleted: false },
-                relations: ['status']
-            });
-            if (!userFound) {
-                return "User not Found !!!";
-            }
-            if (userFound.status && userFound.status.description != "BENEFACTOR") {
-                return "This is not a benefactor !!!";
-            }
-            // Vérifier si le mot de passe actuel est correct
-            const isValid = yield (0, bcrypt_1.compare)(userToUpdate.actual_password, userFound.password);
-            if (!isValid) {
-                return "Actual password incorrect !!!";
-            }
-            // Si le mot de passe actuel est correct, effectuer les modifications
-            if (userToUpdate.email) {
-                userFound.email = userToUpdate.email;
-            }
-            if (userToUpdate.name) {
-                userFound.name = userToUpdate.name;
-            }
-            // if (userToUpdate.iban) {
-            //   userFound.iban = userToUpdate.iban;
-            // }
-            if (userToUpdate.password) {
-                userFound.password = yield (0, bcrypt_1.hash)(userToUpdate.password, 10);
-            }
-            const uUpdated = yield userRepo.save(userFound);
-            return uUpdated;
-        });
-    }
+    // Lister les utilisateurs avec des filtres
     listUser(filter) {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log(filter);
             const query = this.db.getRepository(user_1.User)
                 .createQueryBuilder('user')
                 .leftJoinAndSelect('user.status', 'status')
@@ -132,52 +155,35 @@ class UserUsecase {
             if (filter.type) {
                 const status = yield this.db.getRepository(status_1.Status)
                     .createQueryBuilder('status')
-                    .where('status.description = :description', { description: filter.type })
+                    .where('status.type = :type', { type: filter.type })
                     .getOne();
                 if (status) {
                     query.andWhere('user.status.id = :statusId', { statusId: status.id });
                 }
                 else {
-                    return `Nothing Found !!! from type: ${filter.type}`;
+                    return `Nothing Found for type: ${filter.type}`;
                 }
             }
             if (filter.skills && filter.skills.length > 0) {
                 query.andWhere('skill.name IN (:...skills)', { skills: filter.skills });
             }
-            query.skip((filter.page - 1) * filter.limit)
-                .take(filter.limit);
+            query.skip((filter.page - 1) * filter.limit).take(filter.limit);
             const [users, totalCount] = yield query.getManyAndCount();
-            return {
-                users,
-                totalCount
-            };
+            return { users, totalCount };
         });
     }
-    getUsersByRole(role) {
+    // Récupérer un utilisateur par ID
+    getUserById(id) {
         return __awaiter(this, void 0, void 0, function* () {
             const userRepo = this.db.getRepository(user_1.User);
-            const users = yield userRepo.createQueryBuilder('user')
-                .leftJoinAndSelect('user.status', 'status')
-                .where('status.description = :role', { role })
-                .andWhere('user.isDeleted = false')
-                .select(['user.id', 'user.email'])
-                .getMany();
-            const currentDate = new Date();
-            const missions = yield this.db.getRepository(mission_1.Mission).find({ relations: ['assignedUsers'] });
-            for (const mission of missions) {
-                if (currentDate > mission.starting && currentDate < mission.ending) {
-                    for (const user of mission.assignedUsers) {
-                        const foundUser = users.find(u => u.id === user.id);
-                        if (foundUser) {
-                            foundUser.isAvailable = false;
-                        }
-                    }
-                }
+            const userFound = yield userRepo.findOne({ where: { id, isDeleted: false }, relations: ['status', 'skills'] });
+            if (!userFound) {
+                return "User not found";
             }
-            const availableUsers = users.filter(user => user.isAvailable !== false);
-            return availableUsers.map(user => user.email);
+            return userFound;
         });
     }
+    // Ajouter une compétence à un utilisateur
     addSkillToUser(userId, skillName) {
         return __awaiter(this, void 0, void 0, function* () {
             const userRepo = this.db.getRepository(user_1.User);
@@ -196,11 +202,30 @@ class UserUsecase {
             return userFound;
         });
     }
+    // Récupérer les utilisateurs par rôle
+    getUsersByRole(role) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const userRepo = this.db.getRepository(user_1.User);
+            const status = yield this.db.getRepository(status_1.Status)
+                .createQueryBuilder('status')
+                .where('status.type = :role', { role })
+                .getOne();
+            if (!status) {
+                throw new Error(`Role ${role} not found`);
+            }
+            const users = yield userRepo.find({
+                where: { status: status, isDeleted: false },
+                relations: ['status', 'skills'],
+            });
+            return users;
+        });
+    }
+    // Récupérer les utilisateurs disponibles par statut
     getAvailableUsersByStatus(statusDescription) {
         return __awaiter(this, void 0, void 0, function* () {
             const status = yield this.db.getRepository(status_1.Status)
                 .createQueryBuilder('status')
-                .where('status.description = :description', { description: statusDescription })
+                .where('status.type = :type', { type: statusDescription })
                 .getOne();
             if (!status) {
                 throw new Error(`Status with description ${statusDescription} not found`);
@@ -215,7 +240,8 @@ class UserUsecase {
             return users;
         });
     }
-    getAllUsers_available() {
+    // Récupérer tous les utilisateurs disponibles
+    getAllUsersAvailable() {
         return __awaiter(this, void 0, void 0, function* () {
             const userRepo = this.db.getRepository(user_1.User);
             const missions = yield this.db.getRepository(mission_1.Mission).find({ relations: ['assignedUsers'] });
@@ -228,12 +254,27 @@ class UserUsecase {
                     }
                 }
             }
-            return yield userRepo.find();
+            return yield userRepo.find({ where: { isDeleted: false } });
         });
     }
+    // Récupérer tous les utilisateurs
     getAllUsers() {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield this.db.getRepository(user_1.User).find();
+            return yield this.db.getRepository(user_1.User).find({ where: { isDeleted: false } });
+        });
+    }
+    getCurrentUser(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const userRepo = this.db.getRepository(user_1.User);
+            const user = yield userRepo.findOne({
+                where: { id: userId, isDeleted: false },
+                select: ['id', 'name', 'email', 'status'],
+                relations: ['status']
+            });
+            if (!user) {
+                return "User not found";
+            }
+            return user;
         });
     }
 }
