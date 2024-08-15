@@ -7,7 +7,7 @@ exports.AppDataSource = new typeorm_1.DataSource({
     type: "mysql",
     host: 'mysql-annuel-companion-e56d.l.aivencloud.com',
     port: 26768,
-    username: 'avnadmin',
+    username: process.env.USERNAME,
     password: process.env.PASSWORD,
     database: 'ensemble_autrement',
     logging: true,
