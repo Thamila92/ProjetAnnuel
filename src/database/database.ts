@@ -1,6 +1,6 @@
 
 import { DataSource } from "typeorm";
-
+import 'dotenv/config';
 
 
 export const AppDataSource = new DataSource({
@@ -8,7 +8,7 @@ export const AppDataSource = new DataSource({
     host: 'mysql-annuel-companion-e56d.l.aivencloud.com',
     port: 26768,
     username: 'avnadmin',  
-    password: 'AVNS_7XxfzzZyd2UvTdF3hu6',             
+    password:process.env.PASSWORD,             
     database: 'ensemble_autrement',
     logging: true,
     synchronize: true,

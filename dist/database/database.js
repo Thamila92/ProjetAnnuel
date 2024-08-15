@@ -2,12 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppDataSource = void 0;
 const typeorm_1 = require("typeorm");
+require("dotenv/config");
 exports.AppDataSource = new typeorm_1.DataSource({
     type: "mysql",
     host: 'mysql-annuel-companion-e56d.l.aivencloud.com',
     port: 26768,
     username: 'avnadmin',
-    password: 'AVNS_7XxfzzZyd2UvTdF3hu6',
+    password: process.env.PASSWORD,
     database: 'ensemble_autrement',
     logging: true,
     synchronize: true,
