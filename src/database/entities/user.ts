@@ -14,10 +14,11 @@ import { Projet } from "./projet";
 import { Document } from "./document";
 import { Vote } from "./vote";
 import { Location } from "./location";
-import { EvenementAttendee } from "./evenement-attendee";
+import { EvenementAttendee } from "./evenementAttendee";
 import { Notification } from "./notification";
  
 import { Skill } from "./skill";
+import { Demande } from "./demande";
 
 @Entity()
 export class User {
@@ -78,10 +79,14 @@ export class User {
 
     @OneToMany(() => Vote, vote => vote.user)
     votes!: Vote[];
-
-    @OneToMany(() => EvenementAttendee, (attendee) => attendee.user)
-    evenementAttendees!: EvenementAttendee[];
+ 
 
     @Column({ default: true })
     isAvailable!: boolean;
+
+    @OneToMany(() => Demande, demande => demande.user)
+    demandes!: Demande[]; // Relation avec les demandes
+
+    @OneToMany(() => EvenementAttendee, (attendee) => attendee.user)
+    evenementAttendees!: EvenementAttendee[]; 
 }

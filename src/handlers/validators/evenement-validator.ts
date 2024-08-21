@@ -46,3 +46,9 @@ export const listEvenementsValidation = Joi.object({
     limit: Joi.number().min(1).optional(),
     page: Joi.number().min(1).optional(),
 }).options({ abortEarly: false });
+export const evenementAttendeeValidation = Joi.object({
+    firstName: Joi.string().required(),
+    lastName: Joi.string().required(),
+    email: Joi.string().email().required(),
+    age: Joi.number().integer().min(1).required()
+}).options({ abortEarly: false });

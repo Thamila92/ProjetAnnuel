@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import { EvenementUsecase } from "../../domain/evenement-usecase";
 import { AppDataSource } from "../../database/database";
 import { generateValidationErrorMessage } from "../validators/generate-validation-message";
-import { evenementValidation, evenementUpdateValidation, evenementIdValidation, listEvenementsValidation } from "../validators/evenement-validator";
+import { evenementValidation, evenementUpdateValidation, evenementIdValidation, listEvenementsValidation, evenementAttendeeValidation } from "../validators/evenement-validator";
 
 export const initEvenementRoutes = (app: express.Express) => {
     const evenementUsecase = new EvenementUsecase(AppDataSource);
@@ -112,4 +112,58 @@ app.patch('/evenements/:id', async (req: Request, res: Response) => {
             res.status(500).json({ error: "Internal error, please try again later" });
         }
     });
+
+
+    app.post('/evenements/:id/inscrire', async (req: Request, res: Response) => {
+        try {
+            // Validation des données d'inscription avec Joi
+            const validationResult = evenementAttendeeValidation.validate(req.body);
+            if (validationResult.error) {
+                return res.status(400).json(generateValidationErrorMessage(validationResult.error.details));
+            }
+
+            // Appel de la méthode registerForEvent
+            const result = await evenementUsecase.registerForEvent(Number(req.params.id), validationResult.value);
+
+            // Vérification du résultat
+            if (typeof result === 'string') {
+                return res.status(400).json({ error: result });
+            }
+
+            return res.status(201).json({ message: 'You have successfully registered for the event', attendee: result });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ error: 'Internal error, please try again later' });
+        }
+    });
+    
+    app.get('/events/attendees', async (req: Request, res: Response) => {
+        try {
+            const result = await evenementUsecase.getAllEvenementAttendees();
+            res.status(200).json(result);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ "error": "Internal error, please try again later" });
+        }
+    });
+    
+    app.delete('/events/attendees/:id', async (req: Request, res: Response) => {
+        try {
+            const attendeeId = Number(req.params.id);
+            const result = await evenementUsecase.cancelEventRegistration(attendeeId);
+    
+            if (result === "Reservation not found") {
+                res.status(404).json({ error: result });
+            } else {
+                res.status(200).json({ message: result });
+            }
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ "error": "Internal error, please try again later" });
+        }
+    });
+    
+    
+    
+    
 };

@@ -3,6 +3,8 @@ import { Evenement } from "../database/entities/evenement";
 import { AppDataSource } from "../database/database";
 import { eventtype, repetitivity } from "../types/event-types";   
 import { Location } from "../database/entities/location";
+import { EvenementAttendee } from "../database/entities/evenementAttendee";
+import { User } from "../database/entities/user";
 
 export interface ListEvenementFilter {
     limit: number;
@@ -21,7 +23,12 @@ export interface UpdateEvenementParams {
     repetitivity?: repetitivity;
     maxParticipants?: number;  
 }
-
+export interface AttendeeInfo {
+    firstName: string;
+    lastName: string;
+    email: string;
+    age: number;
+}
 export interface EventToCreate {
     type: string;
     location: string;
@@ -171,4 +178,81 @@ export class EvenementUsecase {
         await repo.remove(evenementFound);
         return evenementFound;
     }
+    async registerForEvent(evenementId: number, attendeeInfo: AttendeeInfo): Promise<string | EvenementAttendee> {
+        const evenementRepo = this.db.getRepository(Evenement);
+        const attendeeRepo = this.db.getRepository(EvenementAttendee);
+        const userRepo = this.db.getRepository(User);
+
+        // Récupérer l'événement
+        const evenement = await evenementRepo.findOne({ where: { id: evenementId, isDeleted: false }, relations: ["attendees"] });
+        if (!evenement) {
+            return "Event not found";
+        }
+
+        // Vérifier si un utilisateur avec le même email et nom existe déjà
+        const existingUser = await userRepo.findOne({ where: { email: attendeeInfo.email } });
+
+        // Vérifier si l'événement a atteint le nombre maximum de participants
+        if (evenement.currentParticipants >= evenement.maxParticipants) {
+            return "The event has reached its maximum number of participants";
+        }
+
+        // Créer un nouveau participant (attendee)
+        const newAttendee = attendeeRepo.create({
+            firstName: attendeeInfo.firstName,
+            lastName: attendeeInfo.lastName,
+            email: attendeeInfo.email,
+            age: attendeeInfo.age,
+            evenement: evenement,
+            user: existingUser || undefined // Associer à l'utilisateur existant ou laisser vide
+        });
+
+        // Sauvegarder le nouvel participant dans la base de données
+        await attendeeRepo.save(newAttendee);
+
+        // Incrémenter le nombre de participants de l'événement
+        evenement.currentParticipants += 1;
+        await evenementRepo.save(evenement);
+
+        return newAttendee;
+    }
+   
+    async getAllEvenementAttendees(): Promise<EvenementAttendee[]> {
+        const attendeeRepo = this.db.getRepository(EvenementAttendee);
+
+        // Requête pour récupérer tous les EvenementAttendee
+        const allAttendees = await attendeeRepo.find({
+            relations: ["evenement", "user"] // Relations pour inclure les informations sur l'événement et les utilisateurs
+        });
+
+        return allAttendees;
+    }
+    async cancelEventRegistration(attendeeId: number): Promise<string> {
+        const attendeeRepo = this.db.getRepository(EvenementAttendee);
+        const evenementRepo = this.db.getRepository(Evenement);
+    
+        // Trouver l'enregistrement du participant
+        const attendee = await attendeeRepo.findOne({ where: { id: attendeeId }, relations: ['evenement'] });
+        if (!attendee) {
+            return "Reservation not found";
+        }
+    
+        // Récupérer l'événement lié à la réservation
+        const evenement = attendee.evenement;
+        if (evenement) {
+            // Décrémenter le nombre de participants si supérieur à 0
+            if (evenement.currentParticipants > 0) {
+                evenement.currentParticipants -= 1;
+                await evenementRepo.save(evenement);
+            }
+        }
+    
+        // Supprimer l'enregistrement du participant
+        await attendeeRepo.remove(attendee);
+    
+        return "Reservation canceled successfully";
+    }
+    
 }
+    
+

@@ -5,6 +5,8 @@ import { compare, hash } from "bcrypt";
 import { Skill } from "../database/entities/skill";
 import { Mission } from "../database/entities/mission";
 import { sign } from "jsonwebtoken";
+import { Demande } from "../database/entities/demande";
+import { EvenementAttendee } from "../database/entities/evenementAttendee";
 
 export interface CreateAdherentRequest {
     name: string;
@@ -180,30 +182,66 @@ export class UserUsecase {
             .leftJoinAndSelect('user.status', 'status')
             .leftJoinAndSelect('user.skills', 'skill')
             .where('user.isDeleted = :isDeleted', { isDeleted: false });
-
+    
+        const page = Number(filter.page) || 1;  // Valeur par défaut si page n'est pas définie
+        const limit = Number(filter.limit) || 10;  // Valeur par défaut si limit n'est pas définie
+    
+        // Vérification du type des paramètres de pagination
+        if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1) {
+            return "Invalid page or limit parameters.";
+        }
+    
         if (filter.type) {
             const status = await this.db.getRepository(Status)
                 .createQueryBuilder('status')
                 .where('status.type = :type', { type: filter.type })
                 .getOne();
-
+    
             if (status) {
                 query.andWhere('user.status.id = :statusId', { statusId: status.id });
             } else {
                 return `Nothing Found for type: ${filter.type}`;
             }
         }
-
+    
         if (filter.skills && filter.skills.length > 0) {
             query.andWhere('skill.name IN (:...skills)', { skills: filter.skills });
         }
-
-        query.skip((filter.page - 1) * filter.limit).take(filter.limit);
-
+    
+        query.skip((page - 1) * limit).take(limit);
+    
         const [users, totalCount] = await query.getManyAndCount();
         return { users, totalCount };
     }
-
+    
+    async getUserDemandes(userId: number): Promise<Demande[] | string> {
+        const userRepo = this.db.getRepository(User);
+        const userFound = await userRepo.findOne({
+            where: { id: userId, isDeleted: false },
+            relations: ['demandes']
+        });
+    
+        if (!userFound) {
+            return "User not found";
+        }
+    
+        return userFound.demandes;
+    }
+    async getUserEvenementAttendees(userId: number): Promise<EvenementAttendee[] | string> {
+        const userRepo = this.db.getRepository(User);
+        const userFound = await userRepo.findOne({
+            where: { id: userId, isDeleted: false },
+            relations: ['evenementAttendees']
+        });
+    
+        if (!userFound) {
+            return "User not found";
+        }
+    
+        return userFound.evenementAttendees;
+    }
+    
+    
     // Récupérer un utilisateur par ID
     async getUserById(id: number): Promise<User | string> {
         const userRepo = this.db.getRepository(User);

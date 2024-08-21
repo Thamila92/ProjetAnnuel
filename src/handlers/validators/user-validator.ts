@@ -28,7 +28,7 @@ export const updateUserValidation = Joi.object({
 
 export const listUsersValidation = Joi.object({
     type: Joi.string().optional(),
-    page: Joi.number().min(1).optional(),
-    limit: Joi.number().min(1).optional(),
+    page: Joi.number().min(1).default(1),   
+    limit: Joi.number().min(1).default(10), 
     skills: Joi.array().items(Joi.string()).optional()
 }).options({ abortEarly: false });

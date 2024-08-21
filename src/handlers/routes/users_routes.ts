@@ -30,7 +30,37 @@ export const initUserRoutes = (app: express.Express) => {
             res.status(500).json({ "error": "Internal error, please try again later" });
         }
     });
-
+    app.get('/getUserEvenementAttendees/:id', async (req: Request, res: Response) => {
+        try {
+            const userId = Number(req.params.id);
+            const result = await userUsecase.getUserEvenementAttendees(userId);
+    
+            if (typeof result === 'string') {
+                res.status(400).json({ error: result });
+            } else {
+                res.status(200).json(result);
+            }
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ "error": "Internal error, please try again later" });
+        }
+    });
+    app.get('/getUserDemandes/:id', async (req: Request, res: Response) => {
+        try {
+            const userId = Number(req.params.id);
+            const result = await userUsecase.getUserDemandes(userId);
+    
+            if (typeof result === 'string') {
+                res.status(400).json({ error: result });
+            } else {
+                res.status(200).json(result);
+            }
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ "error": "Internal error, please try again later" });
+        }
+    });
+    
     // Inscription Administrateur
     app.post('/admin/signup', async (req: Request, res: Response) => {
         try {

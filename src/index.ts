@@ -13,6 +13,7 @@ import { initStatusRoutes } from "./handlers/routes/status_routes";
 import { initUserRoutes } from "./handlers/routes/users_routes";
 import { initResourceRoutes } from "./handlers/routes/ressources_routes";
 import { initSkillRoutes } from "./handlers/routes/skill_routes";
+import { initDemandeRoutes } from "./handlers/routes/demande_routes";
 
 const main = async () => {
     const app = express();
@@ -47,6 +48,7 @@ const main = async () => {
     initUserRoutes(app);
     initResourceRoutes(app);
     initSkillRoutes(app);
+    initDemandeRoutes(app);
      swaggerDocs(app, port);
 
     app.listen(port, () => {
