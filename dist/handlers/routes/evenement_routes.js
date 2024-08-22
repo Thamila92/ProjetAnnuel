@@ -119,5 +119,51 @@ const initEvenementRoutes = (app) => {
             res.status(500).json({ error: "Internal error, please try again later" });
         }
     }));
+    app.post('/evenements/:id/inscrire', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            // Validation des données d'inscription avec Joi
+            const validationResult = evenement_validator_1.evenementAttendeeValidation.validate(req.body);
+            if (validationResult.error) {
+                return res.status(400).json((0, generate_validation_message_1.generateValidationErrorMessage)(validationResult.error.details));
+            }
+            // Appel de la méthode registerForEvent
+            const result = yield evenementUsecase.registerForEvent(Number(req.params.id), validationResult.value);
+            // Vérification du résultat
+            if (typeof result === 'string') {
+                return res.status(400).json({ error: result });
+            }
+            return res.status(201).json({ message: 'You have successfully registered for the event', attendee: result });
+        }
+        catch (error) {
+            console.error(error);
+            return res.status(500).json({ error: 'Internal error, please try again later' });
+        }
+    }));
+    app.get('/events/attendees', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const result = yield evenementUsecase.getAllEvenementAttendees();
+            res.status(200).json(result);
+        }
+        catch (error) {
+            console.error(error);
+            res.status(500).json({ "error": "Internal error, please try again later" });
+        }
+    }));
+    app.delete('/events/attendees/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const attendeeId = Number(req.params.id);
+            const result = yield evenementUsecase.cancelEventRegistration(attendeeId);
+            if (result === "Reservation not found") {
+                res.status(404).json({ error: result });
+            }
+            else {
+                res.status(200).json({ message: result });
+            }
+        }
+        catch (error) {
+            console.error(error);
+            res.status(500).json({ "error": "Internal error, please try again later" });
+        }
+    }));
 };
 exports.initEvenementRoutes = initEvenementRoutes;

@@ -152,6 +152,12 @@ class UserUsecase {
                 .leftJoinAndSelect('user.status', 'status')
                 .leftJoinAndSelect('user.skills', 'skill')
                 .where('user.isDeleted = :isDeleted', { isDeleted: false });
+            const page = Number(filter.page) || 1; // Valeur par défaut si page n'est pas définie
+            const limit = Number(filter.limit) || 10; // Valeur par défaut si limit n'est pas définie
+            // Vérification du type des paramètres de pagination
+            if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1) {
+                return "Invalid page or limit parameters.";
+            }
             if (filter.type) {
                 const status = yield this.db.getRepository(status_1.Status)
                     .createQueryBuilder('status')
@@ -167,9 +173,35 @@ class UserUsecase {
             if (filter.skills && filter.skills.length > 0) {
                 query.andWhere('skill.name IN (:...skills)', { skills: filter.skills });
             }
-            query.skip((filter.page - 1) * filter.limit).take(filter.limit);
+            query.skip((page - 1) * limit).take(limit);
             const [users, totalCount] = yield query.getManyAndCount();
             return { users, totalCount };
+        });
+    }
+    getUserDemandes(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const userRepo = this.db.getRepository(user_1.User);
+            const userFound = yield userRepo.findOne({
+                where: { id: userId, isDeleted: false },
+                relations: ['demandes']
+            });
+            if (!userFound) {
+                return "User not found";
+            }
+            return userFound.demandes;
+        });
+    }
+    getUserEvenementAttendees(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const userRepo = this.db.getRepository(user_1.User);
+            const userFound = yield userRepo.findOne({
+                where: { id: userId, isDeleted: false },
+                relations: ['evenementAttendees']
+            });
+            if (!userFound) {
+                return "User not found";
+            }
+            return userFound.evenementAttendees;
         });
     }
     // Récupérer un utilisateur par ID

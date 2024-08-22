@@ -26,6 +26,9 @@ const status_routes_1 = require("./handlers/routes/status_routes");
 const users_routes_1 = require("./handlers/routes/users_routes");
 const ressources_routes_1 = require("./handlers/routes/ressources_routes");
 const skill_routes_1 = require("./handlers/routes/skill_routes");
+const demande_routes_1 = require("./handlers/routes/demande_routes");
+const donation_routes_1 = require("./handlers/routes/donation_routes");
+const payement_routes_1 = require("./handlers/routes/payement_routes");
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     const app = (0, express_1.default)();
     const port = 3000;
@@ -54,6 +57,9 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     (0, users_routes_1.initUserRoutes)(app);
     (0, ressources_routes_1.initResourceRoutes)(app);
     (0, skill_routes_1.initSkillRoutes)(app);
+    (0, demande_routes_1.initDemandeRoutes)(app);
+    (0, donation_routes_1.initDonationRoutes)(app);
+    (0, payement_routes_1.initPaymentRoutes)(app);
     (0, swagger_1.swaggerDocs)(app, port);
     app.listen(port, () => {
         console.log(`Server running on port ${port}`);

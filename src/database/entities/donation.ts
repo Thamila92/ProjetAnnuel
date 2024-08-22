@@ -1,34 +1,28 @@
-import { Column, CreateDateColumn, Entity, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
 import { User } from "./user";
-import { Expenditures } from "./expenditure";
 
-@Entity()
+@Entity({ name: "donations" })
 export class Donation {
     @PrimaryGeneratedColumn()
-    id!: number
+    id!: number;
 
     @Column()
-    amount!:number
-
-    @Column({ default: 0 })
-    remaining!:number
+    email!: string;
 
     @Column()
-    description!:string
+    nom!: string;
 
-    @Column({ default: false })
-    isCanceled!: boolean;
+    @Column()
+    prenom!: string;
 
-    // @Column({ default: "FR7630006000011234567890189" })
-    // destinationIBAN!:string
-    
-    @OneToMany(() => Expenditures, expenditures => expenditures.donation)
-    expenditures!: Expenditures[];
+    @Column()
+    montant!: number;
 
-    @ManyToOne(() => User, benefactor => benefactor.donations)
-    benefactor!: User;
+    @Column()
+    date!: Date;
 
-    @CreateDateColumn({type: "datetime"})
-    createdAt!: Date
-
+    @ManyToOne(() => User, (user) => user.donations, { nullable: true })
+    user!: User;
+    @Column()
+    captureId!: string;  
 }

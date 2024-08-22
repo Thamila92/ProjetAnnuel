@@ -39,6 +39,38 @@ const initUserRoutes = (app) => {
             res.status(500).json({ "error": "Internal error, please try again later" });
         }
     }));
+    app.get('/getUserEvenementAttendees/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const userId = Number(req.params.id);
+            const result = yield userUsecase.getUserEvenementAttendees(userId);
+            if (typeof result === 'string') {
+                res.status(400).json({ error: result });
+            }
+            else {
+                res.status(200).json(result);
+            }
+        }
+        catch (error) {
+            console.error(error);
+            res.status(500).json({ "error": "Internal error, please try again later" });
+        }
+    }));
+    app.get('/getUserDemandes/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const userId = Number(req.params.id);
+            const result = yield userUsecase.getUserDemandes(userId);
+            if (typeof result === 'string') {
+                res.status(400).json({ error: result });
+            }
+            else {
+                res.status(200).json(result);
+            }
+        }
+        catch (error) {
+            console.error(error);
+            res.status(500).json({ "error": "Internal error, please try again later" });
+        }
+    }));
     // Inscription Administrateur
     app.post('/admin/signup', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {

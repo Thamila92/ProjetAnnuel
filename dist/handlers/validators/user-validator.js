@@ -29,7 +29,7 @@ exports.updateUserValidation = joi_1.default.object({
 }).options({ abortEarly: false });
 exports.listUsersValidation = joi_1.default.object({
     type: joi_1.default.string().optional(),
-    page: joi_1.default.number().min(1).optional(),
-    limit: joi_1.default.number().min(1).optional(),
+    page: joi_1.default.number().min(1).default(1),
+    limit: joi_1.default.number().min(1).default(10),
     skills: joi_1.default.array().items(joi_1.default.string()).optional()
 }).options({ abortEarly: false });

@@ -1,11 +1,8 @@
 import Joi from 'joi';
 
-export const createDonationValidation = Joi.object<CreateDonationValidationRequest>({
-  amount: Joi.number().min(5).required(),
-  description:Joi.string().min(5).required()
+export const donationValidation = Joi.object({
+    email: Joi.string().email().required(),
+    nom: Joi.string().required(),
+    prenom: Joi.string().required(),
+    montant: Joi.number().min(0).required(),
 }).options({ abortEarly: false });
-
-export interface CreateDonationValidationRequest {
-    amount:number
-    description:string
-}

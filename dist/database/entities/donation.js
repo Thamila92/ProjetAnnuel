@@ -12,7 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Donation = void 0;
 const typeorm_1 = require("typeorm");
 const user_1 = require("./user");
-const expenditure_1 = require("./expenditure");
 let Donation = class Donation {
 };
 exports.Donation = Donation;
@@ -22,32 +21,32 @@ __decorate([
 ], Donation.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], Donation.prototype, "amount", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ default: 0 }),
-    __metadata("design:type", Number)
-], Donation.prototype, "remaining", void 0);
+    __metadata("design:type", String)
+], Donation.prototype, "email", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], Donation.prototype, "description", void 0);
+], Donation.prototype, "nom", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: false }),
-    __metadata("design:type", Boolean)
-], Donation.prototype, "isCanceled", void 0);
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], Donation.prototype, "prenom", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => expenditure_1.Expenditures, expenditures => expenditures.donation),
-    __metadata("design:type", Array)
-], Donation.prototype, "expenditures", void 0);
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Number)
+], Donation.prototype, "montant", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => user_1.User, benefactor => benefactor.donations),
-    __metadata("design:type", user_1.User)
-], Donation.prototype, "benefactor", void 0);
-__decorate([
-    (0, typeorm_1.CreateDateColumn)({ type: "datetime" }),
+    (0, typeorm_1.Column)(),
     __metadata("design:type", Date)
-], Donation.prototype, "createdAt", void 0);
+], Donation.prototype, "date", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => user_1.User, (user) => user.donations, { nullable: true }),
+    __metadata("design:type", user_1.User)
+], Donation.prototype, "user", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], Donation.prototype, "captureId", void 0);
 exports.Donation = Donation = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)({ name: "donations" })
 ], Donation);

@@ -14,6 +14,8 @@ import { initUserRoutes } from "./handlers/routes/users_routes";
 import { initResourceRoutes } from "./handlers/routes/ressources_routes";
 import { initSkillRoutes } from "./handlers/routes/skill_routes";
 import { initDemandeRoutes } from "./handlers/routes/demande_routes";
+import { initDonationRoutes } from "./handlers/routes/donation_routes";
+import { initPaymentRoutes } from "./handlers/routes/payement_routes";
 
 const main = async () => {
     const app = express();
@@ -49,7 +51,10 @@ const main = async () => {
     initResourceRoutes(app);
     initSkillRoutes(app);
     initDemandeRoutes(app);
+    initDonationRoutes(app);
+    initPaymentRoutes(app)
      swaggerDocs(app, port);
+
 
     app.listen(port, () => {
         console.log(`Server running on port ${port}`);

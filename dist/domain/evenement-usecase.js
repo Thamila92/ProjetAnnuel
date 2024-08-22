@@ -13,6 +13,8 @@ exports.EvenementUsecase = void 0;
 const evenement_1 = require("../database/entities/evenement");
 const event_types_1 = require("../types/event-types");
 const location_1 = require("../database/entities/location");
+const evenementAttendee_1 = require("../database/entities/evenementAttendee");
+const user_1 = require("../database/entities/user");
 class EvenementUsecase {
     constructor(db) {
         this.db = db;
@@ -143,6 +145,72 @@ class EvenementUsecase {
                 return "Event not found";
             yield repo.remove(evenementFound);
             return evenementFound;
+        });
+    }
+    registerForEvent(evenementId, attendeeInfo) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const evenementRepo = this.db.getRepository(evenement_1.Evenement);
+            const attendeeRepo = this.db.getRepository(evenementAttendee_1.EvenementAttendee);
+            const userRepo = this.db.getRepository(user_1.User);
+            // Récupérer l'événement
+            const evenement = yield evenementRepo.findOne({ where: { id: evenementId, isDeleted: false }, relations: ["attendees"] });
+            if (!evenement) {
+                return "Event not found";
+            }
+            // Vérifier si un utilisateur avec le même email et nom existe déjà
+            const existingUser = yield userRepo.findOne({ where: { email: attendeeInfo.email } });
+            // Vérifier si l'événement a atteint le nombre maximum de participants
+            if (evenement.currentParticipants >= evenement.maxParticipants) {
+                return "The event has reached its maximum number of participants";
+            }
+            // Créer un nouveau participant (attendee)
+            const newAttendee = attendeeRepo.create({
+                firstName: attendeeInfo.firstName,
+                lastName: attendeeInfo.lastName,
+                email: attendeeInfo.email,
+                age: attendeeInfo.age,
+                evenement: evenement,
+                user: existingUser || undefined // Associer à l'utilisateur existant ou laisser vide
+            });
+            // Sauvegarder le nouvel participant dans la base de données
+            yield attendeeRepo.save(newAttendee);
+            // Incrémenter le nombre de participants de l'événement
+            evenement.currentParticipants += 1;
+            yield evenementRepo.save(evenement);
+            return newAttendee;
+        });
+    }
+    getAllEvenementAttendees() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const attendeeRepo = this.db.getRepository(evenementAttendee_1.EvenementAttendee);
+            // Requête pour récupérer tous les EvenementAttendee
+            const allAttendees = yield attendeeRepo.find({
+                relations: ["evenement", "user"] // Relations pour inclure les informations sur l'événement et les utilisateurs
+            });
+            return allAttendees;
+        });
+    }
+    cancelEventRegistration(attendeeId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const attendeeRepo = this.db.getRepository(evenementAttendee_1.EvenementAttendee);
+            const evenementRepo = this.db.getRepository(evenement_1.Evenement);
+            // Trouver l'enregistrement du participant
+            const attendee = yield attendeeRepo.findOne({ where: { id: attendeeId }, relations: ['evenement'] });
+            if (!attendee) {
+                return "Reservation not found";
+            }
+            // Récupérer l'événement lié à la réservation
+            const evenement = attendee.evenement;
+            if (evenement) {
+                // Décrémenter le nombre de participants si supérieur à 0
+                if (evenement.currentParticipants > 0) {
+                    evenement.currentParticipants -= 1;
+                    yield evenementRepo.save(evenement);
+                }
+            }
+            // Supprimer l'enregistrement du participant
+            yield attendeeRepo.remove(attendee);
+            return "Reservation canceled successfully";
         });
     }
 }

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.listEvenementsValidation = exports.evenementIdValidation = exports.evenementUpdateValidation = exports.evenementValidation = void 0;
+exports.evenementAttendeeValidation = exports.listEvenementsValidation = exports.evenementIdValidation = exports.evenementUpdateValidation = exports.evenementValidation = void 0;
 const joi_1 = __importDefault(require("joi"));
 const event_types_1 = require("../../types/event-types");
 exports.evenementValidation = joi_1.default.object({
@@ -44,4 +44,10 @@ exports.evenementIdValidation = joi_1.default.object({
 exports.listEvenementsValidation = joi_1.default.object({
     limit: joi_1.default.number().min(1).optional(),
     page: joi_1.default.number().min(1).optional(),
+}).options({ abortEarly: false });
+exports.evenementAttendeeValidation = joi_1.default.object({
+    firstName: joi_1.default.string().required(),
+    lastName: joi_1.default.string().required(),
+    email: joi_1.default.string().email().required(),
+    age: joi_1.default.number().integer().min(1).required()
 }).options({ abortEarly: false });

@@ -4,7 +4,7 @@ import {
 } from "typeorm";
 import { Status } from "./status";
 import { Token } from "./token";
-import { Expenditures } from "./expenditure";
+ 
 import { Donation } from "./donation";
 import { Review } from "./review";
 import { Evenement } from "./evenement";
@@ -65,14 +65,14 @@ export class User {
     @OneToMany(() => Review, review => review.user)
     reviews!: Review[];
 
-    @OneToMany(() => Donation, donation => donation.benefactor)
+  
+    @OneToMany(() => Donation, (donation) => donation.user)
     donations!: Donation[];
 
     @OneToMany(() => Location, location => location.user)
     locations!: Location[];
 
-    @OneToMany(() => Expenditures, expenditures => expenditures.user)
-    expenditures!: Expenditures[];
+    
 
     @OneToMany(() => Document, document => document.user)
     documents!: Document[];

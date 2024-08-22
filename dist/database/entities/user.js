@@ -13,7 +13,6 @@ exports.User = void 0;
 const typeorm_1 = require("typeorm");
 const status_1 = require("./status");
 const token_1 = require("./token");
-const expenditure_1 = require("./expenditure");
 const donation_1 = require("./donation");
 const review_1 = require("./review");
 const evenement_1 = require("./evenement");
@@ -22,9 +21,10 @@ const projet_1 = require("./projet");
 const document_1 = require("./document");
 const vote_1 = require("./vote");
 const location_1 = require("./location");
-const evenement_attendee_1 = require("./evenement-attendee");
+const evenementAttendee_1 = require("./evenementAttendee");
 const notification_1 = require("./notification");
 const skill_1 = require("./skill");
+const demande_1 = require("./demande");
 let User = class User {
 };
 exports.User = User;
@@ -86,17 +86,13 @@ __decorate([
     __metadata("design:type", Array)
 ], User.prototype, "reviews", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => donation_1.Donation, donation => donation.benefactor),
+    (0, typeorm_1.OneToMany)(() => donation_1.Donation, (donation) => donation.user),
     __metadata("design:type", Array)
 ], User.prototype, "donations", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => location_1.Location, location => location.user),
     __metadata("design:type", Array)
 ], User.prototype, "locations", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => expenditure_1.Expenditures, expenditures => expenditures.user),
-    __metadata("design:type", Array)
-], User.prototype, "expenditures", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => document_1.Document, document => document.user),
     __metadata("design:type", Array)
@@ -106,13 +102,17 @@ __decorate([
     __metadata("design:type", Array)
 ], User.prototype, "votes", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => evenement_attendee_1.EvenementAttendee, (attendee) => attendee.user),
-    __metadata("design:type", Array)
-], User.prototype, "evenementAttendees", void 0);
-__decorate([
     (0, typeorm_1.Column)({ default: true }),
     __metadata("design:type", Boolean)
 ], User.prototype, "isAvailable", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => demande_1.Demande, demande => demande.user),
+    __metadata("design:type", Array)
+], User.prototype, "demandes", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => evenementAttendee_1.EvenementAttendee, (attendee) => attendee.user),
+    __metadata("design:type", Array)
+], User.prototype, "evenementAttendees", void 0);
 exports.User = User = __decorate([
     (0, typeorm_1.Entity)()
 ], User);
