@@ -16,56 +16,18 @@ const bcrypt_1 = require("bcrypt");
 const skill_1 = require("../database/entities/skill");
 const mission_1 = require("../database/entities/mission");
 const jsonwebtoken_1 = require("jsonwebtoken");
+const demande_1 = require("../database/entities/demande");
+const evenementAttendee_1 = require("../database/entities/evenementAttendee");
+const donation_1 = require("../database/entities/donation");
 class UserUsecase {
     constructor(db) {
         this.db = db;
-    }
-    // Créer un Adhérent
-    createAdherent(createAdherentRequest) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const userRepository = this.db.getRepository(user_1.User);
-                const status = yield this.db.getRepository(status_1.Status)
-                    .createQueryBuilder("status")
-                    .where("status.type = :status", { status: "MEMBER" })
-                    .getOne();
-                if (!status) {
-                    return "Status MEMBER not found";
-                }
-                const hashedPassword = yield (0, bcrypt_1.hash)(createAdherentRequest.password, 10);
-                let skills = [];
-                if (createAdherentRequest.skills && createAdherentRequest.skills.length > 0) {
-                    const skillRepo = this.db.getRepository(skill_1.Skill);
-                    skills = yield Promise.all(createAdherentRequest.skills.map((skillName) => __awaiter(this, void 0, void 0, function* () {
-                        let skill = yield skillRepo.findOne({ where: { name: skillName } });
-                        if (!skill) {
-                            skill = skillRepo.create({ name: skillName });
-                            yield skillRepo.save(skill);
-                        }
-                        return skill;
-                    })));
-                }
-                const newUser = userRepository.create({
-                    name: createAdherentRequest.name,
-                    email: createAdherentRequest.email,
-                    password: hashedPassword,
-                    status: status,
-                    skills: skills
-                });
-                const savedUser = yield userRepository.save(newUser);
-                return savedUser;
-            }
-            catch (error) {
-                console.error(error);
-                return "Internal error, please try again later";
-            }
-        });
     }
     loginUser(email, password) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
             const userRepo = this.db.getRepository(user_1.User);
-            const user = yield userRepo.findOne({ where: { email, isDeleted: false }, relations: ['status'] });
+            const user = yield userRepo.findOne({ where: { email, isDeleted: false }, relations: ['status', 'cotisations'] });
             if (!user) {
                 return "User not found";
             }
@@ -75,7 +37,13 @@ class UserUsecase {
             }
             const secret = (_a = process.env.JWT_SECRET) !== null && _a !== void 0 ? _a : "NoNotThis";
             const token = (0, jsonwebtoken_1.sign)({ userId: user.id, email: user.email }, secret, { expiresIn: '1d' });
-            return { user, token };
+            // Obtenir la dernière cotisation de l'utilisateur (s'il y en a une)
+            const latestCotisation = user.cotisations.sort((a, b) => b.date.getTime() - a.date.getTime())[0];
+            return {
+                user,
+                token,
+                expirationDate: latestCotisation ? latestCotisation.expirationDate : undefined, // Retourner la date d'expiration
+            };
         });
     }
     // Créer un Administrateur
@@ -106,7 +74,103 @@ class UserUsecase {
             }
         });
     }
-    // Mettre à jour un utilisateur (Adhérent, Admin, Bienfaiteur)
+    // Créer un Adhérent
+    createAdherent(createAdherentRequest) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const userRepository = this.db.getRepository(user_1.User);
+                // Rechercher le statut MEMBER
+                const status = yield this.db.getRepository(status_1.Status)
+                    .createQueryBuilder("status")
+                    .where("status.type = :status", { status: "MEMBER" })
+                    .getOne();
+                if (!status) {
+                    return "Status MEMBER not found";
+                }
+                // Hash du mot de passe
+                const hashedPassword = yield (0, bcrypt_1.hash)(createAdherentRequest.password, 10);
+                // Créer un nouvel utilisateur avec adresse et dateDeNaissance, en convertissant null en undefined
+                const newUser = {
+                    name: createAdherentRequest.name,
+                    email: createAdherentRequest.email,
+                    password: hashedPassword,
+                    status: status,
+                    adresse: createAdherentRequest.adresse || undefined, // Conversion de null en undefined
+                    dateDeNaissance: createAdherentRequest.dateDeNaissance || undefined // Conversion de null en undefined
+                };
+                // Utilisation de userRepository.create() pour créer l'utilisateur
+                const createdUser = userRepository.create(newUser);
+                // Sauvegarder l'utilisateur créé dans la base de données
+                const savedUser = yield userRepository.save(createdUser);
+                return savedUser;
+            }
+            catch (error) {
+                console.error(error);
+                return "Internal error, please try again later";
+            }
+        });
+    }
+    createSalarier(createSalarierRequest) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const userRepository = this.db.getRepository(user_1.User);
+                // Rechercher le statut SALARIER
+                const status = yield this.db.getRepository(status_1.Status)
+                    .createQueryBuilder("status")
+                    .where("status.type = :status", { status: "SALARIER" })
+                    .getOne();
+                if (!status) {
+                    return "Status SALARIER not found";
+                }
+                // Hash du mot de passe
+                const hashedPassword = yield (0, bcrypt_1.hash)(createSalarierRequest.password, 10);
+                // Créer un nouvel utilisateur avec les informations fournies
+                const newUser = {
+                    name: createSalarierRequest.name,
+                    email: createSalarierRequest.email,
+                    password: hashedPassword,
+                    status: status,
+                    adresse: createSalarierRequest.adresse || undefined,
+                    dateDeNaissance: createSalarierRequest.dateDeNaissance || undefined
+                };
+                // Utilisation de userRepository.create() pour créer l'utilisateur
+                const createdUser = userRepository.create(newUser);
+                // Sauvegarder l'utilisateur créé dans la base de données
+                const savedUser = yield userRepository.save(createdUser);
+                return savedUser;
+            }
+            catch (error) {
+                console.error(error);
+                return "Internal error, please try again later";
+            }
+        });
+    }
+    // Fonction pour associer les enregistrements existants à l'utilisateur nouvellement créé
+    associateExistingRecords(email, user) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const donationRepo = this.db.getRepository(donation_1.Donation);
+            const demandeRepo = this.db.getRepository(demande_1.Demande);
+            const evenementAttendeeRepo = this.db.getRepository(evenementAttendee_1.EvenementAttendee);
+            // Associer les donations existantes à cet utilisateur
+            const donations = yield donationRepo.find({ where: { email, user: undefined } });
+            for (const donation of donations) {
+                donation.user = user;
+                yield donationRepo.save(donation);
+            }
+            // Associer les demandes existantes à cet utilisateur
+            const demandes = yield demandeRepo.find({ where: { email, user: undefined } });
+            for (const demande of demandes) {
+                demande.user = user;
+                yield demandeRepo.save(demande);
+            }
+            // Associer les EvenementAttendees existants à cet utilisateur
+            const evenementAttendees = yield evenementAttendeeRepo.find({ where: { email, user: undefined } });
+            for (const attendee of evenementAttendees) {
+                attendee.user = user;
+                yield evenementAttendeeRepo.save(attendee);
+            }
+        });
+    }
     updateUser(id, userToUpdate) {
         return __awaiter(this, void 0, void 0, function* () {
             const userRepo = this.db.getRepository(user_1.User);
@@ -114,18 +178,28 @@ class UserUsecase {
             if (!userFound) {
                 return "User not found!";
             }
-            const isValid = yield (0, bcrypt_1.compare)(userToUpdate.actual_password, userFound.password);
-            if (!isValid) {
-                return "Actual password incorrect!";
-            }
+            // Mise à jour des champs sans avoir besoin du mot de passe actuel
             if (userToUpdate.email) {
                 userFound.email = userToUpdate.email;
             }
             if (userToUpdate.name) {
                 userFound.name = userToUpdate.name;
             }
+            if (userToUpdate.adresse !== undefined) {
+                userFound.adresse = userToUpdate.adresse;
+            }
+            if (userToUpdate.dateDeNaissance !== undefined) {
+                userFound.dateDeNaissance = userToUpdate.dateDeNaissance;
+            }
             if (userToUpdate.password) {
-                userFound.password = yield (0, bcrypt_1.hash)(userToUpdate.password, 10);
+                userFound.password = yield (0, bcrypt_1.hash)(userToUpdate.password, 10); // Hashing du mot de passe s'il est fourni
+            }
+            if (userToUpdate.statusId) {
+                const statusRepo = this.db.getRepository(status_1.Status);
+                const newStatus = yield statusRepo.findOne({ where: { id: userToUpdate.statusId } });
+                if (newStatus) {
+                    userFound.status = newStatus;
+                }
             }
             const updatedUser = yield userRepo.save(userFound);
             return updatedUser;
@@ -135,13 +209,23 @@ class UserUsecase {
     banUser(id) {
         return __awaiter(this, void 0, void 0, function* () {
             const userRepo = this.db.getRepository(user_1.User);
+            // Trouver l'utilisateur
             const userFound = yield userRepo.findOne({ where: { id, isDeleted: false } });
             if (!userFound) {
-                return "User not found";
+                return { success: false, message: "User not found or already banned." };
             }
-            userFound.isDeleted = true;
-            yield userRepo.save(userFound);
-            return `User ${userFound.name} has been banned successfully.`;
+            if (userFound.isBanned) {
+                // Débannir l'utilisateur
+                userFound.isBanned = false;
+                yield userRepo.save(userFound);
+                return { success: true, message: `User ${userFound.name} has been unbanned successfully.` };
+            }
+            else {
+                // Bannir l'utilisateur
+                userFound.isBanned = true;
+                yield userRepo.save(userFound);
+                return { success: true, message: `User ${userFound.name} has been banned successfully.` };
+            }
         });
     }
     // Lister les utilisateurs avec des filtres
@@ -215,6 +299,28 @@ class UserUsecase {
             return userFound;
         });
     }
+    changePassword(userId, oldPassword, newPassword) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const userRepo = this.db.getRepository(user_1.User);
+            const user = yield userRepo.findOne({
+                where: { id: userId, isDeleted: false }
+            });
+            if (!user) {
+                return "User not found";
+            }
+            // Comparaison de l'ancien mot de passe avec le hash stocké
+            const isValid = yield (0, bcrypt_1.compare)(oldPassword, user.password);
+            if (!isValid) {
+                return "Invalid old password";
+            }
+            // Hashage du nouveau mot de passe
+            const hashedPassword = yield (0, bcrypt_1.hash)(newPassword, 10);
+            user.password = hashedPassword;
+            // Sauvegarde du nouvel utilisateur avec le mot de passe mis à jour
+            yield userRepo.save(user);
+            return "Password updated successfully";
+        });
+    }
     // Ajouter une compétence à un utilisateur
     addSkillToUser(userId, skillName) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -272,6 +378,25 @@ class UserUsecase {
             return users;
         });
     }
+    getUsersByStatus(statusDescription) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const status = yield this.db.getRepository(status_1.Status)
+                .createQueryBuilder('status')
+                .where('status.type = :type', { type: statusDescription })
+                .getOne();
+            if (!status) {
+                throw new Error(`Status with description ${statusDescription} not found`);
+            }
+            const users = yield this.db.getRepository(user_1.User)
+                .createQueryBuilder('user')
+                .leftJoinAndSelect('user.status', 'status')
+                .where('user.status.id = :statusId', { statusId: status.id })
+                .andWhere('user.isDeleted = :isDeleted', { isDeleted: false })
+                .andWhere('user.isBanned = :isBanned', { isBanned: false })
+                .getMany();
+            return users;
+        });
+    }
     // Récupérer tous les utilisateurs disponibles
     getAllUsersAvailable() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -292,7 +417,7 @@ class UserUsecase {
     // Récupérer tous les utilisateurs
     getAllUsers() {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield this.db.getRepository(user_1.User).find({ where: { isDeleted: false } });
+            return yield this.db.getRepository(user_1.User).find({ where: { isBanned: false } });
         });
     }
     getCurrentUser(userId) {
@@ -307,6 +432,17 @@ class UserUsecase {
                 return "User not found";
             }
             return user;
+        });
+    }
+    deleteUser(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const userRepository = this.db.getRepository(user_1.User);
+            const user = yield userRepository.findOne({ where: { id: userId } });
+            if (!user) {
+                return "Utilisateur non trouvé";
+            }
+            yield userRepository.remove(user);
+            return "Utilisateur supprimé avec succès";
         });
     }
 }

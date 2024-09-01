@@ -1,5 +1,7 @@
 export enum eventtype {
     AG = "AG",
+    AG_EXTRAORDINAIRE = "AG_EXTRAORDINAIRE",
+
     porteOuverte = "PORTE_OUVERTE",
     conference = "CONFERENCE",
     atelier = "ATELIER",
@@ -16,4 +18,5 @@ export enum repetitivity {
 export enum AttendeeRole {
     IMPORTANT = "IMPORTANT",
     NORMAL = "NORMAL",
+    
 }

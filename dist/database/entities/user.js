@@ -11,20 +11,21 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
 const typeorm_1 = require("typeorm");
+const skill_1 = require("./skill");
+const notification_1 = require("./notification");
 const status_1 = require("./status");
 const token_1 = require("./token");
-const donation_1 = require("./donation");
-const review_1 = require("./review");
 const evenement_1 = require("./evenement");
 const mission_1 = require("./mission");
-const projet_1 = require("./projet");
+const review_1 = require("./review");
+const donation_1 = require("./donation");
+const location_1 = require("./location");
 const document_1 = require("./document");
 const vote_1 = require("./vote");
-const location_1 = require("./location");
-const evenementAttendee_1 = require("./evenementAttendee");
-const notification_1 = require("./notification");
-const skill_1 = require("./skill");
 const demande_1 = require("./demande");
+const cotisation_1 = require("./cotisation");
+const evenementAttendee_1 = require("./evenementAttendee");
+const folder_1 = require("./folder");
 let User = class User {
 };
 exports.User = User;
@@ -44,6 +45,16 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], User.prototype, "name", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }) // L'adresse est facultative
+    ,
+    __metadata("design:type", String)
+], User.prototype, "adresse", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'date', nullable: true }) // La date de naissance est facultative
+    ,
+    __metadata("design:type", Date)
+], User.prototype, "dateDeNaissance", void 0);
 __decorate([
     (0, typeorm_1.ManyToMany)(() => skill_1.Skill, skill => skill.users, { cascade: true }),
     (0, typeorm_1.JoinTable)(),
@@ -66,6 +77,10 @@ __decorate([
     __metadata("design:type", Boolean)
 ], User.prototype, "isDeleted", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: true }),
+    __metadata("design:type", Boolean)
+], User.prototype, "isAvailable", void 0);
+__decorate([
     (0, typeorm_1.OneToMany)(() => token_1.Token, token => token.user),
     __metadata("design:type", Array)
 ], User.prototype, "tokens", void 0);
@@ -73,10 +88,6 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => evenement_1.Evenement, ev => ev.user),
     __metadata("design:type", Array)
 ], User.prototype, "evenements", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => projet_1.Projet, projet => projet.user),
-    __metadata("design:type", Array)
-], User.prototype, "projets", void 0);
 __decorate([
     (0, typeorm_1.ManyToMany)(() => mission_1.Mission, mission => mission.assignedUsers),
     __metadata("design:type", Array)
@@ -102,17 +113,26 @@ __decorate([
     __metadata("design:type", Array)
 ], User.prototype, "votes", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: true }),
-    __metadata("design:type", Boolean)
-], User.prototype, "isAvailable", void 0);
-__decorate([
     (0, typeorm_1.OneToMany)(() => demande_1.Demande, demande => demande.user),
     __metadata("design:type", Array)
 ], User.prototype, "demandes", void 0);
 __decorate([
+    (0, typeorm_1.OneToMany)(() => cotisation_1.Cotisation, cotisation => cotisation.user),
+    __metadata("design:type", Array)
+], User.prototype, "cotisations", void 0);
+__decorate([
     (0, typeorm_1.OneToMany)(() => evenementAttendee_1.EvenementAttendee, (attendee) => attendee.user),
     __metadata("design:type", Array)
 ], User.prototype, "evenementAttendees", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: false }) // Nouveau champ pour le bannissement
+    ,
+    __metadata("design:type", Boolean)
+], User.prototype, "isBanned", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => folder_1.Folder, folder => folder.user),
+    __metadata("design:type", Array)
+], User.prototype, "folders", void 0);
 exports.User = User = __decorate([
     (0, typeorm_1.Entity)()
 ], User);

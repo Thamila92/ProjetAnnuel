@@ -4,7 +4,8 @@ import { User } from "./user";
 export enum statustype {
   ADMIN = "ADMIN",
   MEMBER = "MEMBER",
-  BENEFACTOR = "NORMAL"
+  BENEFACTOR = "NORMAL",
+  SALARIER = "SALARIER" 
 }
 
 @Entity()

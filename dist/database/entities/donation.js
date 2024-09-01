@@ -10,8 +10,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Donation = void 0;
+// entities/donation.ts
 const typeorm_1 = require("typeorm");
 const user_1 = require("./user");
+const paiement_1 = require("./paiement");
 let Donation = class Donation {
 };
 exports.Donation = Donation;
@@ -22,10 +24,6 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], Donation.prototype, "email", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
 ], Donation.prototype, "nom", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
@@ -33,20 +31,22 @@ __decorate([
 ], Donation.prototype, "prenom", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], Donation.prototype, "montant", void 0);
+    __metadata("design:type", String)
+], Donation.prototype, "email", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' }),
     __metadata("design:type", Date)
 ], Donation.prototype, "date", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => user_1.User, (user) => user.donations, { nullable: true }),
-    __metadata("design:type", user_1.User)
+    (0, typeorm_1.ManyToOne)(() => user_1.User, user => user.donations, { nullable: true }),
+    __metadata("design:type", Object)
 ], Donation.prototype, "user", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], Donation.prototype, "captureId", void 0);
+    (0, typeorm_1.OneToOne)(() => paiement_1.Paiement),
+    (0, typeorm_1.JoinColumn)() // Lie ce don à un paiement particulier
+    ,
+    __metadata("design:type", paiement_1.Paiement)
+], Donation.prototype, "paiement", void 0);
 exports.Donation = Donation = __decorate([
     (0, typeorm_1.Entity)({ name: "donations" })
 ], Donation);

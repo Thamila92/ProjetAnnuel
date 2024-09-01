@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
 import { User } from './user';
+import { Folder } from './folder';
 
 @Entity() 
 export class Document {
@@ -23,4 +24,7 @@ export class Document {
 
     @ManyToOne(() => User, user => user.documents)
     user!: User;
+
+  @ManyToOne(() => Folder, folder => folder.documents, { nullable: true })
+  folder!: Folder; 
 }

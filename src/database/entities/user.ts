@@ -1,24 +1,19 @@
-import {
-    Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany,
-    ManyToOne, JoinTable, ManyToMany
-} from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, OneToMany, ManyToOne, JoinTable, CreateDateColumn } from "typeorm";
+import { Skill } from "./skill";
+import { Notification } from "./notification";
 import { Status } from "./status";
 import { Token } from "./token";
- 
-import { Donation } from "./donation";
-import { Review } from "./review";
 import { Evenement } from "./evenement";
-import { Mission } from "./mission";
- 
-import { Projet } from "./projet";
+ import { Mission } from "./mission";
+import { Review } from "./review";
+import { Donation } from "./donation";
+import { Location } from "./location";
 import { Document } from "./document";
 import { Vote } from "./vote";
-import { Location } from "./location";
-import { EvenementAttendee } from "./evenementAttendee";
-import { Notification } from "./notification";
- 
-import { Skill } from "./skill";
 import { Demande } from "./demande";
+import { Cotisation } from "./cotisation";
+import { EvenementAttendee } from "./evenementAttendee";
+import { Folder } from "./folder";
 
 @Entity()
 export class User {
@@ -34,6 +29,13 @@ export class User {
     @Column()
     name!: string;
 
+    @Column({ nullable: true }) // L'adresse est facultative
+    adresse?: string;
+
+    @Column({ type: 'date', nullable: true }) // La date de naissance est facultative
+    dateDeNaissance?: Date;
+
+    // Relations existantes...
     @ManyToMany(() => Skill, skill => skill.users, { cascade: true })
     @JoinTable()
     skills!: Skill[];
@@ -50,14 +52,16 @@ export class User {
     @Column({ default: false })
     isDeleted!: boolean;
 
+    @Column({ default: true })
+    isAvailable!: boolean;
+
     @OneToMany(() => Token, token => token.user)
     tokens!: Token[];
 
     @OneToMany(() => Evenement, ev => ev.user)
     evenements!: Evenement[];
 
-    @OneToMany(() => Projet, projet => projet.user)
-    projets!: Projet[];
+ 
 
     @ManyToMany(() => Mission, mission => mission.assignedUsers)
     missions!: Mission[];
@@ -65,28 +69,30 @@ export class User {
     @OneToMany(() => Review, review => review.user)
     reviews!: Review[];
 
-  
     @OneToMany(() => Donation, (donation) => donation.user)
     donations!: Donation[];
 
     @OneToMany(() => Location, location => location.user)
     locations!: Location[];
 
-    
-
     @OneToMany(() => Document, document => document.user)
     documents!: Document[];
 
     @OneToMany(() => Vote, vote => vote.user)
     votes!: Vote[];
- 
-
-    @Column({ default: true })
-    isAvailable!: boolean;
 
     @OneToMany(() => Demande, demande => demande.user)
-    demandes!: Demande[]; // Relation avec les demandes
+    demandes!: Demande[];
+
+    @OneToMany(() => Cotisation, cotisation => cotisation.user)
+    cotisations!: Cotisation[];
 
     @OneToMany(() => EvenementAttendee, (attendee) => attendee.user)
-    evenementAttendees!: EvenementAttendee[]; 
+    evenementAttendees!: EvenementAttendee[];
+    @Column({ default: false })  // Nouveau champ pour le bannissement
+    isBanned!: boolean;
+
+
+    @OneToMany(() => Folder, folder => folder.user)
+    folders!: Folder[];
 }

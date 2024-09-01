@@ -4,6 +4,7 @@ exports.AttendeeRole = exports.repetitivity = exports.eventtype = void 0;
 var eventtype;
 (function (eventtype) {
     eventtype["AG"] = "AG";
+    eventtype["AG_EXTRAORDINAIRE"] = "AG_EXTRAORDINAIRE";
     eventtype["porteOuverte"] = "PORTE_OUVERTE";
     eventtype["conference"] = "CONFERENCE";
     eventtype["atelier"] = "ATELIER";

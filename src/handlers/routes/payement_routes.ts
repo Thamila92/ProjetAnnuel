@@ -1,40 +1,33 @@
 import express, { Request, Response } from 'express';
-import { PaymentUsecase } from '../../domain/payment-usecase';
-
+import { PaiementUsecase } from '../../domain/payment-usecase';
+import { AppDataSource } from '../../database/database';
+ 
 export const initPaymentRoutes = (app: express.Express) => {
-    const paymentUsecase = new PaymentUsecase();
+    const paymentUsecase = new PaiementUsecase(AppDataSource);
 
     // Route pour créer un paiement PayPal
-    app.post('/create-paypal-order', async (req: Request, res: Response) => {
-        const { amount } = req.body;
-
+    app.post('/paiements/donation', async (req: Request, res: Response) => {
         try {
-            const order = await paymentUsecase.createPayPalOrder(amount);
-            res.json(order);
+          const { amount, currency, nom, prenom, email } = req.body;
+          const result = await paymentUsecase.createPaiement('donation', amount, currency, { nom, prenom, email });
+          res.status(201).json(result);
         } catch (error) {
-            if (error instanceof Error) {
-                res.status(500).json({ error: error.message });
-            } else {
-                res.status(500).json({ error: 'Unknown error occurred' });
-            }
+          console.error(error);
+          res.status(500).json({ error: "Erreur interne, veuillez réessayer plus tard." });
+        }
+      });
+      
+      app.post('/paiements/cotisation', async (req: Request, res: Response) => {
+        try {
+            const { amount, currency, category, description, email } = req.body; // Ajoutez email ici
+            const result = await paymentUsecase.createPaiement('cotisation', amount, currency, undefined, { category, email, description });
+            res.status(201).json(result);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: "Erreur interne, veuillez réessayer plus tard." });
         }
     });
-
-    // Route pour capturer un paiement PayPal
-    app.post('/capture-paypal-order/:orderId', async (req: Request, res: Response) => {
-        const { orderId } = req.params;
     
-        try {
-            // Appeler la méthode pour capturer le paiement
-            const result = await paymentUsecase.capturePayPalOrder(orderId);
-            res.json(result);  // Retourner le résultat de la capture
-        } catch (error) {
-            if (error instanceof Error) {
-                res.status(500).json({ error: error.message });
-            } else {
-                res.status(500).json({ error: 'Unknown error occurred' });
-            }
-        }
-    });
+      
     
 };

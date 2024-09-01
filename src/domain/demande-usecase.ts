@@ -82,8 +82,7 @@ export class DemandeUsecase {
         return updatedDemande;
       }
       
-    
-
+ 
     // Supprimer une demande
     async deleteDemande(id: number): Promise<Demande | string> {
         const repo = this.db.getRepository(Demande);

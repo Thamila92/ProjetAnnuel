@@ -252,6 +252,20 @@ class MissionUsecase {
             return updatedMission;
         });
     }
+    listMissionsByUser(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const missionRepo = this.db.getRepository(mission_1.Mission);
+            // Requête pour récupérer les missions où l'utilisateur est assigné
+            const missions = yield missionRepo
+                .createQueryBuilder('mission')
+                .leftJoinAndSelect('mission.assignedUsers', 'user')
+                .leftJoinAndSelect('mission.requiredSkills', 'skill')
+                .leftJoinAndSelect('mission.resources', 'resource')
+                .where('user.id = :userId', { userId })
+                .getMany();
+            return missions;
+        });
+    }
     // DELETE a mission
     deleteMission(id) {
         return __awaiter(this, void 0, void 0, function* () {

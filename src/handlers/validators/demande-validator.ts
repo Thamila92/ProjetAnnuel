@@ -18,12 +18,15 @@ const demandeUpdateValidation = Joi.object({
     nom: Joi.string().optional(),
     prenom: Joi.string().optional(),
     email: Joi.string().email().optional(),
+    age: Joi.number().min(0).optional(),
     phone: Joi.string().optional(),
+    profession: Joi.string().optional(),
     titre: Joi.string().optional(),
     description: Joi.string().optional(),
-    budget: Joi.number().optional(),
-    deadline: Joi.date().optional(),
-    statut: Joi.string().valid('en_attente', 'approuvée', 'rejetée').optional(),
-  }).min(1); // Assurez-vous qu'au moins un champ est envoyé
-  
+    budget: Joi.number().min(0).optional(),
+    deadline: Joi.date().iso().optional(),
+    statut: Joi.string().valid('en attente', 'approuvée', 'rejetée').optional()
+}).or('nom', 'prenom', 'email', 'age', 'phone', 'titre', 'description', 'budget', 'deadline', 'statut');
+// Utiliser '.or()' assure qu'au moins un de ces champs doit être présent.
+
 

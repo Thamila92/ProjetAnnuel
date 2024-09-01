@@ -1,28 +1,29 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
+// entities/donation.ts
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToOne, JoinColumn } from "typeorm";
 import { User } from "./user";
+import { Paiement } from "./paiement";
 
 @Entity({ name: "donations" })
 export class Donation {
-    @PrimaryGeneratedColumn()
-    id!: number;
+  @PrimaryGeneratedColumn()
+  id!: number;
 
-    @Column()
-    email!: string;
+  @Column()
+  nom!: string;
 
-    @Column()
-    nom!: string;
+  @Column()
+  prenom!: string;
 
-    @Column()
-    prenom!: string;
+  @Column()
+  email!: string;
 
-    @Column()
-    montant!: number;
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  date!: Date;
 
-    @Column()
-    date!: Date;
+  @ManyToOne(() => User, user => user.donations, { nullable: true })
+  user!: User | null;  
 
-    @ManyToOne(() => User, (user) => user.donations, { nullable: true })
-    user!: User;
-    @Column()
-    captureId!: string;  
+  @OneToOne(() => Paiement)
+  @JoinColumn() // Lie ce don à un paiement particulier
+  paiement!: Paiement;
 }

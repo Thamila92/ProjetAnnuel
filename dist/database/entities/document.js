@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Document = void 0;
 const typeorm_1 = require("typeorm");
 const user_1 = require("./user");
+const folder_1 = require("./folder");
 let Document = class Document {
 };
 exports.Document = Document;
@@ -43,6 +44,10 @@ __decorate([
     (0, typeorm_1.ManyToOne)(() => user_1.User, user => user.documents),
     __metadata("design:type", user_1.User)
 ], Document.prototype, "user", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => folder_1.Folder, folder => folder.documents, { nullable: true }),
+    __metadata("design:type", folder_1.Folder)
+], Document.prototype, "folder", void 0);
 exports.Document = Document = __decorate([
     (0, typeorm_1.Entity)()
 ], Document);

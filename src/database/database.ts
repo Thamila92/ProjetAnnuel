@@ -1,26 +1,19 @@
 import { DataSource } from "typeorm";
 
+
 export const AppDataSource = new DataSource({
     type: "mysql",
-    host: 'mysql-annuel-companion-e56d.l.aivencloud.com',
-    port: 26768,
-    username: process.env.USERNAME,  
-    password: process.env.PASSWORD,             
+    host: 'mysql-db',
+    port: 3306,
+    username: 'ensemble_autrement',  
+    password: 'root',             
     database: 'ensemble_autrement',
     logging: true,
     synchronize: true,
     entities: [
-        "dist/database/entities/*.js"
-       // "src/database/entities/*.ts"
-
+        "src/database/entities/*.ts"
     ],
     migrations: [
-        "dist/database/entities/*.js"
-       // "src/database/entities/*.ts"
-
-    ],
-    ssl: {
-        rejectUnauthorized: false  
-      },
-    "driver": require('mysql2')
+        "src/database/entities/*.ts"
+    ]
 })

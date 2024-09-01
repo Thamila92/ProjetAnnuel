@@ -8,109 +8,152 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DocumentUsecase = void 0;
 const document_1 = require("../database/entities/document");
 const user_1 = require("../database/entities/user");
-const googleDriveService_1 = __importDefault(require("../services/googleDriveService"));
+const googleapis_1 = require("googleapis");
+const stream_1 = require("stream");
 class DocumentUsecase {
     constructor(db, oAuth2Client) {
         this.db = db;
-        this.googleDriveService = new googleDriveService_1.default(oAuth2Client);
+        this.oAuth2Client = oAuth2Client;
+        // Initialiser le service Google Drive
+        this.drive = googleapis_1.google.drive({ version: 'v3', auth: oAuth2Client });
     }
-    listDocuments(filter) {
+    // Créer et uploader un document sur Google Drive
+    uploadDocument(req, userId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const query = this.db.createQueryBuilder(document_1.Document, 'document')
-                .skip((filter.page - 1) * filter.limit)
-                .take(filter.limit);
-            const [documents, totalCount] = yield query.getManyAndCount();
+            const userRepo = this.db.getRepository(user_1.User);
+            const documentRepo = this.db.getRepository(document_1.Document);
+            const { title, description, type } = req.body;
+            const file = req.file;
+            // Valider que le fichier est fourni
+            if (!file) {
+                throw new Error('No file provided');
+            }
+            // Trouver l'utilisateur associé
+            const user = yield userRepo.findOne({ where: { id: userId } });
+            if (!user) {
+                throw new Error('User not found');
+            }
+            // Étape 1 : Upload du fichier vers Google Drive
+            const fileMetadata = {
+                name: file.originalname,
+                mimeType: file.mimetype,
+            };
+            const media = {
+                mimeType: file.mimetype,
+                body: stream_1.Readable.from(file.buffer),
+            };
+            const { data } = yield this.drive.files.create({
+                requestBody: fileMetadata,
+                media,
+                fields: 'id, webViewLink, webContentLink',
+            });
+            if (!data.id) {
+                throw new Error('File upload to Google Drive failed');
+            }
+            // Étape 2 : Définir les permissions pour rendre le fichier public
+            yield this.setFilePermissions(data.id);
+            // Étape 3 : Créer une nouvelle entrée dans la base de données
+            const newDocument = documentRepo.create({
+                title: title || file.originalname, // Si aucun titre fourni, utiliser le nom du fichier
+                description: description || "No description provided",
+                type: file.mimetype,
+                fileId: data.id, // Stocker l'ID du fichier Google Drive
+                user,
+                createdAt: new Date(),
+            });
+            // Sauvegarder les métadonnées dans la base de données
+            return yield documentRepo.save(newDocument);
+        });
+    }
+    // Définir les permissions pour rendre le fichier accessible par quiconque avec le lien
+    setFilePermissions(fileId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this.drive.permissions.create({
+                    fileId: fileId,
+                    requestBody: {
+                        role: 'reader',
+                        type: 'anyone',
+                    },
+                });
+                console.log(`Permissions updated for file ${fileId}`);
+            }
+            catch (error) {
+                console.error('Failed to update file permissions:', error);
+                throw new Error('Failed to update file permissions');
+            }
+        });
+    }
+    // Liste des documents
+    listDocuments() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const documentRepo = this.db.getRepository(document_1.Document);
+            return yield documentRepo.find({ relations: ['user'] });
+        });
+    }
+    // Obtenir un document par ID
+    getDocument(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const documentRepo = this.db.getRepository(document_1.Document);
+            return yield documentRepo.findOne({ where: { id }, relations: ['user'] });
+        });
+    }
+    // Obtenir les liens d'un fichier depuis Google Drive
+    getFileLinks(fileId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { data } = yield this.drive.files.get({
+                fileId: fileId,
+                fields: 'webViewLink, webContentLink',
+            });
+            if (!data) {
+                throw new Error('File not found on Google Drive');
+            }
             return {
-                documents,
-                totalCount
+                webViewLink: data.webViewLink || '',
+                webContentLink: data.webContentLink || '',
             };
         });
     }
-    // async createDocument(params: CreateDocumentParams): Promise<UserDocument | string> {
-    //     const userRepo = this.db.getRepository(User);
-    //     const documentRepo = this.db.getRepository(UserDocument);
-    //     const userFound = await userRepo.findOne({ where: { id: params.userId } });
-    //     if (!userFound) {
-    //         return "User not found";
-    //     }
-    //     const newDocument = documentRepo.create({
-    //         title: params.title,
-    //         description: params.description,
-    //         type: params.type,
-    //         path: params.path,
-    //         user: userFound
-    //     });
-    //     await documentRepo.save(newDocument);
-    //     return newDocument;
-    // }
-    getDocument(id) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const repo = this.db.getRepository(document_1.Document);
-            const documentFound = yield repo.findOne({ where: { id } });
-            return documentFound || null;
-        });
-    }
+    // Mettre à jour un document
     updateDocument(id, params) {
         return __awaiter(this, void 0, void 0, function* () {
-            const repo = this.db.getRepository(document_1.Document);
-            const documentFound = yield repo.findOne({ where: { id } });
+            const documentRepo = this.db.getRepository(document_1.Document);
+            // Trouver le document
+            let documentFound = yield documentRepo.findOne({ where: { id } });
             if (!documentFound)
                 return null;
+            // Mettre à jour les champs du document
             if (params.title)
                 documentFound.title = params.title;
             if (params.description)
                 documentFound.description = params.description;
             if (params.type)
                 documentFound.type = params.type;
-            if (params.path)
-                documentFound.fileId = params.path;
-            if (params.userId) {
-                const userRepo = this.db.getRepository(user_1.User);
-                const userFound = yield userRepo.findOne({ where: { id: params.userId } });
-                if (userFound)
-                    documentFound.user = userFound;
-            }
-            const updatedDocument = yield repo.save(documentFound);
-            return updatedDocument;
+            // Sauvegarder les modifications
+            return yield documentRepo.save(documentFound);
         });
     }
+    // Supprimer un document
     deleteDocument(id) {
         return __awaiter(this, void 0, void 0, function* () {
-            const repo = this.db.getRepository(document_1.Document);
-            const documentFound = yield repo.findOne({ where: { id } });
+            const documentRepo = this.db.getRepository(document_1.Document);
+            const documentFound = yield documentRepo.findOne({ where: { id } });
             if (!documentFound)
-                return false;
-            yield repo.remove(documentFound);
+                return "Document not found";
+            // Supprimer le fichier de Google Drive
+            try {
+                yield this.drive.files.delete({ fileId: documentFound.fileId });
+            }
+            catch (error) {
+                console.error('Failed to delete file on Google Drive:', error);
+            }
+            // Supprimer le document de la base de données
+            yield documentRepo.remove(documentFound);
             return documentFound;
-        });
-    }
-    getDocumentsByUser(userId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const repo = this.db.getRepository(document_1.Document);
-            return yield repo.find({ where: { user: { id: userId } } });
-        });
-    }
-    listGoogleDriveFiles() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return yield this.googleDriveService.listFiles();
-        });
-    }
-    getGoogleDriveFile(fileId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return yield this.googleDriveService.getFile(fileId);
-        });
-    }
-    uploadFileToGoogleDrive(name, mimeType, body) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const file = yield this.googleDriveService.uploadFile(name, mimeType, body);
-            return file.id || '';
         });
     }
 }

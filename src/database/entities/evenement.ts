@@ -7,6 +7,7 @@ import { Location } from "./location";
 import { EvenementAttendee } from "./evenement-attendee";
 import { eventtype, repetitivity } from "../../types/event-types";   
 import { Notification } from "./notification";
+import { VoteSession } from "./VoteSession";
 
 @Entity({ name: "evenement" })
 export class Evenement {
@@ -70,4 +71,9 @@ export class Evenement {
 
     @Column({ default: false })  
     membersOnly!: boolean;
+    
+    @OneToMany(() => VoteSession, (voteSession) => voteSession.evenement)
+    votes!: VoteSession[]; 
+
+    
 }

@@ -17,6 +17,7 @@ const location_1 = require("./location");
 const evenement_attendee_1 = require("./evenement-attendee");
 const event_types_1 = require("../../types/event-types");
 const notification_1 = require("./notification");
+const VoteSession_1 = require("./VoteSession");
 let Evenement = class Evenement {
     constructor() {
         this.state = 'UNSTARTED';
@@ -103,6 +104,10 @@ __decorate([
     (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)
 ], Evenement.prototype, "membersOnly", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => VoteSession_1.VoteSession, (voteSession) => voteSession.evenement),
+    __metadata("design:type", Array)
+], Evenement.prototype, "votes", void 0);
 exports.Evenement = Evenement = __decorate([
     (0, typeorm_1.Entity)({ name: "evenement" })
 ], Evenement);

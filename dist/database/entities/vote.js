@@ -12,7 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Vote = void 0;
 const typeorm_1 = require("typeorm");
 const user_1 = require("./user");
-const round_1 = require("./round");
+const VoteSession_1 = require("./VoteSession");
+const optionVote_1 = require("./optionVote");
 let Vote = class Vote {
 };
 exports.Vote = Vote;
@@ -21,34 +22,25 @@ __decorate([
     __metadata("design:type", Number)
 ], Vote.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], Vote.prototype, "description", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ default: 3 }),
-    __metadata("design:type", Number)
-], Vote.prototype, "nrounds", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: "datetime" }),
-    __metadata("design:type", Date)
-], Vote.prototype, "starting", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ default: false }),
-    __metadata("design:type", Boolean)
-], Vote.prototype, "isDeleted", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: "datetime" }),
-    __metadata("design:type", Date)
-], Vote.prototype, "ending", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => round_1.Round, (round) => round.vote, { cascade: true }) // Added cascade option
-    ,
-    __metadata("design:type", Array)
-], Vote.prototype, "rounds", void 0);
-__decorate([
-    (0, typeorm_1.ManyToOne)(() => user_1.User, user => user.votes),
+    (0, typeorm_1.ManyToOne)(() => user_1.User),
     __metadata("design:type", user_1.User)
 ], Vote.prototype, "user", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => VoteSession_1.VoteSession),
+    __metadata("design:type", VoteSession_1.VoteSession)
+], Vote.prototype, "session", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => optionVote_1.OptionVote, { nullable: true }),
+    __metadata("design:type", Object)
+], Vote.prototype, "option", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Vote.prototype, "choix", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Number)
+], Vote.prototype, "tour", void 0);
 exports.Vote = Vote = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)({ name: "votes" })
 ], Vote);

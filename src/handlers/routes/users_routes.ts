@@ -2,34 +2,65 @@ import express, { Request, Response } from "express";
 import { AppDataSource } from "../../database/database";
 import { UserUsecase } from "../../domain/user-usecase";
 import { generateValidationErrorMessage } from "../validators/generate-validation-message";
-import { createAdherentValidation, createAdminValidation, loginOtherValidation, updateUserValidation, listUsersValidation } from "../validators/user-validator";
+import { createAdherentValidation, createAdminValidation, loginOtherValidation, updateUserValidation, listUsersValidation, createSalarierValidation } from "../validators/user-validator";
 import { verify } from "jsonwebtoken";
 
 export const initUserRoutes = (app: express.Express) => {
     const userUsecase = new UserUsecase(AppDataSource);
 
     // Inscription Adhérent
-    app.post('/adherent/signup', async (req: Request, res: Response) => {
-        try {
-            const validationResult = createAdherentValidation.validate(req.body);
-            if (validationResult.error) {
-                res.status(400).json(generateValidationErrorMessage(validationResult.error.details));
-                return;
-            }
+app.post('/adherent/signup', async (req: Request, res: Response) => {
+    try {
+      console.log("Données reçues pour l'inscription :", req.body);
+  
+      const validationResult = createAdherentValidation.validate(req.body);
+      if (validationResult.error) {
+        res.status(400).json(generateValidationErrorMessage(validationResult.error.details));
+        return;
+      }
+  
+      const createAdherentRequest = validationResult.value;
+      const result = await userUsecase.createAdherent(createAdherentRequest);
+  
+      if (typeof result === 'string') {
+        res.status(400).json({ error: result });
+      } else {
+        res.status(201).json(result); 
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ "error": "Internal error, please try again later" });
+    }
+  });
+ 
+ 
 
-            const createAdherentRequest = validationResult.value;
-            const result = await userUsecase.createAdherent(createAdherentRequest);
+app.post('/salarier/signup', async (req: Request, res: Response) => {
+    try {
+      console.log("Données reçues pour l'inscription :", req.body);
+  
+      const validationResult = createSalarierValidation.validate(req.body);
+      if (validationResult.error) {
+        res.status(400).json(generateValidationErrorMessage(validationResult.error.details));
+        return;
+      }
+  
+      const createSalarierRequest = validationResult.value;
+      const result = await userUsecase.createSalarier(createSalarierRequest);
+  
+      if (typeof result === 'string') {
+        res.status(400).json({ error: result });
+      } else {
+        res.status(201).json(result); 
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ "error": "Internal error, please try again later" });
+    }
+});
 
-            if (typeof result === 'string') {
-                res.status(400).json({ error: result });
-            } else {
-                res.status(201).json(result);
-            }
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ "error": "Internal error, please try again later" });
-        }
-    });
+ 
+
     app.get('/getUserEvenementAttendees/:id', async (req: Request, res: Response) => {
         try {
             const userId = Number(req.params.id);
@@ -130,21 +161,22 @@ export const initUserRoutes = (app: express.Express) => {
         }
     });
 
-    // Bannir un utilisateur
-    app.post('/banUser/:id', async (req: Request, res: Response) => {
-        try {
-            const result = await userUsecase.banUser(Number(req.params.id));
+ // Bannir un utilisateur
+app.post('/banUser/:id', async (req: Request, res: Response) => {
+    try {
+        const result = await userUsecase.banUser(Number(req.params.id));
 
-            if (typeof result === 'string') {
-                res.status(400).json({ error: result });
-            } else {
-                res.status(200).json({ message: result });
-            }
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: "Internal error, please try again later" });
+        if (result.success) {
+            res.status(200).json({ message: result.message });
+        } else {
+            res.status(400).json({ error: result.message });
         }
-    });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal error, please try again later" });
+    }
+});
+
 
     // Lister les utilisateurs
     app.get('/listUsers', async (req: Request, res: Response) => {
@@ -168,7 +200,22 @@ export const initUserRoutes = (app: express.Express) => {
             res.status(500).json({ "error": "Internal error, please try again later" });
         }
     });
+    app.delete('/deleteUser/:id', async (req: Request, res: Response) => {
+        try {
+            const userId = parseInt(req.params.id, 10);
+            const result = await userUsecase.deleteUser(userId);
 
+            if (result === "Utilisateur non trouvé") {
+                res.status(404).json({ error: result });
+            } else {
+                res.status(200).json({ message: result });
+            }
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ "error": "Erreur interne, veuillez réessayer plus tard." });
+        }
+    });
+    
     // Récupérer un utilisateur par ID
     app.get('/getUser/:id', async (req: Request, res: Response) => {
         try {
@@ -184,7 +231,33 @@ export const initUserRoutes = (app: express.Express) => {
             res.status(500).json({ "error": "Internal error, please try again later" });
         }
     });
-
+    app.patch('/UpdatePwd/:userId', async (req, res) => {
+        const { userId } = req.params; // ID de l'utilisateur extrait de l'URL
+        const { oldPassword, newPassword } = req.body; // Mots de passe extraits du corps de la requête
+    
+        // Convertir userId en nombre si nécessaire
+        const numericUserId = parseInt(userId, 10);
+        if (isNaN(numericUserId)) {
+            return res.status(400).json({ message: "Invalid user ID." });
+        }
+    
+        if (!oldPassword || !newPassword) {
+            return res.status(400).json({ message: "Both old and new passwords are required." });
+        }
+    
+        try {
+            const result = await userUsecase.changePassword(numericUserId, oldPassword, newPassword);
+            if (result === "Password updated successfully") {
+                res.status(200).json({ message: result });
+            } else {
+                res.status(400).json({ message: result });
+            }
+        } catch (error) {
+            console.error('Error updating password:', error);
+            res.status(500).json({ message: "Internal server error" });
+        }
+    });
+    
     // Ajouter une compétence à un utilisateur
     app.post('/addSkillToUser/:id', async (req: Request, res: Response) => {
         try {
@@ -225,6 +298,17 @@ export const initUserRoutes = (app: express.Express) => {
         try {
             const status = req.params.status;
             const result = await userUsecase.getAvailableUsersByStatus(status);
+
+            res.status(200).json(result);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ "error": "Internal error, please try again later" });
+        }
+    });
+    app.get('/getUsersByStatus/:status', async (req: Request, res: Response) => {
+        try {
+            const status = req.params.status;
+            const result = await userUsecase.getUsersByStatus(status);
 
             res.status(200).json(result);
         } catch (error) {

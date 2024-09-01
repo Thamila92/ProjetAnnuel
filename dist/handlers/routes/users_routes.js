@@ -20,6 +20,7 @@ const initUserRoutes = (app) => {
     // Inscription Adhérent
     app.post('/adherent/signup', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
+            console.log("Données reçues pour l'inscription :", req.body);
             const validationResult = user_validator_1.createAdherentValidation.validate(req.body);
             if (validationResult.error) {
                 res.status(400).json((0, generate_validation_message_1.generateValidationErrorMessage)(validationResult.error.details));
@@ -27,6 +28,28 @@ const initUserRoutes = (app) => {
             }
             const createAdherentRequest = validationResult.value;
             const result = yield userUsecase.createAdherent(createAdherentRequest);
+            if (typeof result === 'string') {
+                res.status(400).json({ error: result });
+            }
+            else {
+                res.status(201).json(result);
+            }
+        }
+        catch (error) {
+            console.error(error);
+            res.status(500).json({ "error": "Internal error, please try again later" });
+        }
+    }));
+    app.post('/salarier/signup', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            console.log("Données reçues pour l'inscription :", req.body);
+            const validationResult = user_validator_1.createSalarierValidation.validate(req.body);
+            if (validationResult.error) {
+                res.status(400).json((0, generate_validation_message_1.generateValidationErrorMessage)(validationResult.error.details));
+                return;
+            }
+            const createSalarierRequest = validationResult.value;
+            const result = yield userUsecase.createSalarier(createSalarierRequest);
             if (typeof result === 'string') {
                 res.status(400).json({ error: result });
             }
@@ -141,11 +164,11 @@ const initUserRoutes = (app) => {
     app.post('/banUser/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const result = yield userUsecase.banUser(Number(req.params.id));
-            if (typeof result === 'string') {
-                res.status(400).json({ error: result });
+            if (result.success) {
+                res.status(200).json({ message: result.message });
             }
             else {
-                res.status(200).json({ message: result });
+                res.status(400).json({ error: result.message });
             }
         }
         catch (error) {
@@ -175,6 +198,22 @@ const initUserRoutes = (app) => {
             res.status(500).json({ "error": "Internal error, please try again later" });
         }
     }));
+    app.delete('/deleteUser/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const userId = parseInt(req.params.id, 10);
+            const result = yield userUsecase.deleteUser(userId);
+            if (result === "Utilisateur non trouvé") {
+                res.status(404).json({ error: result });
+            }
+            else {
+                res.status(200).json({ message: result });
+            }
+        }
+        catch (error) {
+            console.error(error);
+            res.status(500).json({ "error": "Erreur interne, veuillez réessayer plus tard." });
+        }
+    }));
     // Récupérer un utilisateur par ID
     app.get('/getUser/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
@@ -189,6 +228,31 @@ const initUserRoutes = (app) => {
         catch (error) {
             console.error(error);
             res.status(500).json({ "error": "Internal error, please try again later" });
+        }
+    }));
+    app.patch('/UpdatePwd/:userId', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const { userId } = req.params; // ID de l'utilisateur extrait de l'URL
+        const { oldPassword, newPassword } = req.body; // Mots de passe extraits du corps de la requête
+        // Convertir userId en nombre si nécessaire
+        const numericUserId = parseInt(userId, 10);
+        if (isNaN(numericUserId)) {
+            return res.status(400).json({ message: "Invalid user ID." });
+        }
+        if (!oldPassword || !newPassword) {
+            return res.status(400).json({ message: "Both old and new passwords are required." });
+        }
+        try {
+            const result = yield userUsecase.changePassword(numericUserId, oldPassword, newPassword);
+            if (result === "Password updated successfully") {
+                res.status(200).json({ message: result });
+            }
+            else {
+                res.status(400).json({ message: result });
+            }
+        }
+        catch (error) {
+            console.error('Error updating password:', error);
+            res.status(500).json({ message: "Internal server error" });
         }
     }));
     // Ajouter une compétence à un utilisateur
@@ -229,6 +293,17 @@ const initUserRoutes = (app) => {
         try {
             const status = req.params.status;
             const result = yield userUsecase.getAvailableUsersByStatus(status);
+            res.status(200).json(result);
+        }
+        catch (error) {
+            console.error(error);
+            res.status(500).json({ "error": "Internal error, please try again later" });
+        }
+    }));
+    app.get('/getUsersByStatus/:status', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const status = req.params.status;
+            const result = yield userUsecase.getUsersByStatus(status);
             res.status(200).json(result);
         }
         catch (error) {

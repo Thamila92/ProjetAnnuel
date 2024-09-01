@@ -17,6 +17,7 @@ var statustype;
     statustype["ADMIN"] = "ADMIN";
     statustype["MEMBER"] = "MEMBER";
     statustype["BENEFACTOR"] = "NORMAL";
+    statustype["SALARIER"] = "SALARIER";
 })(statustype || (exports.statustype = statustype = {}));
 let Status = class Status {
 };

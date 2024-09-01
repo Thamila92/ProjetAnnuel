@@ -16,8 +16,6 @@ const express_1 = __importDefault(require("express"));
 const database_1 = require("./database/database");
 const swagger_1 = require("./swagger/swagger");
 require("reflect-metadata");
-const document_usecase_1 = require("./domain/document-usecase");
-const google_auth_library_1 = require("google-auth-library");
 const cors_1 = __importDefault(require("cors"));
 require("dotenv/config");
 const evenement_routes_1 = require("./handlers/routes/evenement_routes");
@@ -29,6 +27,13 @@ const skill_routes_1 = require("./handlers/routes/skill_routes");
 const demande_routes_1 = require("./handlers/routes/demande_routes");
 const donation_routes_1 = require("./handlers/routes/donation_routes");
 const payement_routes_1 = require("./handlers/routes/payement_routes");
+const cotisation_routes_1 = require("./handlers/routes/cotisation_routes");
+const document_routes_1 = require("./handlers/routes/document_routes");
+const folder_routes_1 = require("./handlers/routes/folder_routes");
+const email_routes_1 = require("./handlers/routes/email-routes");
+const _votesession_routes_1 = require("./handlers/routes/ votesession_routes");
+const vote_routes_1 = require("./handlers/routes/vote_routes");
+const admindashboard_routes_1 = require("./handlers/routes/admindashboard_routes");
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     const app = (0, express_1.default)();
     const port = 3000;
@@ -41,14 +46,6 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         console.error("Cannot contact database:", error);
         process.exit(1);
     }
-    // Configurez votre client OAuth2 avec vos credentials Google
-    const CLIENT_ID = process.env.CLIENT_ID;
-    const CLIENT_SECRET = process.env.CLIENT_SECRET;
-    const REDIRECT_URI = process.env.REDIRECT_URI;
-    const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
-    const oAuth2Client = new google_auth_library_1.OAuth2Client(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
-    oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
-    const documentUsecase = new document_usecase_1.DocumentUsecase(database_1.AppDataSource, oAuth2Client);
     app.use(express_1.default.json());
     // Initialiser les routes
     (0, evenement_routes_1.initEvenementRoutes)(app);
@@ -59,7 +56,15 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     (0, skill_routes_1.initSkillRoutes)(app);
     (0, demande_routes_1.initDemandeRoutes)(app);
     (0, donation_routes_1.initDonationRoutes)(app);
+    (0, cotisation_routes_1.initCotisationRoutes)(app);
     (0, payement_routes_1.initPaymentRoutes)(app);
+    (0, document_routes_1.initGoogleDriveRoutes)(app); // Initialiser les routes Supabase
+    (0, folder_routes_1.initFolderRoutes)(app);
+    (0, email_routes_1.initEmailRoutes)(app);
+    (0, _votesession_routes_1.initVoteSessionRoutes)(app);
+    (0, vote_routes_1.initVoteRoutes)(app);
+    (0, admindashboard_routes_1.initAdminDashboardRoutes)(app);
+    // Swagger documentation
     (0, swagger_1.swaggerDocs)(app, port);
     app.listen(port, () => {
         console.log(`Server running on port ${port}`);

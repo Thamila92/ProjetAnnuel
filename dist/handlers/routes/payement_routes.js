@@ -11,39 +11,30 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.initPaymentRoutes = void 0;
 const payment_usecase_1 = require("../../domain/payment-usecase");
+const database_1 = require("../../database/database");
 const initPaymentRoutes = (app) => {
-    const paymentUsecase = new payment_usecase_1.PaymentUsecase();
+    const paymentUsecase = new payment_usecase_1.PaiementUsecase(database_1.AppDataSource);
     // Route pour créer un paiement PayPal
-    app.post('/create-paypal-order', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        const { amount } = req.body;
+    app.post('/paiements/donation', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const order = yield paymentUsecase.createPayPalOrder(amount);
-            res.json(order);
+            const { amount, currency, nom, prenom, email } = req.body;
+            const result = yield paymentUsecase.createPaiement('donation', amount, currency, { nom, prenom, email });
+            res.status(201).json(result);
         }
         catch (error) {
-            if (error instanceof Error) {
-                res.status(500).json({ error: error.message });
-            }
-            else {
-                res.status(500).json({ error: 'Unknown error occurred' });
-            }
+            console.error(error);
+            res.status(500).json({ error: "Erreur interne, veuillez réessayer plus tard." });
         }
     }));
-    // Route pour capturer un paiement PayPal
-    app.post('/capture-paypal-order/:orderId', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        const { orderId } = req.params;
+    app.post('/paiements/cotisation', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            // Appeler la méthode pour capturer le paiement
-            const result = yield paymentUsecase.capturePayPalOrder(orderId);
-            res.json(result); // Retourner le résultat de la capture
+            const { amount, currency, category, description, email } = req.body; // Ajoutez email ici
+            const result = yield paymentUsecase.createPaiement('cotisation', amount, currency, undefined, { category, email, description });
+            res.status(201).json(result);
         }
         catch (error) {
-            if (error instanceof Error) {
-                res.status(500).json({ error: error.message });
-            }
-            else {
-                res.status(500).json({ error: 'Unknown error occurred' });
-            }
+            console.error(error);
+            res.status(500).json({ error: "Erreur interne, veuillez réessayer plus tard." });
         }
     }));
 };

@@ -97,7 +97,24 @@ app.patch('/missions/:id', async (req: Request, res: Response) => {
     }
 });
 
-
+// Ajoute cette route dans `initMissionRoutes`
+app.get('/missions/user/:userId', async (req: Request, res: Response) => {
+    try {
+      // Valider que `userId` est un nombre valide
+      const userId = parseInt(req.params.userId, 10);
+      if (isNaN(userId)) {
+        res.status(400).json({ error: 'Invalid user ID' });
+        return;
+      }
+  
+      const result = await missionUsecase.listMissionsByUser(userId);
+      res.status(200).json(result);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal error, please try again later" });
+    }
+  });
+  
     // DELETE a mission
     app.delete('/missions/:id', async (req: Request, res: Response) => {
         try {

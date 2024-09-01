@@ -277,7 +277,20 @@ async getMission(id: number): Promise<Mission | null> {
         const updatedMission = await repo.save(missionFound);
         return updatedMission;
     }
-
+    async listMissionsByUser(userId: number): Promise<Mission[]> {
+        const missionRepo = this.db.getRepository(Mission);
+        
+        // Requête pour récupérer les missions où l'utilisateur est assigné
+        const missions = await missionRepo
+          .createQueryBuilder('mission')
+          .leftJoinAndSelect('mission.assignedUsers', 'user')
+          .leftJoinAndSelect('mission.requiredSkills', 'skill')
+          .leftJoinAndSelect('mission.resources', 'resource')
+          .where('user.id = :userId', { userId })
+          .getMany();
+        
+        return missions;
+      }
     // DELETE a mission
     async deleteMission(id: number): Promise<Mission | string> {
         const repo = this.db.getRepository(Mission);

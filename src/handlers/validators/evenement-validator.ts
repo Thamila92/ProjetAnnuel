@@ -21,6 +21,8 @@ export const evenementValidation = Joi.object({
     currentParticipants: Joi.number().integer().min(0).default(0).optional(),
     membersOnly: Joi.boolean().default(false)  
 }).options({ abortEarly: false })
+
+
 export const evenementUpdateValidation = Joi.object({
     type: Joi.string().valid(...Object.values(eventtype)).optional(),
     location: Joi.string().optional(),

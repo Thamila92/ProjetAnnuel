@@ -1,4 +1,4 @@
-import { DataSource } from "typeorm";
+import { DataSource, IsNull } from "typeorm";
 import { User } from "../database/entities/user";
 import { Status } from "../database/entities/status";
 import { compare, hash } from "bcrypt";
@@ -7,12 +7,16 @@ import { Mission } from "../database/entities/mission";
 import { sign } from "jsonwebtoken";
 import { Demande } from "../database/entities/demande";
 import { EvenementAttendee } from "../database/entities/evenementAttendee";
-
+import { Donation } from "../database/entities/donation";
+import { Cotisation } from "../database/entities/cotisation";
+import { DeepPartial } from "typeorm";
 export interface CreateAdherentRequest {
     name: string;
     email: string;
     password: string;
     skills?: string[];
+    adresse?: string;
+    dateDeNaissance?: Date;
 }
 
 export interface CreateAdminRequest {
@@ -23,11 +27,14 @@ export interface CreateAdminRequest {
 }
 
 export interface UpdateUserParams {
-    name?: string;
     email?: string;
+    name?: string;
+    adresse?: string;
+    dateDeNaissance?: Date;
     password?: string;
-    actual_password: string;
+    statusId?: number;  // Ajout de la propriété statusId
 }
+
 
 export interface ListUserFilter {
     limit: number;
@@ -36,70 +43,38 @@ export interface ListUserFilter {
     skills?: string[];
 }
 
+
 export class UserUsecase {
     constructor(private readonly db: DataSource) { }
 
-    // Créer un Adhérent
-    async createAdherent(createAdherentRequest: CreateAdherentRequest): Promise<User | string> {
-        try {
-            const userRepository = this.db.getRepository(User);
-            const status = await this.db.getRepository(Status)
-                .createQueryBuilder("status")
-                .where("status.type = :status", { status: "MEMBER" })
-                .getOne();
+ 
 
-            if (!status) {
-                return "Status MEMBER not found";
-            }
-
-            const hashedPassword = await hash(createAdherentRequest.password, 10);
-
-            let skills: Skill[] = [];
-            if (createAdherentRequest.skills && createAdherentRequest.skills.length > 0) {
-                const skillRepo = this.db.getRepository(Skill);
-                skills = await Promise.all(createAdherentRequest.skills.map(async (skillName: string) => {
-                    let skill = await skillRepo.findOne({ where: { name: skillName } });
-                    if (!skill) {
-                        skill = skillRepo.create({ name: skillName });
-                        await skillRepo.save(skill);
-                    }
-                    return skill;
-                }));
-            }
-
-            const newUser = userRepository.create({
-                name: createAdherentRequest.name,
-                email: createAdherentRequest.email,
-                password: hashedPassword,
-                status: status,
-                skills: skills
-            });
-
-            const savedUser = await userRepository.save(newUser);
-            return savedUser;
-        } catch (error) {
-            console.error(error);
-            return "Internal error, please try again later";
+    async loginUser(email: string, password: string): Promise<{ user: User; token: string; expirationDate?: Date } | string> {
+        const userRepo = this.db.getRepository(User);
+        const user = await userRepo.findOne({ where: { email, isDeleted: false }, relations: ['status', 'cotisations'] });
+    
+        if (!user) {
+            return "User not found";
         }
+    
+        const isValid = await compare(password, user.password);
+        if (!isValid) {
+            return "Invalid email or password";
+        }
+    
+        const secret = process.env.JWT_SECRET ?? "NoNotThis";
+        const token = sign({ userId: user.id, email: user.email }, secret, { expiresIn: '1d' });
+    
+        // Obtenir la dernière cotisation de l'utilisateur (s'il y en a une)
+        const latestCotisation = user.cotisations.sort((a, b) => b.date.getTime() - a.date.getTime())[0];
+    
+        return {
+            user,
+            token,
+            expirationDate: latestCotisation ? latestCotisation.expirationDate : undefined,  // Retourner la date d'expiration
+        };
     }
-    async loginUser(email: string, password: string): Promise<{ user: User; token: string } | string> {
-      const userRepo = this.db.getRepository(User);
-      const user = await userRepo.findOne({ where: { email, isDeleted: false }, relations: ['status'] });
-
-      if (!user) {
-          return "User not found";
-      }
-
-      const isValid = await compare(password, user.password);
-      if (!isValid) {
-          return "Invalid email or password";
-      }
-
-      const secret = process.env.JWT_SECRET ?? "NoNotThis";
-      const token = sign({ userId: user.id, email: user.email }, secret, { expiresIn: '1d' });
-
-      return { user, token };
-  }
+    
 
     // Créer un Administrateur
     async createAdmin(createAdminRequest: CreateAdminRequest): Promise<User | string> {
@@ -130,50 +105,185 @@ export class UserUsecase {
             return "Internal error, please try again later";
         }
     }
+        // Créer un Adhérent
 
-    // Mettre à jour un utilisateur (Adhérent, Admin, Bienfaiteur)
+      
+        
+    async createAdherent(createAdherentRequest: CreateAdherentRequest): Promise<User | string> {
+            try {
+                const userRepository = this.db.getRepository(User);
+                
+                // Rechercher le statut MEMBER
+                const status = await this.db.getRepository(Status)
+                    .createQueryBuilder("status")
+                    .where("status.type = :status", { status: "MEMBER" })
+                    .getOne();
+        
+                if (!status) {
+                    return "Status MEMBER not found";
+                }
+        
+                // Hash du mot de passe
+                const hashedPassword = await hash(createAdherentRequest.password, 10);
+        
+                // Créer un nouvel utilisateur avec adresse et dateDeNaissance, en convertissant null en undefined
+                const newUser: DeepPartial<User> = {
+                    name: createAdherentRequest.name,
+                    email: createAdherentRequest.email,
+                    password: hashedPassword,
+                    status: status,
+                    adresse: createAdherentRequest.adresse || undefined, // Conversion de null en undefined
+                    dateDeNaissance: createAdherentRequest.dateDeNaissance || undefined // Conversion de null en undefined
+                };
+        
+                // Utilisation de userRepository.create() pour créer l'utilisateur
+                const createdUser = userRepository.create(newUser);
+        
+                // Sauvegarder l'utilisateur créé dans la base de données
+                const savedUser = await userRepository.save(createdUser);
+                
+                return savedUser;
+            } catch (error) {
+                console.error(error);
+                return "Internal error, please try again later";
+            }
+        }
+        async createSalarier(createSalarierRequest: CreateAdherentRequest): Promise<User | string> {
+            try {
+                const userRepository = this.db.getRepository(User);
+        
+                // Rechercher le statut SALARIER
+                const status = await this.db.getRepository(Status)
+                    .createQueryBuilder("status")
+                    .where("status.type = :status", { status: "SALARIER" })
+                    .getOne();
+        
+                if (!status) {
+                    return "Status SALARIER not found";
+                }
+        
+                // Hash du mot de passe
+                const hashedPassword = await hash(createSalarierRequest.password, 10);
+        
+                // Créer un nouvel utilisateur avec les informations fournies
+                const newUser: DeepPartial<User> = {
+                    name: createSalarierRequest.name,
+                    email: createSalarierRequest.email,
+                    password: hashedPassword,
+                    status: status,
+                    adresse: createSalarierRequest.adresse || undefined,
+                    dateDeNaissance: createSalarierRequest.dateDeNaissance || undefined
+                };
+        
+                // Utilisation de userRepository.create() pour créer l'utilisateur
+                const createdUser = userRepository.create(newUser);
+        
+                // Sauvegarder l'utilisateur créé dans la base de données
+                const savedUser = await userRepository.save(createdUser);
+                
+                return savedUser;
+            } catch (error) {
+                console.error(error);
+                return "Internal error, please try again later";
+            }
+        }
+        
+    // Fonction pour associer les enregistrements existants à l'utilisateur nouvellement créé
+    async associateExistingRecords(email: string, user: User): Promise<void> {
+        const donationRepo = this.db.getRepository(Donation);
+        const demandeRepo = this.db.getRepository(Demande);
+        const evenementAttendeeRepo = this.db.getRepository(EvenementAttendee);
+
+        // Associer les donations existantes à cet utilisateur
+        const donations = await donationRepo.find({ where: { email, user: undefined } });
+        for (const donation of donations) {
+            donation.user = user;
+            await donationRepo.save(donation);
+        }
+
+        // Associer les demandes existantes à cet utilisateur
+        const demandes = await demandeRepo.find({ where: { email, user: undefined } });
+        for (const demande of demandes) {
+            demande.user = user;
+            await demandeRepo.save(demande);
+        }
+
+        // Associer les EvenementAttendees existants à cet utilisateur
+        const evenementAttendees = await evenementAttendeeRepo.find({ where: { email, user: undefined } });
+        for (const attendee of evenementAttendees) {
+            attendee.user = user;
+            await evenementAttendeeRepo.save(attendee);
+        }
+    }
+
     async updateUser(id: number, userToUpdate: UpdateUserParams): Promise<User | string> {
         const userRepo = this.db.getRepository(User);
         const userFound = await userRepo.findOne({ where: { id, isDeleted: false }, relations: ['status'] });
-
+    
         if (!userFound) {
             return "User not found!";
         }
-
-        const isValid = await compare(userToUpdate.actual_password, userFound.password);
-        if (!isValid) {
-            return "Actual password incorrect!";
-        }
-
+    
+        // Mise à jour des champs sans avoir besoin du mot de passe actuel
         if (userToUpdate.email) {
             userFound.email = userToUpdate.email;
         }
-
+    
         if (userToUpdate.name) {
             userFound.name = userToUpdate.name;
         }
-
-        if (userToUpdate.password) {
-            userFound.password = await hash(userToUpdate.password, 10);
+    
+        if (userToUpdate.adresse !== undefined) {
+            userFound.adresse = userToUpdate.adresse;
         }
-
+    
+        if (userToUpdate.dateDeNaissance !== undefined) {
+            userFound.dateDeNaissance = userToUpdate.dateDeNaissance;
+        }
+    
+        if (userToUpdate.password) {
+            userFound.password = await hash(userToUpdate.password, 10); // Hashing du mot de passe s'il est fourni
+        }
+    
+        if (userToUpdate.statusId) {
+            const statusRepo = this.db.getRepository(Status);
+            const newStatus = await statusRepo.findOne({ where: { id: userToUpdate.statusId } });
+    
+            if (newStatus) {
+                userFound.status = newStatus;
+            }
+        }
+    
         const updatedUser = await userRepo.save(userFound);
         return updatedUser;
     }
+    
 
     // Bannir un utilisateur (définir isDeleted à true)
-    async banUser(id: number): Promise<string> {
+    async banUser(id: number): Promise<{ success: boolean; message: string }> {
         const userRepo = this.db.getRepository(User);
+    
+        // Trouver l'utilisateur
         const userFound = await userRepo.findOne({ where: { id, isDeleted: false } });
-
+    
         if (!userFound) {
-            return "User not found";
+            return { success: false, message: "User not found or already banned." };
         }
-
-        userFound.isDeleted = true;
-        await userRepo.save(userFound);
-        return `User ${userFound.name} has been banned successfully.`;
+    
+        if (userFound.isBanned) {
+            // Débannir l'utilisateur
+            userFound.isBanned = false;
+            await userRepo.save(userFound);
+            return { success: true, message: `User ${userFound.name} has been unbanned successfully.` };
+        } else {
+            // Bannir l'utilisateur
+            userFound.isBanned = true;
+            await userRepo.save(userFound);
+            return { success: true, message: `User ${userFound.name} has been banned successfully.` };
+        }
     }
+    
+    
 
     // Lister les utilisateurs avec des filtres
     async listUser(filter: ListUserFilter): Promise<{ users: User[]; totalCount: number; } | string> {
@@ -253,7 +363,32 @@ export class UserUsecase {
 
         return userFound;
     }
-
+    async changePassword(userId: number, oldPassword: string, newPassword: string): Promise<string> {
+        const userRepo = this.db.getRepository(User);
+        const user = await userRepo.findOne({
+            where: { id: userId, isDeleted: false }
+        });
+    
+        if (!user) {
+            return "User not found";
+        }
+    
+        // Comparaison de l'ancien mot de passe avec le hash stocké
+        const isValid = await compare(oldPassword, user.password);
+        if (!isValid) {
+            return "Invalid old password";
+        }
+    
+        // Hashage du nouveau mot de passe
+        const hashedPassword = await hash(newPassword, 10);
+        user.password = hashedPassword;
+    
+        // Sauvegarde du nouvel utilisateur avec le mot de passe mis à jour
+        await userRepo.save(user);
+    
+        return "Password updated successfully";
+    }
+    
     // Ajouter une compétence à un utilisateur
     async addSkillToUser(userId: number, skillName: string): Promise<User | string> {
         const userRepo = this.db.getRepository(User);
@@ -316,7 +451,26 @@ export class UserUsecase {
 
         return users;
     }
+    async getUsersByStatus(statusDescription: string): Promise<User[]> {
+        const status = await this.db.getRepository(Status)
+            .createQueryBuilder('status')
+            .where('status.type = :type', { type: statusDescription })
+            .getOne();
 
+        if (!status) {
+            throw new Error(`Status with description ${statusDescription} not found`);
+        }
+
+        const users = await this.db.getRepository(User)
+            .createQueryBuilder('user')
+            .leftJoinAndSelect('user.status', 'status')
+            .where('user.status.id = :statusId', { statusId: status.id })
+            .andWhere('user.isDeleted = :isDeleted', { isDeleted: false })
+            .andWhere('user.isBanned = :isBanned', { isBanned: false })
+            .getMany();
+
+        return users;
+    }
     // Récupérer tous les utilisateurs disponibles
     async getAllUsersAvailable(): Promise<User[]> {
         const userRepo = this.db.getRepository(User);
@@ -339,7 +493,7 @@ export class UserUsecase {
  
     // Récupérer tous les utilisateurs
     async getAllUsers(): Promise<User[]> {
-        return await this.db.getRepository(User).find({ where: { isDeleted: false } });
+        return await this.db.getRepository(User).find({ where: { isBanned: false } });
     }
     async getCurrentUser(userId: number): Promise<User | string> {
       const userRepo = this.db.getRepository(User);
@@ -355,4 +509,17 @@ export class UserUsecase {
 
       return user;
   }
+
+
+  async deleteUser(userId: number): Promise<string> {
+    const userRepository = this.db.getRepository(User);
+    const user = await userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+        return "Utilisateur non trouvé";
+    }
+
+    await userRepository.remove(user);
+    return "Utilisateur supprimé avec succès";
+}
 }

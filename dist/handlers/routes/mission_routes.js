@@ -100,6 +100,23 @@ const initMissionRoutes = (app) => {
             res.status(500).json({ error: "Internal error, please try again later" });
         }
     }));
+    // Ajoute cette route dans `initMissionRoutes`
+    app.get('/missions/user/:userId', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            // Valider que `userId` est un nombre valide
+            const userId = parseInt(req.params.userId, 10);
+            if (isNaN(userId)) {
+                res.status(400).json({ error: 'Invalid user ID' });
+                return;
+            }
+            const result = yield missionUsecase.listMissionsByUser(userId);
+            res.status(200).json(result);
+        }
+        catch (error) {
+            console.error(error);
+            res.status(500).json({ error: "Internal error, please try again later" });
+        }
+    }));
     // DELETE a mission
     app.delete('/missions/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {

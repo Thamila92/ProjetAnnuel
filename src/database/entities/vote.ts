@@ -1,32 +1,25 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
 import { User } from "./user";
-import { Round } from "./round";
+import { VoteSession } from "./VoteSession";
+import { OptionVote } from "./optionVote";
 
-@Entity()
+@Entity({ name: "votes" })
 export class Vote {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @Column()
-    description!: string;
-
-    @Column({ default: 3 })
-    nrounds!: number;
-
-    @Column({ type: "datetime" })
-    starting!: Date;
-
-    @Column({ default: false })
-    isDeleted!: boolean;
-
-    @Column({ type: "datetime" })
-    ending!: Date;
-
-    @OneToMany(() => Round, (round) => round.vote, { cascade: true }) // Added cascade option
-    rounds!: Round[];
-    subject: any;
-    responses: any;
-
-    @ManyToOne(() => User, user => user.votes)
+    @ManyToOne(() => User)
     user!: User;
+
+    @ManyToOne(() => VoteSession)
+    session!: VoteSession;
+
+    @ManyToOne(() => OptionVote, { nullable: true })
+    option?: OptionVote | null;  // Option peut être null pour un vote classique
+
+    @Column({ nullable: true })
+    choix?: string;  // Choix sera défini uniquement pour un vote classique
+
+    @Column()
+    tour!: number;
 }
