@@ -357,5 +357,12 @@ const initUserRoutes = (app) => {
             res.status(500).json({ error: "Internal server error" });
         }
     }));
+    app.get('/users/email/:email', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const result = yield userUsecase.getUserByEmail(req.params.email);
+        if (typeof result === 'string') {
+            return res.status(404).json({ error: result });
+        }
+        res.json(result);
+    }));
 };
 exports.initUserRoutes = initUserRoutes;

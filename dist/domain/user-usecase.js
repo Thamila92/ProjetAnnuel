@@ -32,6 +32,10 @@ class UserUsecase {
             if (!user) {
                 return "User not found";
             }
+            // Vérifier si l'utilisateur est banni
+            if (user.isBanned) {
+                return "Votre compte est désactivé. Veuillez contacter le support pour plus d'informations.";
+            }
             const isValid = yield (0, bcrypt_1.compare)(password, user.password);
             if (!isValid) {
                 return "Invalid email or password";
@@ -43,7 +47,7 @@ class UserUsecase {
             return {
                 user,
                 token,
-                expirationDate: latestCotisation ? latestCotisation.expirationDate : undefined, // Retourner la date d'expiration
+                expirationDate: latestCotisation ? latestCotisation.expirationDate : undefined,
             };
         });
     }
@@ -327,6 +331,19 @@ class UserUsecase {
                 return Object.assign(Object.assign({}, attendee), { event });
             });
             return attendeesWithEvents; // Retournez les participants avec les détails de l'événement
+        });
+    }
+    getUserByEmail(email) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const userRepo = this.db.getRepository(user_1.User);
+            const userFound = yield userRepo.findOne({
+                where: { email, isDeleted: false },
+                relations: ['status', 'skills'] // Ajoutez d'autres relations si nécessaire
+            });
+            if (!userFound) {
+                return "User not found";
+            }
+            return userFound;
         });
     }
     // Récupérer un utilisateur par ID

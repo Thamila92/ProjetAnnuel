@@ -57,6 +57,11 @@ export class UserUsecase {
             return "User not found";
         }
     
+        // Vérifier si l'utilisateur est banni
+        if (user.isBanned) {
+            return "Votre compte est désactivé. Veuillez contacter le support pour plus d'informations.";
+        }
+    
         const isValid = await compare(password, user.password);
         if (!isValid) {
             return "Invalid email or password";
@@ -71,9 +76,10 @@ export class UserUsecase {
         return {
             user,
             token,
-            expirationDate: latestCotisation ? latestCotisation.expirationDate : undefined,  // Retourner la date d'expiration
+            expirationDate: latestCotisation ? latestCotisation.expirationDate : undefined,
         };
     }
+    
     
 
     // Créer un Administrateur
@@ -393,6 +399,19 @@ export class UserUsecase {
         });
     
         return attendeesWithEvents; // Retournez les participants avec les détails de l'événement
+    }
+    async getUserByEmail(email: string): Promise<User | string> {
+        const userRepo = this.db.getRepository(User);
+        const userFound = await userRepo.findOne({
+            where: { email, isDeleted: false },
+            relations: ['status', 'skills'] // Ajoutez d'autres relations si nécessaire
+        });
+    
+        if (!userFound) {
+            return "User not found";
+        }
+    
+        return userFound;
     }
     
     
