@@ -19,6 +19,7 @@ const jsonwebtoken_1 = require("jsonwebtoken");
 const demande_1 = require("../database/entities/demande");
 const evenementAttendee_1 = require("../database/entities/evenementAttendee");
 const donation_1 = require("../database/entities/donation");
+const cotisation_1 = require("../database/entities/cotisation");
 class UserUsecase {
     constructor(db) {
         this.db = db;
@@ -75,41 +76,6 @@ class UserUsecase {
         });
     }
     // Créer un Adhérent
-    createAdherent(createAdherentRequest) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const userRepository = this.db.getRepository(user_1.User);
-                // Rechercher le statut MEMBER
-                const status = yield this.db.getRepository(status_1.Status)
-                    .createQueryBuilder("status")
-                    .where("status.type = :status", { status: "MEMBER" })
-                    .getOne();
-                if (!status) {
-                    return "Status MEMBER not found";
-                }
-                // Hash du mot de passe
-                const hashedPassword = yield (0, bcrypt_1.hash)(createAdherentRequest.password, 10);
-                // Créer un nouvel utilisateur avec adresse et dateDeNaissance, en convertissant null en undefined
-                const newUser = {
-                    name: createAdherentRequest.name,
-                    email: createAdherentRequest.email,
-                    password: hashedPassword,
-                    status: status,
-                    adresse: createAdherentRequest.adresse || undefined, // Conversion de null en undefined
-                    dateDeNaissance: createAdherentRequest.dateDeNaissance || undefined // Conversion de null en undefined
-                };
-                // Utilisation de userRepository.create() pour créer l'utilisateur
-                const createdUser = userRepository.create(newUser);
-                // Sauvegarder l'utilisateur créé dans la base de données
-                const savedUser = yield userRepository.save(createdUser);
-                return savedUser;
-            }
-            catch (error) {
-                console.error(error);
-                return "Internal error, please try again later";
-            }
-        });
-    }
     createSalarier(createSalarierRequest) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -137,6 +103,76 @@ class UserUsecase {
                 const createdUser = userRepository.create(newUser);
                 // Sauvegarder l'utilisateur créé dans la base de données
                 const savedUser = yield userRepository.save(createdUser);
+                return savedUser;
+            }
+            catch (error) {
+                console.error(error);
+                return "Internal error, please try again later";
+            }
+        });
+    }
+    createAdherent(createAdherentRequest) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const userRepository = this.db.getRepository(user_1.User);
+                // Rechercher le statut MEMBER
+                const status = yield this.db.getRepository(status_1.Status)
+                    .createQueryBuilder("status")
+                    .where("status.type = :status", { status: "MEMBER" })
+                    .getOne();
+                if (!status) {
+                    return "Status MEMBER not found";
+                }
+                // Hash du mot de passe
+                const hashedPassword = yield (0, bcrypt_1.hash)(createAdherentRequest.password, 10);
+                // Créer un nouvel utilisateur avec adresse et dateDeNaissance, en convertissant null en undefined
+                const newUser = {
+                    name: createAdherentRequest.name,
+                    email: createAdherentRequest.email,
+                    password: hashedPassword,
+                    status: status,
+                    adresse: createAdherentRequest.adresse || undefined, // Conversion de null en undefined
+                    dateDeNaissance: createAdherentRequest.dateDeNaissance || undefined // Conversion de null en undefined
+                };
+                // Utilisation de userRepository.create() pour créer l'utilisateur
+                const createdUser = userRepository.create(newUser);
+                // Sauvegarder l'utilisateur créé dans la base de données
+                const savedUser = yield userRepository.save(createdUser);
+                // Vérifier les cotisations avec le même email
+                const cotisationRepo = this.db.getRepository(cotisation_1.Cotisation);
+                const cotisations = yield cotisationRepo.find({ where: { email: createAdherentRequest.email } });
+                if (cotisations.length > 0) {
+                    for (const cotisation of cotisations) {
+                        cotisation.user = savedUser; // Associer la cotisation à l'utilisateur nouvellement créé
+                        yield cotisationRepo.save(cotisation);
+                    }
+                }
+                // Vérifier les donations avec le même email
+                const donationRepo = this.db.getRepository(donation_1.Donation);
+                const donations = yield donationRepo.find({ where: { email: createAdherentRequest.email } });
+                if (donations.length > 0) {
+                    for (const donation of donations) {
+                        donation.user = savedUser; // Associer la donation à l'utilisateur nouvellement créé
+                        yield donationRepo.save(donation);
+                    }
+                }
+                // Vérifier les demandes avec le même email
+                const demandeRepo = this.db.getRepository(demande_1.Demande);
+                const demandes = yield demandeRepo.find({ where: { email: createAdherentRequest.email } });
+                if (demandes.length > 0) {
+                    for (const demande of demandes) {
+                        demande.user = savedUser; // Associer la demande à l'utilisateur nouvellement créé
+                        yield demandeRepo.save(demande);
+                    }
+                }
+                const eventAttendeeRepo = this.db.getRepository(evenementAttendee_1.EvenementAttendee);
+                const eventAttendees = yield eventAttendeeRepo.find({ where: { email: createAdherentRequest.email } });
+                if (eventAttendees.length > 0) {
+                    for (const attendee of eventAttendees) {
+                        attendee.user = savedUser; // Associer l'attendee à l'utilisateur nouvellement créé
+                        yield eventAttendeeRepo.save(attendee);
+                    }
+                }
                 return savedUser;
             }
             catch (error) {
@@ -280,12 +316,17 @@ class UserUsecase {
             const userRepo = this.db.getRepository(user_1.User);
             const userFound = yield userRepo.findOne({
                 where: { id: userId, isDeleted: false },
-                relations: ['evenementAttendees']
+                relations: ['evenementAttendees', 'evenementAttendees.evenement'] // Ajoutez cette relation
             });
             if (!userFound) {
                 return "User not found";
             }
-            return userFound.evenementAttendees;
+            // Assurez-vous que les données de l'événement sont chargées
+            const attendeesWithEvents = userFound.evenementAttendees.map(attendee => {
+                const event = attendee.evenement; // Ici, vous pourriez également formater les données si nécessaire
+                return Object.assign(Object.assign({}, attendee), { event });
+            });
+            return attendeesWithEvents; // Retournez les participants avec les détails de l'événement
         });
     }
     // Récupérer un utilisateur par ID

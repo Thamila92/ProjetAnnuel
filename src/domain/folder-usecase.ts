@@ -94,6 +94,8 @@ export class FolderUsecase {
           relations: ['documents', 'children'] // inclure les sous-dossiers
         });
       }
+
+
     async addFileToFolder(folderId: number, fileId: number): Promise<Folder | null> {
         const folderRepo = this.db.getRepository(Folder);
         const documentRepo = this.db.getRepository(Document);

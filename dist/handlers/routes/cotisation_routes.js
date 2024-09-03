@@ -48,5 +48,19 @@ const initCotisationRoutes = (app) => {
             return res.status(500).json({ error: "Internal error, please try again later" });
         }
     }));
+    app.get('/cotisations/:userId', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const userId = parseInt(req.params.userId, 10); // Convertir l'ID en nombre
+            if (isNaN(userId)) {
+                return res.status(400).json({ error: "Invalid user ID" });
+            }
+            const result = yield cotisationUsecase.getCotisationsByUserId(userId);
+            return res.status(200).json(result);
+        }
+        catch (error) {
+            console.error(error);
+            return res.status(500).json({ error: "Internal error, please try again later" });
+        }
+    }));
 };
 exports.initCotisationRoutes = initCotisationRoutes;

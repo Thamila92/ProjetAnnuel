@@ -21,9 +21,10 @@ export class Cotisation {
 
   @Column({
     type: 'timestamp',
-    default: () => 'DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 MONTH)',
+    default: () => 'DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)',
   })
   expirationDate!: Date;
+  
 
   @ManyToOne(() => User, user => user.cotisations, { nullable: true })
   user!: User | null;  

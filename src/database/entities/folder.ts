@@ -5,7 +5,7 @@ import { Document } from './document';
 @Entity()
 export class Folder {
   @PrimaryGeneratedColumn()
-  id!: number;
+  id!: number | null;
 
   @Column()
   name!: string;

@@ -159,4 +159,19 @@ export class DocumentUsecase {
         await documentRepo.remove(documentFound);
         return documentFound;
     }
+
+
+    async removeFileFromFolder(fileId: number): Promise<Document | null> {
+        const documentRepo = this.db.getRepository(Document);
+    
+        // Trouver le document
+        let document = await documentRepo.findOne({ where: { id: fileId } });
+        if (!document) return null;
+    
+        // Retirer le document du dossier en mettant folderId à null
+        document.folder.id = null;
+    
+        // Sauvegarder les modifications
+        return await documentRepo.save(document);
+    }
 }

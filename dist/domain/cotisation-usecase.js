@@ -37,9 +37,9 @@ class CotisationUsecase {
             // Calculer la date de début (aujourd'hui par défaut)
             const startDate = (_a = params.startDate) !== null && _a !== void 0 ? _a : new Date();
             console.log('Start Date:', startDate); // Trace la date de début
-            // Calculer la date d'expiration (un mois après la date de début)
+            // Calculer la date d'expiration (un an après la date de début)
             const expirationDate = new Date(startDate);
-            expirationDate.setMonth(expirationDate.getMonth() + 1);
+            expirationDate.setFullYear(expirationDate.getFullYear() + 1);
             console.log('Expiration Date:', expirationDate); // Trace la date d'expiration
             // Créer la cotisation avec la date d'expiration calculée
             const cotisation = cotisationRepo.create({
@@ -47,7 +47,7 @@ class CotisationUsecase {
                 description: params.description,
                 email: params.email,
                 date: startDate,
-                expirationDate: expirationDate, // Assurez-vous que cette valeur est définie
+                expirationDate: expirationDate, // Date d'expiration calculée ici
                 paiement: paiement,
                 user: existingUser !== null && existingUser !== void 0 ? existingUser : null,
             });

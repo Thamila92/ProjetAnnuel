@@ -4,7 +4,7 @@ import {
 import { User } from "./user";
 import { Program } from "./program";
 import { Location } from "./location";
-import { EvenementAttendee } from "./evenement-attendee";
+import { EvenementAttendee } from "./evenementAttendee";
 import { eventtype, repetitivity } from "../../types/event-types";   
 import { Notification } from "./notification";
 import { VoteSession } from "./VoteSession";

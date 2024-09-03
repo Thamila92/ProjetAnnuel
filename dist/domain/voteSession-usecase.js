@@ -18,6 +18,10 @@ const evenement_1 = require("../database/entities/evenement");
 class VoteSessionUsecase {
     constructor(db) {
         this.db = db;
+        this.sessionRepo = this.db.getRepository(VoteSession_1.VoteSession);
+        this.userRepo = this.db.getRepository(user_1.User);
+        this.optionRepo = this.db.getRepository(optionVote_1.OptionVote);
+        this.evenementRepo = this.db.getRepository(evenement_1.Evenement);
     }
     createVoteSession(params) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -58,6 +62,21 @@ class VoteSessionUsecase {
             return savedSession;
         });
     }
+    deleteVoteSession(sessionId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const sessionRepo = this.db.getRepository(VoteSession_1.VoteSession);
+            const voteRepo = this.db.getRepository(vote_1.Vote);
+            const optionRepo = this.db.getRepository(optionVote_1.OptionVote);
+            yield optionRepo.delete({ session: { id: sessionId } });
+            const session = yield sessionRepo.findOneBy({ id: sessionId });
+            yield voteRepo.delete({ session: { id: sessionId } });
+            if (!session) {
+                throw new Error('Session de vote non trouvée');
+            }
+            // Supprimer la session
+            yield sessionRepo.delete(sessionId);
+        });
+    }
     // Lancer un nouveau tour
     lancerNouveauTour(sessionId) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -80,93 +99,100 @@ class VoteSessionUsecase {
         return __awaiter(this, void 0, void 0, function* () {
             const voteRepo = this.db.getRepository(vote_1.Vote);
             const sessionRepo = this.db.getRepository(VoteSession_1.VoteSession);
-            // Récupérer la session de vote
-            const session = yield sessionRepo.findOne({ where: { id: sessionId }, relations: ["votes", "evenement"] });
+            const session = yield sessionRepo.findOne({
+                where: { id: sessionId },
+                relations: ["votes", "votes.option", "evenement", "options"]
+            });
             if (!session) {
-                throw new Error("Session not found");
+                throw new Error("Session non trouvée");
             }
-            // Récupérer les votes de cette session
-            const votes = yield voteRepo.find({ where: { session: { id: sessionId } } });
+            const votes = session.votes;
             const totalVotes = votes.length;
-            const pourVotes = votes.filter(v => v.choix === 'pour').length;
-            const contreVotes = votes.filter(v => v.choix === 'contre').length;
-            let gagnant = false;
-            let resultat = {};
-            if (session.evenement && session.evenement.type === "AG") {
-                const quorum = session.evenement.quorum;
-                if (totalVotes < quorum) {
-                    return { gagnant: false, resultat: { message: "Quorum non atteint. Le vote est invalide." } };
+            let details = {};
+            let gagnant = '';
+            if (session.type === 'sondage') {
+                // Initialisation des détails pour chaque option
+                session.options.forEach(option => {
+                    details[option.id] = {
+                        titre: option.titre,
+                        votes: 0,
+                        pourcentage: 0
+                    };
+                });
+                // Comptabilisation des votes par option
+                votes.forEach(vote => {
+                    if (vote.option) {
+                        details[vote.option.id].votes++;
+                    }
+                });
+                // Calcul des pourcentages pour chaque option
+                Object.keys(details).forEach(key => {
+                    const optionId = parseInt(key);
+                    details[optionId].pourcentage = totalVotes > 0
+                        ? parseFloat((details[optionId].votes / totalVotes * 100).toFixed(2))
+                        : 0;
+                });
+                // Détermination de l'option gagnante
+                let maxVote = 0;
+                Object.values(details).forEach(option => {
+                    if (option.votes > maxVote) {
+                        maxVote = option.votes;
+                        gagnant = option.titre;
+                    }
+                });
+            }
+            else {
+                // Gestion des votes classiques (hors sondage)
+                const pourVotes = votes.filter(v => v.choix === 'pour').length;
+                const contreVotes = votes.filter(v => v.choix === 'contre').length;
+                let pourcentageClassique = {
+                    pour: { votes: pourVotes, pourcentage: totalVotes > 0 ? parseFloat((pourVotes / totalVotes * 100).toFixed(2)) : 0 },
+                    contre: { votes: contreVotes, pourcentage: totalVotes > 0 ? parseFloat((contreVotes / totalVotes * 100).toFixed(2)) : 0 }
+                };
+                switch (session.modalite) {
+                    case 'majorité_absolue':
+                        gagnant = pourVotes > totalVotes / 2 ? 'pour' : (contreVotes > totalVotes / 2 ? 'contre' : '');
+                        break;
+                    case 'majorité_relative':
+                        gagnant = pourVotes > contreVotes ? 'pour' : (contreVotes > pourVotes ? 'contre' : 'aucun');
+                        break;
+                    case 'deux_tours':
+                        if (session.tourActuel === 1 && (pourVotes > totalVotes / 2 || contreVotes > totalVotes / 2)) {
+                            gagnant = pourVotes > contreVotes ? 'pour' : 'contre';
+                            if (session.modalite === 'deux_tours' && gagnant === '') {
+                                session.tourActuel = 2;
+                                yield sessionRepo.save(session);
+                            }
+                        }
+                        else if (session.tourActuel === 2) {
+                            gagnant = pourVotes > contreVotes ? 'pour' : (contreVotes > pourVotes ? 'contre' : 'aucun');
+                        }
+                        break;
+                    case 'un_tour':
+                        gagnant = pourVotes > contreVotes ? 'pour' : (contreVotes > pourVotes ? 'contre' : 'aucun');
+                        break;
+                    default:
+                        throw new Error("Modalité de vote inconnue");
                 }
+                return { gagnant, pourcentage: pourcentageClassique };
             }
-            // Logique basée sur la modalité
-            switch (session.modalite) {
-                case 'majorité_absolue':
-                    // Pour gagner à la majorité absolue, il faut plus de 50% des votes
-                    if (pourVotes > totalVotes / 2) {
-                        gagnant = true;
-                        resultat = { gagnant: 'pour' };
-                    }
-                    else if (contreVotes > totalVotes / 2) {
-                        gagnant = true;
-                        resultat = { gagnant: 'contre' };
-                    }
-                    break;
-                case 'majorité_relative':
-                    // Pour la majorité relative, celui qui a le plus de votes gagne, même si ce n'est pas plus de 50%
-                    if (pourVotes > contreVotes) {
-                        gagnant = true;
-                        resultat = { gagnant: 'pour' };
-                    }
-                    else if (contreVotes > pourVotes) {
-                        gagnant = true;
-                        resultat = { gagnant: 'contre' };
-                    }
-                    break;
-                case 'deux_tours':
-                    // Si on est au premier tour et aucun gagnant, on passe au deuxième tour
-                    if (session.tourActuel === 1) {
-                        if (pourVotes > totalVotes / 2) {
-                            gagnant = true;
-                            resultat = { gagnant: 'pour' };
-                        }
-                        else if (contreVotes > totalVotes / 2) {
-                            gagnant = true;
-                            resultat = { gagnant: 'contre' };
-                        }
-                        else {
-                            // Pas de gagnant au premier tour, passer au deuxième tour
-                            session.tourActuel = 2;
-                            yield sessionRepo.save(session);
-                            resultat = { message: 'Pas de gagnant au premier tour, passage au deuxième tour.' };
-                        }
-                    }
-                    else if (session.tourActuel === 2) {
-                        // Logique de deuxième tour (on pourrait simplifier ici pour simplement désigner le plus de votes comme gagnant)
-                        if (pourVotes > contreVotes) {
-                            gagnant = true;
-                            resultat = { gagnant: 'pour' };
-                        }
-                        else if (contreVotes > pourVotes) {
-                            gagnant = true;
-                            resultat = { gagnant: 'contre' };
-                        }
-                    }
-                    break;
-                case 'un_tour':
-                    // Pour le vote à un tour, on applique une logique similaire à la majorité relative
-                    if (pourVotes > contreVotes) {
-                        gagnant = true;
-                        resultat = { gagnant: 'pour' };
-                    }
-                    else if (contreVotes > pourVotes) {
-                        gagnant = true;
-                        resultat = { gagnant: 'contre' };
-                    }
-                    break;
-                default:
-                    throw new Error("Modalité inconnue");
+            return { gagnant, pourcentage: details };
+        });
+    }
+    getVotesBySession(sessionId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const voteRepo = this.db.getRepository(vote_1.Vote);
+            try {
+                const votes = yield voteRepo.find({
+                    where: { session: { id: sessionId } },
+                    relations: ['user', 'option']
+                });
+                return votes;
             }
-            return { gagnant, resultat };
+            catch (error) {
+                console.error("Error retrieving votes:", error);
+                throw new Error("Failed to retrieve votes");
+            }
         });
     }
     // Méthode pour récupérer une session de vote par ID
@@ -182,6 +208,52 @@ class VoteSessionUsecase {
         return __awaiter(this, void 0, void 0, function* () {
             const sessionRepo = this.db.getRepository(VoteSession_1.VoteSession);
             return yield sessionRepo.find({ relations: ["participants", "votes", "options"] });
+        });
+    }
+    updateVoteSession(params) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d, _e, _f;
+            const existingSession = yield this.sessionRepo.findOne({
+                where: { id: params.id },
+                relations: ['participants', 'options', 'evenement']
+            });
+            if (!existingSession) {
+                throw new Error('Session de vote non trouvée');
+            }
+            // Mise à jour des champs simples
+            existingSession.titre = (_a = params.titre) !== null && _a !== void 0 ? _a : existingSession.titre;
+            existingSession.description = (_b = params.description) !== null && _b !== void 0 ? _b : existingSession.description;
+            existingSession.modalite = (_c = params.modalite) !== null && _c !== void 0 ? _c : existingSession.modalite;
+            existingSession.dateDebut = (_d = params.dateDebut) !== null && _d !== void 0 ? _d : existingSession.dateDebut;
+            existingSession.dateFin = (_e = params.dateFin) !== null && _e !== void 0 ? _e : existingSession.dateFin;
+            existingSession.type = (_f = params.type) !== null && _f !== void 0 ? _f : existingSession.type;
+            // Mise à jour des participants
+            if (params.participants) {
+                const newParticipants = yield this.userRepo.findByIds(params.participants);
+                existingSession.participants = newParticipants;
+            }
+            // Gestion des options de vote pour le type 'sondage'
+            if (params.type === 'sondage' && params.options) {
+                if (existingSession.options && existingSession.options.length > 0) {
+                    yield this.optionRepo.remove(existingSession.options);
+                }
+                if (params.options && params.options.length > 0) {
+                    const newOptions = params.options.map(optionTitre => {
+                        return this.optionRepo.create({
+                            titre: optionTitre, // Chaque chaîne de caractères devient un titre d'option
+                            session: existingSession, // Liez l'option à la session
+                        });
+                    });
+                    existingSession.options = yield this.optionRepo.save(newOptions);
+                }
+            }
+            else if (existingSession.type === 'classique' && existingSession.options.length) {
+                // Si le type est classique, supprimer toutes les options
+                yield this.optionRepo.remove(existingSession.options);
+                existingSession.options = [];
+            }
+            // Sauvegarde de la session mise à jour
+            return yield this.sessionRepo.save(existingSession);
         });
     }
 }

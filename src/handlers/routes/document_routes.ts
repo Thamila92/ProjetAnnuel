@@ -95,7 +95,22 @@ export const initGoogleDriveRoutes = (app: Express) => {
     });
 
 
-
+    app.post('/files/:id/remove-from-folder', async (req: Request, res: Response) => {
+        const fileId = parseInt(req.params.id);
+    
+        try {
+            const updatedDocument = await documentUsecase.removeFileFromFolder(fileId);
+    
+            if (!updatedDocument) {
+                return res.status(404).json({ message: 'Document not found' });
+            }
+    
+            res.status(200).json({ message: 'File removed from folder successfully', document: updatedDocument });
+        } catch (error) {
+            console.error('Error removing file from folder:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    });
        // Route pour mettre à jour un document (PATCH)
        app.patch('/document/:id', async (req: Request, res: Response) => {
         try {

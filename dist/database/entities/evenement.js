@@ -14,7 +14,7 @@ const typeorm_1 = require("typeorm");
 const user_1 = require("./user");
 const program_1 = require("./program");
 const location_1 = require("./location");
-const evenement_attendee_1 = require("./evenement-attendee");
+const evenementAttendee_1 = require("./evenementAttendee");
 const event_types_1 = require("../../types/event-types");
 const notification_1 = require("./notification");
 const VoteSession_1 = require("./VoteSession");
@@ -68,7 +68,7 @@ __decorate([
     __metadata("design:type", user_1.User)
 ], Evenement.prototype, "user", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => evenement_attendee_1.EvenementAttendee, (attendee) => attendee.evenement),
+    (0, typeorm_1.OneToMany)(() => evenementAttendee_1.EvenementAttendee, (attendee) => attendee.evenement),
     __metadata("design:type", Array)
 ], Evenement.prototype, "attendees", void 0);
 __decorate([

@@ -39,7 +39,7 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({
         type: 'timestamp',
-        default: () => 'DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 MONTH)',
+        default: () => 'DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)',
     }),
     __metadata("design:type", Date)
 ], Cotisation.prototype, "expirationDate", void 0);

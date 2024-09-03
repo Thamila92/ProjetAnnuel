@@ -8,6 +8,7 @@ export const initVoteRoutes = (app: express.Express) => {
     const voteUsecase = new VoteUsecase(AppDataSource);
     const voteSessionUsecase = new VoteSessionUsecase(AppDataSource);
 
+
     // Créer un vote
     app.post('/votes', async (req: Request, res: Response) => {
         try {
@@ -42,4 +43,28 @@ export const initVoteRoutes = (app: express.Express) => {
             res.status(500).json({ error: "Erreur interne" });
         }
     });
+
+
+    app.get('/votes/hasVoted', async (req: Request, res: Response) => {
+        try {
+            const userId = parseInt(req.query.userId as string);
+            const sessionId = parseInt(req.query.sessionId as string);
+            const hasVoted = await voteUsecase.hasUserVoted(userId, sessionId);
+            res.json({ hasVoted });
+        } catch (error) {
+            console.error('Error checking vote status', error);
+            res.status(500).json({ error: "Erreur interne du serveur" });
+        }
+    });
+
+    app.get('/votes', async (req: Request, res: Response) => {
+        try {
+            const votes = await voteUsecase.getAllVotes();
+            res.status(200).json(votes);
+        } catch (error) {
+            console.error("Error fetching votes:", error);
+            res.status(500).json({ error: "Erreur interne" });
+        }
+    });
+    
 };

@@ -44,5 +44,27 @@ const initVoteRoutes = (app) => {
             res.status(500).json({ error: "Erreur interne" });
         }
     }));
+    app.get('/votes/hasVoted', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const userId = parseInt(req.query.userId);
+            const sessionId = parseInt(req.query.sessionId);
+            const hasVoted = yield voteUsecase.hasUserVoted(userId, sessionId);
+            res.json({ hasVoted });
+        }
+        catch (error) {
+            console.error('Error checking vote status', error);
+            res.status(500).json({ error: "Erreur interne du serveur" });
+        }
+    }));
+    app.get('/votes', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const votes = yield voteUsecase.getAllVotes();
+            res.status(200).json(votes);
+        }
+        catch (error) {
+            console.error("Error fetching votes:", error);
+            res.status(500).json({ error: "Erreur interne" });
+        }
+    }));
 };
 exports.initVoteRoutes = initVoteRoutes;

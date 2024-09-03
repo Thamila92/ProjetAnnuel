@@ -196,7 +196,10 @@ export class EvenementUsecase {
         if (evenement.currentParticipants >= evenement.maxParticipants) {
             return "The event has reached its maximum number of participants";
         }
-
+        const existingAttendee = await attendeeRepo.findOne({ where: { email: attendeeInfo.email, evenement: evenement } });
+        if (existingAttendee) {
+            return "You are already registered for this event.";
+        }
         // Créer un nouveau participant (attendee)
         const newAttendee = attendeeRepo.create({
             firstName: attendeeInfo.firstName,
@@ -216,6 +219,8 @@ export class EvenementUsecase {
 
         return newAttendee;
     }
+
+    
    
     async getAllEvenementAttendees(): Promise<EvenementAttendee[]> {
         const attendeeRepo = this.db.getRepository(EvenementAttendee);

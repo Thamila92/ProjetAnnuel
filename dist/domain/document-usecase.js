@@ -156,5 +156,18 @@ class DocumentUsecase {
             return documentFound;
         });
     }
+    removeFileFromFolder(fileId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const documentRepo = this.db.getRepository(document_1.Document);
+            // Trouver le document
+            let document = yield documentRepo.findOne({ where: { id: fileId } });
+            if (!document)
+                return null;
+            // Retirer le document du dossier en mettant folderId à null
+            document.folder.id = null;
+            // Sauvegarder les modifications
+            return yield documentRepo.save(document);
+        });
+    }
 }
 exports.DocumentUsecase = DocumentUsecase;

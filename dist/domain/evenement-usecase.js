@@ -163,6 +163,10 @@ class EvenementUsecase {
             if (evenement.currentParticipants >= evenement.maxParticipants) {
                 return "The event has reached its maximum number of participants";
             }
+            const existingAttendee = yield attendeeRepo.findOne({ where: { email: attendeeInfo.email, evenement: evenement } });
+            if (existingAttendee) {
+                return "You are already registered for this event.";
+            }
             // Créer un nouveau participant (attendee)
             const newAttendee = attendeeRepo.create({
                 firstName: attendeeInfo.firstName,

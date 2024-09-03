@@ -12,21 +12,21 @@ export class VoteUsecase {
         const userRepo = this.db.getRepository(User);
         const sessionRepo = this.db.getRepository(VoteSession);
         const optionRepo = this.db.getRepository(OptionVote);
-
+    
         const user = await userRepo.findOne({ where: { id: userId } });
         const session = await sessionRepo.findOne({ where: { id: sessionId }, relations: ["participants", "options"] });
-
+    
         if (!user || !session) {
             return "Utilisateur ou session introuvable";
         }
-
+    
         if (!session.participants.some(participant => participant.id === user.id)) {
             return "Utilisateur non autorisé à voter dans cette session";
         }
-
+    
         let option: OptionVote | null = null;
         let choix: string | undefined;
-
+    
         if (session.type === 'sondage') {
             option = await optionRepo.findOne({ where: { id: choixOuOption as number, session: { id: sessionId } } });
             if (!option) {
@@ -35,17 +35,33 @@ export class VoteUsecase {
         } else {
             choix = choixOuOption as string;
         }
-
+    
         const newVote = voteRepo.create({
             user,
             session,
-            option: option || undefined,  // Si option est null, passez undefined
-            choix: choix || undefined,  // Si choix est undefined, passez undefined
+            option: session.type === 'sondage' ? option : undefined,  // Lier l'option si c'est un sondage
+            choix: session.type !== 'sondage' ? choix : undefined,  // Lier le choix si ce n'est pas un sondage
             tour: session.tourActuel,
         });
-
+    
         return await voteRepo.save(newVote);
     }
+    
 
+    async hasUserVoted(userId: number, sessionId: number): Promise<boolean> {
+        const voteRepo = this.db.getRepository(Vote);
+        const voteExists = await voteRepo.findOne({
+            where: {
+                user: { id: userId },
+                session: { id: sessionId }
+            }
+        });
+        return !!voteExists;
+    }
+    async getAllVotes(): Promise<Vote[]> {
+        const voteRepo = this.db.getRepository(Vote);
+        return await voteRepo.find({ relations: ['user', 'session', 'option'] });
+    }
+    
     // Ajoutez ici d'autres méthodes nécessaires...
 }

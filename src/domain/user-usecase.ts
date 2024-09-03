@@ -108,46 +108,7 @@ export class UserUsecase {
         // Créer un Adhérent
 
       
-        
-    async createAdherent(createAdherentRequest: CreateAdherentRequest): Promise<User | string> {
-            try {
-                const userRepository = this.db.getRepository(User);
-                
-                // Rechercher le statut MEMBER
-                const status = await this.db.getRepository(Status)
-                    .createQueryBuilder("status")
-                    .where("status.type = :status", { status: "MEMBER" })
-                    .getOne();
-        
-                if (!status) {
-                    return "Status MEMBER not found";
-                }
-        
-                // Hash du mot de passe
-                const hashedPassword = await hash(createAdherentRequest.password, 10);
-        
-                // Créer un nouvel utilisateur avec adresse et dateDeNaissance, en convertissant null en undefined
-                const newUser: DeepPartial<User> = {
-                    name: createAdherentRequest.name,
-                    email: createAdherentRequest.email,
-                    password: hashedPassword,
-                    status: status,
-                    adresse: createAdherentRequest.adresse || undefined, // Conversion de null en undefined
-                    dateDeNaissance: createAdherentRequest.dateDeNaissance || undefined // Conversion de null en undefined
-                };
-        
-                // Utilisation de userRepository.create() pour créer l'utilisateur
-                const createdUser = userRepository.create(newUser);
-        
-                // Sauvegarder l'utilisateur créé dans la base de données
-                const savedUser = await userRepository.save(createdUser);
-                
-                return savedUser;
-            } catch (error) {
-                console.error(error);
-                return "Internal error, please try again later";
-            }
-        }
+  
         async createSalarier(createSalarierRequest: CreateAdherentRequest): Promise<User | string> {
             try {
                 const userRepository = this.db.getRepository(User);
@@ -181,6 +142,83 @@ export class UserUsecase {
                 // Sauvegarder l'utilisateur créé dans la base de données
                 const savedUser = await userRepository.save(createdUser);
                 
+                return savedUser;
+            } catch (error) {
+                console.error(error);
+                return "Internal error, please try again later";
+            }
+        }
+        async createAdherent(createAdherentRequest: CreateAdherentRequest): Promise<User | string> {
+            try {
+                const userRepository = this.db.getRepository(User);
+        
+                // Rechercher le statut MEMBER
+                const status = await this.db.getRepository(Status)
+                    .createQueryBuilder("status")
+                    .where("status.type = :status", { status: "MEMBER" })
+                    .getOne();
+        
+                if (!status) {
+                    return "Status MEMBER not found";
+                }
+        
+                // Hash du mot de passe
+                const hashedPassword = await hash(createAdherentRequest.password, 10);
+        
+                // Créer un nouvel utilisateur avec adresse et dateDeNaissance, en convertissant null en undefined
+                const newUser: DeepPartial<User> = {
+                    name: createAdherentRequest.name,
+                    email: createAdherentRequest.email,
+                    password: hashedPassword,
+                    status: status,
+                    adresse: createAdherentRequest.adresse || undefined, // Conversion de null en undefined
+                    dateDeNaissance: createAdherentRequest.dateDeNaissance || undefined // Conversion de null en undefined
+                };
+        
+                // Utilisation de userRepository.create() pour créer l'utilisateur
+                const createdUser = userRepository.create(newUser);
+        
+                // Sauvegarder l'utilisateur créé dans la base de données
+                const savedUser = await userRepository.save(createdUser);
+        
+                // Vérifier les cotisations avec le même email
+                const cotisationRepo = this.db.getRepository(Cotisation);
+                const cotisations = await cotisationRepo.find({ where: { email: createAdherentRequest.email } });
+                if (cotisations.length > 0) {
+                    for (const cotisation of cotisations) {
+                        cotisation.user = savedUser; // Associer la cotisation à l'utilisateur nouvellement créé
+                        await cotisationRepo.save(cotisation);
+                    }
+                }
+        
+                // Vérifier les donations avec le même email
+                const donationRepo = this.db.getRepository(Donation);
+                const donations = await donationRepo.find({ where: { email: createAdherentRequest.email } });
+                if (donations.length > 0) {
+                    for (const donation of donations) {
+                        donation.user = savedUser; // Associer la donation à l'utilisateur nouvellement créé
+                        await donationRepo.save(donation);
+                    }
+                }
+
+                 // Vérifier les demandes avec le même email
+                const demandeRepo = this.db.getRepository(Demande);
+                const demandes = await demandeRepo.find({ where: { email: createAdherentRequest.email } });
+                if (demandes.length > 0) {
+                    for (const demande of demandes) {
+                        demande.user = savedUser; // Associer la demande à l'utilisateur nouvellement créé
+                        await demandeRepo.save(demande);
+                    }
+                }
+                const eventAttendeeRepo = this.db.getRepository(EvenementAttendee);
+                const eventAttendees = await eventAttendeeRepo.find({ where: { email: createAdherentRequest.email } });
+                if (eventAttendees.length > 0) {
+                    for (const attendee of eventAttendees) {
+                        attendee.user = savedUser; // Associer l'attendee à l'utilisateur nouvellement créé
+                        await eventAttendeeRepo.save(attendee);
+                    }
+                }
+        
                 return savedUser;
             } catch (error) {
                 console.error(error);
@@ -341,15 +379,22 @@ export class UserUsecase {
         const userRepo = this.db.getRepository(User);
         const userFound = await userRepo.findOne({
             where: { id: userId, isDeleted: false },
-            relations: ['evenementAttendees']
+            relations: ['evenementAttendees', 'evenementAttendees.evenement'] // Ajoutez cette relation
         });
     
         if (!userFound) {
             return "User not found";
         }
     
-        return userFound.evenementAttendees;
+        // Assurez-vous que les données de l'événement sont chargées
+        const attendeesWithEvents = userFound.evenementAttendees.map(attendee => {
+            const event = attendee.evenement; // Ici, vous pourriez également formater les données si nécessaire
+            return { ...attendee, event };
+        });
+    
+        return attendeesWithEvents; // Retournez les participants avec les détails de l'événement
     }
+    
     
     
     // Récupérer un utilisateur par ID
@@ -523,3 +568,4 @@ export class UserUsecase {
     return "Utilisateur supprimé avec succès";
 }
 }
+

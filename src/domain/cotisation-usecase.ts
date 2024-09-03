@@ -29,10 +29,10 @@ export class CotisationUsecase {
 
     // Créer un paiement
     const paiement = paiementRepo.create({
-      stripePaymentId: 'pending',
-      amount: params.amount,
-      currency: params.currency,
-      status: 'pending',
+        stripePaymentId: 'pending',
+        amount: params.amount,
+        currency: params.currency,
+        status: 'pending',
     });
     await paiementRepo.save(paiement);
 
@@ -40,26 +40,27 @@ export class CotisationUsecase {
     const startDate = params.startDate ?? new Date();
     console.log('Start Date:', startDate);  // Trace la date de début
 
-    // Calculer la date d'expiration (un mois après la date de début)
+    // Calculer la date d'expiration (un an après la date de début)
     const expirationDate = new Date(startDate);
-    expirationDate.setMonth(expirationDate.getMonth() + 1);
+    expirationDate.setFullYear(expirationDate.getFullYear() + 1);
     console.log('Expiration Date:', expirationDate);  // Trace la date d'expiration
 
     // Créer la cotisation avec la date d'expiration calculée
     const cotisation = cotisationRepo.create({
-      category: params.category,
-      description: params.description,
-      email: params.email,
-      date: startDate,
-      expirationDate: expirationDate, // Assurez-vous que cette valeur est définie
-      paiement: paiement,
-      user: existingUser ?? null,
+        category: params.category,
+        description: params.description,
+        email: params.email,
+        date: startDate,
+        expirationDate: expirationDate, // Date d'expiration calculée ici
+        paiement: paiement,
+        user: existingUser ?? null,
     });
 
     console.log('Cotisation to be saved:', cotisation);  // Trace les données de la cotisation
 
     return await cotisationRepo.save(cotisation);
 }
+
 
 // Récupérer le total des cotisations
  

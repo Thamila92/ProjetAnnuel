@@ -46,11 +46,29 @@ class VoteUsecase {
             const newVote = voteRepo.create({
                 user,
                 session,
-                option: option || undefined, // Si option est null, passez undefined
-                choix: choix || undefined, // Si choix est undefined, passez undefined
+                option: session.type === 'sondage' ? option : undefined, // Lier l'option si c'est un sondage
+                choix: session.type !== 'sondage' ? choix : undefined, // Lier le choix si ce n'est pas un sondage
                 tour: session.tourActuel,
             });
             return yield voteRepo.save(newVote);
+        });
+    }
+    hasUserVoted(userId, sessionId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const voteRepo = this.db.getRepository(vote_1.Vote);
+            const voteExists = yield voteRepo.findOne({
+                where: {
+                    user: { id: userId },
+                    session: { id: sessionId }
+                }
+            });
+            return !!voteExists;
+        });
+    }
+    getAllVotes() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const voteRepo = this.db.getRepository(vote_1.Vote);
+            return yield voteRepo.find({ relations: ['user', 'session', 'option'] });
         });
     }
 }

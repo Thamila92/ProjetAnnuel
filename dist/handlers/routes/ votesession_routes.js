@@ -31,22 +31,6 @@ const initVoteSessionRoutes = (app) => {
             res.status(500).json({ error: "Erreur interne" });
         }
     }));
-    // Lancer un nouveau tour
-    app.patch('/vote-sessions/:id/nouveau-tour', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        try {
-            const result = yield voteSessionUsecase.lancerNouveauTour(Number(req.params.id));
-            if (typeof result === 'string') {
-                res.status(400).json({ error: result });
-            }
-            else {
-                res.status(200).json(result);
-            }
-        }
-        catch (error) {
-            console.error(error);
-            res.status(500).json({ error: "Erreur interne" });
-        }
-    }));
     app.get('/vote-sessions/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const sessionId = Number(req.params.id);
@@ -82,6 +66,66 @@ const initVoteSessionRoutes = (app) => {
         catch (error) {
             console.error(error);
             res.status(500).json({ error: "Erreur interne" });
+        }
+    }));
+    app.get('/session/:sessionId/votes', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const sessionId = parseInt(req.params.sessionId);
+        if (isNaN(sessionId)) {
+            return res.status(400).json({ message: "Invalid session ID" });
+        }
+        try {
+            const votes = yield voteSessionUsecase.getVotesBySession(sessionId);
+            res.json(votes);
+        }
+        catch (error) {
+            res.status(500).json({ error: "Erreur interne" });
+        }
+    }));
+    app.patch('/vote-sessions/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        // Valider les données de la requête
+        const { error } = votesession_validator_1.updateVoteSessionValidation.validate(req.body);
+        if (error) {
+            return res.status(400).json({
+                message: 'Validation error',
+                details: error.details.map(detail => detail.message),
+            });
+        }
+        try {
+            // Convertir `id` en nombre
+            const sessionId = parseInt(req.params.id, 10);
+            if (isNaN(sessionId)) {
+                return res.status(400).json({ message: "L'ID de la session doit être un nombre valide." });
+            }
+            // Appeler la méthode `updateVoteSession` avec les paramètres corrects
+            const updatedSession = yield voteSessionUsecase.updateVoteSession(Object.assign({ id: sessionId }, req.body));
+            // Si la mise à jour est réussie, renvoyer la session mise à jour avec un statut 200
+            return res.status(200).json(updatedSession);
+        }
+        catch (err) {
+            console.error('Error updating vote session:', err);
+            res.status(500).json({ message: 'Erreur interne' });
+        }
+    }));
+    app.delete('/vote-sessions/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            // Convertir `id` en nombre
+            const sessionId = parseInt(req.params.id, 10);
+            if (isNaN(sessionId)) {
+                return res.status(400).json({ message: "L'ID de la session doit être un nombre valide." });
+            }
+            // Vérifier si la session existe
+            const session = yield voteSessionUsecase.getVoteSession(sessionId);
+            if (!session) {
+                return res.status(404).json({ message: "Session de vote non trouvée." });
+            }
+            // Supprimer la session
+            yield voteSessionUsecase.deleteVoteSession(sessionId);
+            // Retourner une réponse avec un statut 204 (No Content)
+            return res.status(204).send();
+        }
+        catch (err) {
+            console.error('Error deleting vote session:', err);
+            res.status(500).json({ message: 'Erreur interne' });
         }
     }));
 };
