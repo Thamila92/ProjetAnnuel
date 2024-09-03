@@ -153,7 +153,10 @@ class EvenementUsecase {
             const attendeeRepo = this.db.getRepository(evenementAttendee_1.EvenementAttendee);
             const userRepo = this.db.getRepository(user_1.User);
             // Récupérer l'événement
-            const evenement = yield evenementRepo.findOne({ where: { id: evenementId, isDeleted: false }, relations: ["attendees"] });
+            const evenement = yield evenementRepo.findOne({
+                where: { id: evenementId, isDeleted: false },
+                relations: ["attendees"]
+            });
             if (!evenement) {
                 return "Event not found";
             }
@@ -163,7 +166,9 @@ class EvenementUsecase {
             if (evenement.currentParticipants >= evenement.maxParticipants) {
                 return "The event has reached its maximum number of participants";
             }
-            const existingAttendee = yield attendeeRepo.findOne({ where: { email: attendeeInfo.email, evenement: evenement } });
+            const existingAttendee = yield attendeeRepo.findOne({
+                where: { email: attendeeInfo.email, evenement: { id: evenementId } }
+            });
             if (existingAttendee) {
                 return "You are already registered for this event.";
             }
@@ -180,6 +185,7 @@ class EvenementUsecase {
             yield attendeeRepo.save(newAttendee);
             // Incrémenter le nombre de participants de l'événement
             evenement.currentParticipants += 1;
+            evenement.attendees.push(newAttendee);
             yield evenementRepo.save(evenement);
             return newAttendee;
         });

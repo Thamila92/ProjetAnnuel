@@ -182,24 +182,31 @@ export class EvenementUsecase {
         const evenementRepo = this.db.getRepository(Evenement);
         const attendeeRepo = this.db.getRepository(EvenementAttendee);
         const userRepo = this.db.getRepository(User);
-
+    
         // Récupérer l'événement
-        const evenement = await evenementRepo.findOne({ where: { id: evenementId, isDeleted: false }, relations: ["attendees"] });
+        const evenement = await evenementRepo.findOne({ 
+            where: { id: evenementId, isDeleted: false }, 
+            relations: ["attendees"] 
+        });
         if (!evenement) {
             return "Event not found";
         }
-
+    
         // Vérifier si un utilisateur avec le même email et nom existe déjà
         const existingUser = await userRepo.findOne({ where: { email: attendeeInfo.email } });
-
+    
         // Vérifier si l'événement a atteint le nombre maximum de participants
         if (evenement.currentParticipants >= evenement.maxParticipants) {
             return "The event has reached its maximum number of participants";
         }
-        const existingAttendee = await attendeeRepo.findOne({ where: { email: attendeeInfo.email, evenement: evenement } });
+    
+        const existingAttendee = await attendeeRepo.findOne({ 
+            where: { email: attendeeInfo.email, evenement: { id: evenementId } }
+        });
         if (existingAttendee) {
             return "You are already registered for this event.";
         }
+    
         // Créer un nouveau participant (attendee)
         const newAttendee = attendeeRepo.create({
             firstName: attendeeInfo.firstName,
@@ -209,18 +216,19 @@ export class EvenementUsecase {
             evenement: evenement,
             user: existingUser || undefined // Associer à l'utilisateur existant ou laisser vide
         });
-
+    
         // Sauvegarder le nouvel participant dans la base de données
         await attendeeRepo.save(newAttendee);
-
+    
         // Incrémenter le nombre de participants de l'événement
         evenement.currentParticipants += 1;
+        evenement.attendees.push(newAttendee);
         await evenementRepo.save(evenement);
-
+    
         return newAttendee;
     }
 
-    
+
    
     async getAllEvenementAttendees(): Promise<EvenementAttendee[]> {
         const attendeeRepo = this.db.getRepository(EvenementAttendee);

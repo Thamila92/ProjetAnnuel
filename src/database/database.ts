@@ -27,3 +27,5 @@ export const AppDataSource = new DataSource({
       },
     "driver": require('mysql2')
 })
+
+
