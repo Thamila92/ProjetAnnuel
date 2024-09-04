@@ -46,7 +46,7 @@ __decorate([
 ], Document.prototype, "user", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => folder_1.Folder, folder => folder.documents, { nullable: true }),
-    __metadata("design:type", folder_1.Folder)
+    __metadata("design:type", Object)
 ], Document.prototype, "folder", void 0);
 exports.Document = Document = __decorate([
     (0, typeorm_1.Entity)()

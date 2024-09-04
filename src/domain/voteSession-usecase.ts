@@ -238,55 +238,31 @@ async getAllVoteSessions(): Promise<VoteSession[]> {
 }
 
  
-async updateVoteSession(params: Partial<VoteSession> & { id: number, evenementId?: number, options?: string[] }): Promise<VoteSession> {
+async updateVoteSession(params: Partial<VoteSession> & { id: number }): Promise<VoteSession> {
     const existingSession = await this.sessionRepo.findOne({
-      where: { id: params.id },
-      relations: ['participants', 'options', 'evenement']
+        where: { id: params.id },
+        relations: ['participants']
     });
-  
+
     if (!existingSession) {
-      throw new Error('Session de vote non trouvée');
+        throw new Error('Session de vote non trouvée');
     }
-  
+
     // Mise à jour des champs simples
     existingSession.titre = params.titre ?? existingSession.titre;
     existingSession.description = params.description ?? existingSession.description;
-    existingSession.modalite = params.modalite ?? existingSession.modalite;
     existingSession.dateDebut = params.dateDebut ?? existingSession.dateDebut;
     existingSession.dateFin = params.dateFin ?? existingSession.dateFin;
-    existingSession.type = params.type ?? existingSession.type;
-  
+
     // Mise à jour des participants
     if (params.participants) {
-      const newParticipants = await this.userRepo.findByIds(params.participants);
-      existingSession.participants = newParticipants;
+        existingSession.participants = await this.userRepo.findByIds(params.participants);
     }
-  
-    // Gestion des options de vote pour le type 'sondage'
-    if (params.type === 'sondage' && params.options) {
-      if (existingSession.options && existingSession.options.length > 0) {
-        await this.optionRepo.remove(existingSession.options);
-      }
-  
-      if (params.options && params.options.length > 0) {
-        const newOptions = params.options.map(optionTitre => {
-          return this.optionRepo.create({
-            titre: optionTitre as unknown as string,  // Chaque chaîne de caractères devient un titre d'option
-            session: existingSession,  // Liez l'option à la session
-          });
-        });
-        existingSession.options = await this.optionRepo.save(newOptions);
-      }
-    } else if (existingSession.type === 'classique' && existingSession.options.length) {
-      // Si le type est classique, supprimer toutes les options
-      await this.optionRepo.remove(existingSession.options);
-      existingSession.options = [];
-    }
-  
+
     // Sauvegarde de la session mise à jour
     return await this.sessionRepo.save(existingSession);
-  }
-  
+}
+
 
 
 }

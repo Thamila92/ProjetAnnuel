@@ -71,6 +71,21 @@ const initFolderRoutes = (app) => {
             res.status(500).json({ message: 'Internal server error' });
         }
     }));
+    app.post('/folders/:id/move-to-parent/:parentId', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const folderId = parseInt(req.params.id);
+        const parentId = parseInt(req.params.parentId);
+        try {
+            const updatedFolder = yield folderUsecase.moveToParent(folderId, parentId);
+            if (!updatedFolder) {
+                return res.status(404).json({ message: 'Folder not found' });
+            }
+            res.status(200).json({ message: 'Folder moved to new parent successfully', folder: updatedFolder });
+        }
+        catch (error) {
+            console.error('Error moving folder to new parent:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    }));
     // Route pour supprimer un dossier et ses documents associés
     app.delete('/folder/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const folderId = parseInt(req.params.id);
@@ -113,6 +128,20 @@ const initFolderRoutes = (app) => {
         }
         catch (error) {
             console.error('Error adding subfolder to folder:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    }));
+    app.post('/folders/:id/remove-from-parent', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const folderId = parseInt(req.params.id);
+        try {
+            const folder = yield folderUsecase.removeFromParent(folderId);
+            if (!folder) {
+                return res.status(404).json({ message: 'Folder not found' });
+            }
+            res.status(200).json({ message: 'Folder removed from parent successfully', folder });
+        }
+        catch (error) {
+            console.error('Error removing folder from parent:', error);
             res.status(500).json({ message: 'Internal server error' });
         }
     }));

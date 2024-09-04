@@ -43,7 +43,7 @@ export class FolderUsecase {
         return await folderRepo.save(newFolder);
     }
     
-    
+     
     // Lister les dossiers et sous-dossiers d'un utilisateur
     async listFolders(userId: number): Promise<Folder[]> {
         const folderRepo = this.db.getRepository(Folder);
@@ -52,7 +52,7 @@ export class FolderUsecase {
                 user: { id: userId }, 
                 parentFolder: IsNull()  // Utilisation de l'opérateur IsNull pour rechercher les dossiers racine
             }, 
-            relations: ['documents', 'children'] // inclure les enfants dans la réponse
+            relations: ['documents', 'children'] // Inclure les enfants et les documents
         });
     }
 
@@ -67,35 +67,75 @@ export class FolderUsecase {
 
         return await folderRepo.save(folder);
     }
-
+    async moveToParent(folderId: number, parentId: number): Promise<Folder | null> {
+        const folderRepo = this.db.getRepository(Folder);
+        
+        const folder = await folderRepo.findOne({ where: { id: folderId }, relations: ['parentFolder'] });
+        if (!folder) {
+            return null;
+        }
+    
+        const newParentFolder = await folderRepo.findOne({ where: { id: parentId }, relations: ['children'] });
+        if (!newParentFolder) {
+            throw new Error('New parent folder not found');
+        }
+    
+        folder.parentFolder = newParentFolder;  // Définir le nouveau parent du dossier
+        return await folderRepo.save(folder);  // Sauvegarder le dossier avec son nouveau parent
+    }
+    
     // Supprimer un dossier et tous les documents associés
     async deleteFolder(id: number): Promise<Folder | null> {
         const folderRepo = this.db.getRepository(Folder);
         const documentRepo = this.db.getRepository(Document);
-
-        const folder = await folderRepo.findOne({ where: { id }, relations: ['documents'] });
-
+    
+        // Trouver le dossier avec ses documents et sous-dossiers
+        const folder = await folderRepo.findOne({ 
+            where: { id }, 
+            relations: ['documents', 'children'] 
+        });
+    
         if (!folder) return null;
-
+    
         // Supprimer tous les documents associés
-        await documentRepo.remove(folder.documents);
-
-        // Supprimer le dossier
+        if (folder.documents && folder.documents.length > 0) {
+            await documentRepo.remove(folder.documents);
+        }
+    
+        // Supprimer tous les sous-dossiers de manière récursive
+        if (folder.children && folder.children.length > 0) {
+            for (const childFolder of folder.children) {
+                await this.deleteFolder(childFolder.id);
+            }
+        }
+    
+        // Supprimer le dossier lui-même
         await folderRepo.remove(folder);
-
+    
         return folder;
     }
+    
 
     // Récupérer un dossier par ID
     async getFolder(id: number): Promise<Folder | null> {
         const folderRepo = this.db.getRepository(Folder);
         return await folderRepo.findOne({ 
           where: { id }, 
-          relations: ['documents', 'children'] // inclure les sous-dossiers
+          relations: ['documents', 'children', 'parentFolder'] // Inclure le parent dans les relations
         });
-      }
+    }
+    
 
-
+      async removeFromParent(folderId: number): Promise<Folder | null> {
+        const folderRepo = this.db.getRepository(Folder);
+        const folder = await folderRepo.findOne({ where: { id: folderId }, relations: ['parentFolder'] });
+        
+        if (!folder) return null;
+    
+        folder.parentFolder = null; // Supprime la relation de parenté
+        return await folderRepo.save(folder);
+    }
+    
     async addFileToFolder(folderId: number, fileId: number): Promise<Folder | null> {
         const folderRepo = this.db.getRepository(Folder);
         const documentRepo = this.db.getRepository(Document);
@@ -134,14 +174,6 @@ export class FolderUsecase {
         return await folderRepo.save(childFolder);
       }
 
-      async removeFromParent(folderId: number): Promise<Folder | null> {
-        const folderRepo = this.db.getRepository(Folder);
-        const folder = await folderRepo.findOne({ where: { id: folderId } });
     
-        if (!folder) return null;
-    
-        folder.parentFolder = null; // Supprime la relation de parenté
-        return await folderRepo.save(folder);
-    }
     
 }

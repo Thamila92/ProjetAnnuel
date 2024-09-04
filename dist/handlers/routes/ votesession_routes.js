@@ -82,7 +82,9 @@ const initVoteSessionRoutes = (app) => {
         }
     }));
     app.patch('/vote-sessions/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        // Valider les données de la requête
+        console.log('Received PATCH request for vote session update');
+        console.log('Request params:', req.params);
+        console.log('Request body:', req.body);
         const { error } = votesession_validator_1.updateVoteSessionValidation.validate(req.body);
         if (error) {
             return res.status(400).json({
@@ -91,19 +93,26 @@ const initVoteSessionRoutes = (app) => {
             });
         }
         try {
-            // Convertir `id` en nombre
             const sessionId = parseInt(req.params.id, 10);
             if (isNaN(sessionId)) {
                 return res.status(400).json({ message: "L'ID de la session doit être un nombre valide." });
             }
-            // Appeler la méthode `updateVoteSession` avec les paramètres corrects
-            const updatedSession = yield voteSessionUsecase.updateVoteSession(Object.assign({ id: sessionId }, req.body));
-            // Si la mise à jour est réussie, renvoyer la session mise à jour avec un statut 200
+            const updatedSession = yield voteSessionUsecase.updateVoteSession({
+                id: sessionId,
+                titre: req.body.titre,
+                description: req.body.description,
+                dateDebut: req.body.dateDebut,
+                dateFin: req.body.dateFin,
+                participants: req.body.participants,
+            });
             return res.status(200).json(updatedSession);
         }
         catch (err) {
             console.error('Error updating vote session:', err);
-            res.status(500).json({ message: 'Erreur interne' });
+            if (err instanceof Error) {
+                return res.status(500).json({ message: 'Erreur interne', error: err.message });
+            }
+            return res.status(500).json({ message: 'Erreur interne inconnue' });
         }
     }));
     app.delete('/vote-sessions/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {

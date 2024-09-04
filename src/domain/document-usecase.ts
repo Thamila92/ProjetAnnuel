@@ -98,14 +98,20 @@ export class DocumentUsecase {
     // Liste des documents
     async listDocuments(): Promise<Document[]> {
         const documentRepo = this.db.getRepository(Document);
-        return await documentRepo.find({ relations: ['user'] });
+        return await documentRepo.find({     relations: ['user', 'folder'] // Inclure la relation avec le dossier
+    });
     }
 
     // Obtenir un document par ID
-    async getDocument(id: number): Promise<Document | null> {
-        const documentRepo = this.db.getRepository(Document);
-        return await documentRepo.findOne({ where: { id }, relations: ['user'] });
-    }
+// Obtenir un document par ID
+async getDocument(id: number): Promise<Document | null> {
+    const documentRepo = this.db.getRepository(Document);
+    return await documentRepo.findOne({ 
+        where: { id }, 
+        relations: ['user', 'folder'] // Inclure la relation avec le dossier
+    });
+}
+
 
     // Obtenir les liens d'un fichier depuis Google Drive
     async getFileLinks(fileId: string): Promise<{ webViewLink: string; webContentLink: string; }> {
@@ -163,15 +169,16 @@ export class DocumentUsecase {
 
     async removeFileFromFolder(fileId: number): Promise<Document | null> {
         const documentRepo = this.db.getRepository(Document);
-    
-        // Trouver le document
-        let document = await documentRepo.findOne({ where: { id: fileId } });
+        
+        // Trouver le document en incluant son dossier associé
+        let document = await documentRepo.findOne({ where: { id: fileId }, relations: ["folder"] });
         if (!document) return null;
-    
+        
         // Retirer le document du dossier en mettant folderId à null
-        document.folder.id = null;
-    
+        document.folder = null;
+        
         // Sauvegarder les modifications
         return await documentRepo.save(document);
     }
+    
 }

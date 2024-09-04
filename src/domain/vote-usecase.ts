@@ -39,8 +39,8 @@ export class VoteUsecase {
         const newVote = voteRepo.create({
             user,
             session,
-            option: session.type === 'sondage' ? option : undefined,  // Lier l'option si c'est un sondage
-            choix: session.type !== 'sondage' ? choix : undefined,  // Lier le choix si ce n'est pas un sondage
+            option: session.type === 'sondage' ? option : undefined,   
+            choix: session.type !== 'sondage' ? choix : undefined,   
             tour: session.tourActuel,
         });
     
@@ -63,5 +63,4 @@ export class VoteUsecase {
         return await voteRepo.find({ relations: ['user', 'session', 'option'] });
     }
     
-    // Ajoutez ici d'autres méthodes nécessaires...
-}
+ }

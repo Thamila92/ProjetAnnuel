@@ -69,7 +69,24 @@ export const initFolderRoutes = (app: Express) => {
             res.status(500).json({ message: 'Internal server error' });
         }
     });
-
+    app.post('/folders/:id/move-to-parent/:parentId', async (req: Request, res: Response) => {
+        const folderId = parseInt(req.params.id);
+        const parentId = parseInt(req.params.parentId);
+    
+        try {
+            const updatedFolder = await folderUsecase.moveToParent(folderId, parentId);
+    
+            if (!updatedFolder) {
+                return res.status(404).json({ message: 'Folder not found' });
+            }
+    
+            res.status(200).json({ message: 'Folder moved to new parent successfully', folder: updatedFolder });
+        } catch (error) {
+            console.error('Error moving folder to new parent:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    });
+    
     // Route pour supprimer un dossier et ses documents associés
     app.delete('/folder/:id', async (req: Request, res: Response) => {
         const folderId = parseInt(req.params.id);
@@ -122,6 +139,23 @@ export const initFolderRoutes = (app: Express) => {
             res.status(500).json({ message: 'Internal server error' });
         }
     });
+    app.post('/folders/:id/remove-from-parent', async (req: Request, res: Response) => {
+        const folderId = parseInt(req.params.id);
+    
+        try {
+            const folder = await folderUsecase.removeFromParent(folderId);
+    
+            if (!folder) {
+                return res.status(404).json({ message: 'Folder not found' });
+            }
+    
+            res.status(200).json({ message: 'Folder removed from parent successfully', folder });
+        } catch (error) {
+            console.error('Error removing folder from parent:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    });
+    
 
     app.post('/folders/:id/remove-from-folder', async (req, res) => {
         const folderId = parseInt(req.params.id);

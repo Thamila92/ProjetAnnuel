@@ -78,38 +78,45 @@ export const initVoteSessionRoutes = (app: express.Express) => {
     });
  
     app.patch('/vote-sessions/:id', async (req: Request, res: Response) => {
-        // Valider les données de la requête
+        console.log('Received PATCH request for vote session update');
+        console.log('Request params:', req.params);
+        console.log('Request body:', req.body);
+    
         const { error } = updateVoteSessionValidation.validate(req.body);
-        
         if (error) {
-          return res.status(400).json({
-            message: 'Validation error',
-            details: error.details.map(detail => detail.message),
-          });
+            return res.status(400).json({
+                message: 'Validation error',
+                details: error.details.map(detail => detail.message),
+            });
         }
     
         try {
-          // Convertir `id` en nombre
-          const sessionId = parseInt(req.params.id, 10);
-          if (isNaN(sessionId)) {
-            return res.status(400).json({ message: "L'ID de la session doit être un nombre valide." });
-          }
+            const sessionId = parseInt(req.params.id, 10);
+            if (isNaN(sessionId)) {
+                return res.status(400).json({ message: "L'ID de la session doit être un nombre valide." });
+            }
     
-          // Appeler la méthode `updateVoteSession` avec les paramètres corrects
-          const updatedSession = await voteSessionUsecase.updateVoteSession({
-            id: sessionId,
-            ...req.body,  // Transmettre les autres champs reçus dans la requête
-          });
+            const updatedSession = await voteSessionUsecase.updateVoteSession({
+                id: sessionId,
+                titre: req.body.titre,
+                description: req.body.description,
+                dateDebut: req.body.dateDebut,
+                dateFin: req.body.dateFin,
+                participants: req.body.participants,
+            });
     
-          // Si la mise à jour est réussie, renvoyer la session mise à jour avec un statut 200
-          return res.status(200).json(updatedSession);
-          
+            return res.status(200).json(updatedSession);
+    
         } catch (err) {
-          console.error('Error updating vote session:', err);
-          res.status(500).json({ message: 'Erreur interne' });
+            console.error('Error updating vote session:', err);
+            if (err instanceof Error) {
+                return res.status(500).json({ message: 'Erreur interne', error: err.message });
+            }
+            return res.status(500).json({ message: 'Erreur interne inconnue' });
         }
     });
     
+      
     app.delete('/vote-sessions/:id', async (req: Request, res: Response) => {
         try {
             // Convertir `id` en nombre

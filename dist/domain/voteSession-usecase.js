@@ -212,10 +212,10 @@ class VoteSessionUsecase {
     }
     updateVoteSession(params) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b, _c, _d, _e, _f;
+            var _a, _b, _c, _d;
             const existingSession = yield this.sessionRepo.findOne({
                 where: { id: params.id },
-                relations: ['participants', 'options', 'evenement']
+                relations: ['participants']
             });
             if (!existingSession) {
                 throw new Error('Session de vote non trouvée');
@@ -223,34 +223,11 @@ class VoteSessionUsecase {
             // Mise à jour des champs simples
             existingSession.titre = (_a = params.titre) !== null && _a !== void 0 ? _a : existingSession.titre;
             existingSession.description = (_b = params.description) !== null && _b !== void 0 ? _b : existingSession.description;
-            existingSession.modalite = (_c = params.modalite) !== null && _c !== void 0 ? _c : existingSession.modalite;
-            existingSession.dateDebut = (_d = params.dateDebut) !== null && _d !== void 0 ? _d : existingSession.dateDebut;
-            existingSession.dateFin = (_e = params.dateFin) !== null && _e !== void 0 ? _e : existingSession.dateFin;
-            existingSession.type = (_f = params.type) !== null && _f !== void 0 ? _f : existingSession.type;
+            existingSession.dateDebut = (_c = params.dateDebut) !== null && _c !== void 0 ? _c : existingSession.dateDebut;
+            existingSession.dateFin = (_d = params.dateFin) !== null && _d !== void 0 ? _d : existingSession.dateFin;
             // Mise à jour des participants
             if (params.participants) {
-                const newParticipants = yield this.userRepo.findByIds(params.participants);
-                existingSession.participants = newParticipants;
-            }
-            // Gestion des options de vote pour le type 'sondage'
-            if (params.type === 'sondage' && params.options) {
-                if (existingSession.options && existingSession.options.length > 0) {
-                    yield this.optionRepo.remove(existingSession.options);
-                }
-                if (params.options && params.options.length > 0) {
-                    const newOptions = params.options.map(optionTitre => {
-                        return this.optionRepo.create({
-                            titre: optionTitre, // Chaque chaîne de caractères devient un titre d'option
-                            session: existingSession, // Liez l'option à la session
-                        });
-                    });
-                    existingSession.options = yield this.optionRepo.save(newOptions);
-                }
-            }
-            else if (existingSession.type === 'classique' && existingSession.options.length) {
-                // Si le type est classique, supprimer toutes les options
-                yield this.optionRepo.remove(existingSession.options);
-                existingSession.options = [];
+                existingSession.participants = yield this.userRepo.findByIds(params.participants);
             }
             // Sauvegarde de la session mise à jour
             return yield this.sessionRepo.save(existingSession);

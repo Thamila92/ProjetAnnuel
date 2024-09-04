@@ -51,7 +51,7 @@ class FolderUsecase {
                     user: { id: userId },
                     parentFolder: (0, typeorm_1.IsNull)() // Utilisation de l'opérateur IsNull pour rechercher les dossiers racine
                 },
-                relations: ['documents', 'children'] // inclure les enfants dans la réponse
+                relations: ['documents', 'children'] // Inclure les enfants et les documents
             });
         });
     }
@@ -67,17 +67,44 @@ class FolderUsecase {
             return yield folderRepo.save(folder);
         });
     }
+    moveToParent(folderId, parentId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const folderRepo = this.db.getRepository(folder_1.Folder);
+            const folder = yield folderRepo.findOne({ where: { id: folderId }, relations: ['parentFolder'] });
+            if (!folder) {
+                return null;
+            }
+            const newParentFolder = yield folderRepo.findOne({ where: { id: parentId }, relations: ['children'] });
+            if (!newParentFolder) {
+                throw new Error('New parent folder not found');
+            }
+            folder.parentFolder = newParentFolder; // Définir le nouveau parent du dossier
+            return yield folderRepo.save(folder); // Sauvegarder le dossier avec son nouveau parent
+        });
+    }
     // Supprimer un dossier et tous les documents associés
     deleteFolder(id) {
         return __awaiter(this, void 0, void 0, function* () {
             const folderRepo = this.db.getRepository(folder_1.Folder);
             const documentRepo = this.db.getRepository(document_1.Document);
-            const folder = yield folderRepo.findOne({ where: { id }, relations: ['documents'] });
+            // Trouver le dossier avec ses documents et sous-dossiers
+            const folder = yield folderRepo.findOne({
+                where: { id },
+                relations: ['documents', 'children']
+            });
             if (!folder)
                 return null;
             // Supprimer tous les documents associés
-            yield documentRepo.remove(folder.documents);
-            // Supprimer le dossier
+            if (folder.documents && folder.documents.length > 0) {
+                yield documentRepo.remove(folder.documents);
+            }
+            // Supprimer tous les sous-dossiers de manière récursive
+            if (folder.children && folder.children.length > 0) {
+                for (const childFolder of folder.children) {
+                    yield this.deleteFolder(childFolder.id);
+                }
+            }
+            // Supprimer le dossier lui-même
             yield folderRepo.remove(folder);
             return folder;
         });
@@ -88,8 +115,18 @@ class FolderUsecase {
             const folderRepo = this.db.getRepository(folder_1.Folder);
             return yield folderRepo.findOne({
                 where: { id },
-                relations: ['documents', 'children'] // inclure les sous-dossiers
+                relations: ['documents', 'children', 'parentFolder'] // Inclure le parent dans les relations
             });
+        });
+    }
+    removeFromParent(folderId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const folderRepo = this.db.getRepository(folder_1.Folder);
+            const folder = yield folderRepo.findOne({ where: { id: folderId }, relations: ['parentFolder'] });
+            if (!folder)
+                return null;
+            folder.parentFolder = null; // Supprime la relation de parenté
+            return yield folderRepo.save(folder);
         });
     }
     addFileToFolder(folderId, fileId) {
@@ -124,16 +161,6 @@ class FolderUsecase {
             // Ajouter le sous-dossier au dossier parent
             childFolder.parentFolder = parentFolder;
             return yield folderRepo.save(childFolder);
-        });
-    }
-    removeFromParent(folderId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const folderRepo = this.db.getRepository(folder_1.Folder);
-            const folder = yield folderRepo.findOne({ where: { id: folderId } });
-            if (!folder)
-                return null;
-            folder.parentFolder = null; // Supprime la relation de parenté
-            return yield folderRepo.save(folder);
         });
     }
 }

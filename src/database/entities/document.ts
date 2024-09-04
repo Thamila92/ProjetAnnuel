@@ -26,5 +26,5 @@ export class Document {
     user!: User;
 
   @ManyToOne(() => Folder, folder => folder.documents, { nullable: true })
-  folder!: Folder; 
+  folder!: Folder | null; 
 }

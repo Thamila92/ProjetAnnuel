@@ -18,7 +18,7 @@ let Folder = class Folder {
 exports.Folder = Folder;
 __decorate([
     (0, typeorm_1.PrimaryGeneratedColumn)(),
-    __metadata("design:type", Object)
+    __metadata("design:type", Number)
 ], Folder.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)(),

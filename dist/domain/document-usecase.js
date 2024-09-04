@@ -92,14 +92,19 @@ class DocumentUsecase {
     listDocuments() {
         return __awaiter(this, void 0, void 0, function* () {
             const documentRepo = this.db.getRepository(document_1.Document);
-            return yield documentRepo.find({ relations: ['user'] });
+            return yield documentRepo.find({ relations: ['user', 'folder'] // Inclure la relation avec le dossier
+            });
         });
     }
+    // Obtenir un document par ID
     // Obtenir un document par ID
     getDocument(id) {
         return __awaiter(this, void 0, void 0, function* () {
             const documentRepo = this.db.getRepository(document_1.Document);
-            return yield documentRepo.findOne({ where: { id }, relations: ['user'] });
+            return yield documentRepo.findOne({
+                where: { id },
+                relations: ['user', 'folder'] // Inclure la relation avec le dossier
+            });
         });
     }
     // Obtenir les liens d'un fichier depuis Google Drive
@@ -159,12 +164,12 @@ class DocumentUsecase {
     removeFileFromFolder(fileId) {
         return __awaiter(this, void 0, void 0, function* () {
             const documentRepo = this.db.getRepository(document_1.Document);
-            // Trouver le document
-            let document = yield documentRepo.findOne({ where: { id: fileId } });
+            // Trouver le document en incluant son dossier associé
+            let document = yield documentRepo.findOne({ where: { id: fileId }, relations: ["folder"] });
             if (!document)
                 return null;
             // Retirer le document du dossier en mettant folderId à null
-            document.folder.id = null;
+            document.folder = null;
             // Sauvegarder les modifications
             return yield documentRepo.save(document);
         });

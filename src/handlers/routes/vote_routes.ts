@@ -12,38 +12,24 @@ export const initVoteRoutes = (app: express.Express) => {
     // Créer un vote
     app.post('/votes', async (req: Request, res: Response) => {
         try {
-            let validationResult;
-            const session = await voteSessionUsecase.getVoteSession(req.body.sessionId);
-
-            if (!session) {
-                return res.status(400).json({ error: "Session non trouvée" });
+            const { userId, sessionId, choixOuOption } = req.body;
+    
+            // Appel à la méthode createVote du usecase
+            const result = await voteUsecase.createVote(userId, sessionId, choixOuOption);
+    
+            // Vérifie si le résultat est un message d'erreur ou un vote réussi
+            if (typeof result === 'string') {
+                return res.status(400).json({ error: result });
             }
-
-            if (session.type === 'sondage') {
-                // Valider pour un sondage
-                validationResult = pollVoteValidation.validate(req.body);
-            } else {
-                // Valider pour un vote classique
-                validationResult = classicVoteValidation.validate(req.body);
-            }
-
-            if (validationResult.error) {
-                return res.status(400).json(validationResult.error.details);
-            }
-
-            const result = await voteUsecase.createVote(
-                validationResult.value.userId,
-                validationResult.value.sessionId,
-                session.type === 'sondage' ? validationResult.value.optionId : validationResult.value.choix
-            );
-
-            res.status(201).json(result);
+    
+            // Si le vote est créé avec succès, renvoie une réponse 201 avec les détails du vote
+            return res.status(201).json(result);
         } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: "Erreur interne" });
+            console.error('Error creating vote', error);
+            res.status(500).json({ error: "Erreur interne du serveur" });
         }
     });
-
+    
 
     app.get('/votes/hasVoted', async (req: Request, res: Response) => {
         try {
